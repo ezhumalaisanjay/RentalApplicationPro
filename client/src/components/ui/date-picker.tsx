@@ -41,7 +41,9 @@ export function DatePicker({
           disabled={typeof disabled === "boolean" ? disabled : false}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>{placeholder}</span>}
+          {value instanceof Date && !isNaN(value.getTime())
+            ? format(value, "PPP")
+            : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

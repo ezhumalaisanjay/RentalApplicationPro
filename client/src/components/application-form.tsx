@@ -21,6 +21,7 @@ import { PDFGenerator } from "@/lib/pdf-generator";
 import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
+import { useRef } from "react";
 
 const applicationSchema = z.object({
   // Application Info
@@ -92,6 +93,7 @@ export function ApplicationForm() {
   const [hasGuarantor, setHasGuarantor] = useState(false);
   const [sameAddressCoApplicant, setSameAddressCoApplicant] = useState(false);
   const [sameAddressGuarantor, setSameAddressGuarantor] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
@@ -137,12 +139,10 @@ export function ApplicationForm() {
       guarantor: hasGuarantor ? formData.guarantor : undefined,
       signatures,
     });
-
     const link = document.createElement('a');
     link.href = pdfData;
     link.download = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
     link.click();
-
     toast({
       title: "PDF Generated",
       description: "Your rental application PDF has been downloaded.",
@@ -219,11 +219,11 @@ export function ApplicationForm() {
     }
   };
 
-  const renderStep = () => {
-    if (currentStep === 0) {
-      return <ApplicationInstructions onNext={nextStep} />;
-    }
-    switch (currentStep) {
+  // Refactor renderStep to accept a stepIdx argument
+  const renderStep = (stepIdx = currentStep) => {
+    switch (stepIdx) {
+      case 0:
+        return <ApplicationInstructions onNext={nextStep} />;
       case 1:
         return (
           <Card className="form-section">
@@ -290,7 +290,7 @@ export function ApplicationForm() {
                           value={field.value}
                           onChange={(date) => {
                             field.onChange(date);
-                            updateFormData('application', 'moveInDate', date?.toISOString());
+                            updateFormData('application', 'moveInDate', date); // Store Date object, not string
                           }}
                           placeholder="Select move-in date"
                           disabled={(date) => date < new Date()}
@@ -426,7 +426,7 @@ export function ApplicationForm() {
                           value={field.value}
                           onChange={(date) => {
                             field.onChange(date);
-                            updateFormData('applicant', 'dob', date?.toISOString());
+                            updateFormData('applicant', 'dob', date);
                           }}
                           placeholder="Select date of birth"
                         />
@@ -772,7 +772,7 @@ export function ApplicationForm() {
                     <div>
                       <Label>Date of Birth *</Label>
                       <DatePicker
-                        onChange={(date) => updateFormData('coApplicant', 'dob', date?.toISOString())}
+                        onChange={(date) => updateFormData('coApplicant', 'dob', date)}
                         placeholder="Select date of birth"
                       />
                     </div>
@@ -923,7 +923,7 @@ export function ApplicationForm() {
                     <div>
                       <Label>Date of Birth *</Label>
                       <DatePicker
-                        onChange={(date) => updateFormData('guarantor', 'dob', date?.toISOString())}
+                        onChange={(date) => updateFormData('guarantor', 'dob', date)}
                         placeholder="Select date of birth"
                       />
                     </div>
