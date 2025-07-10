@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface FinancialSectionProps {
   title: string;
@@ -15,6 +16,10 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
 
   const handleChange = (field: string, value: string) => {
     updateFormData(person, field, value);
+  };
+
+  const handleDateChange = (field: string, date: Date | undefined) => {
+    updateFormData(person, field, date?.toISOString());
   };
 
   return (
@@ -48,11 +53,10 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor={`${person}-employmentStart`}>Employment Start Date</Label>
-            <Input
-              id={`${person}-employmentStart`}
-              type="date"
-              value={personData.employmentStart || ""}
-              onChange={(e) => handleChange("employmentStart", e.target.value)}
+            <DatePicker
+              value={personData.employmentStart ? new Date(personData.employmentStart) : undefined}
+              onChange={(date) => handleDateChange("employmentStart", date)}
+              placeholder="Select employment start date"
             />
           </div>
           
