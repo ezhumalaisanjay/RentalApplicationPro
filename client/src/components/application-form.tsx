@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +20,7 @@ import { SupportingDocuments } from "./supporting-documents";
 import { PDFGenerator } from "@/lib/pdf-generator";
 import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ApplicationInstructions from "./application-instructions";
 
 const applicationSchema = z.object({
   // Application Info
@@ -65,6 +67,7 @@ const applicationSchema = z.object({
 type ApplicationFormData = z.infer<typeof applicationSchema>;
 
 const STEPS = [
+  { id: 0, title: "Instructions" },
   { id: 1, title: "Application Info", icon: FileText },
   { id: 2, title: "Primary Applicant", icon: UserCheck },
   { id: 3, title: "Financial Info", icon: CalendarDays },
@@ -76,7 +79,7 @@ const STEPS = [
 
 export function ApplicationForm() {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<any>({
     application: {},
     applicant: {},
@@ -164,13 +167,13 @@ export function ApplicationForm() {
   };
 
   const nextStep = () => {
-    if (currentStep < STEPS.length) {
+    if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -217,6 +220,9 @@ export function ApplicationForm() {
   };
 
   const renderStep = () => {
+    if (currentStep === 0) {
+      return <ApplicationInstructions onNext={nextStep} />;
+    }
     switch (currentStep) {
       case 1:
         return (
@@ -1059,6 +1065,12 @@ export function ApplicationForm() {
                 <CardTitle>Digital Signatures</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="mb-6">
+                  <h3 className="font-bold uppercase text-sm mb-2">PLEASE READ CAREFULLY BEFORE SIGNING</h3>
+                  <p className="text-xs text-gray-700 whitespace-pre-line">
+                    The Landlord will in no event be bound, nor will possession be given, unless and until a lease executed by the Landlord has been delivered to the Tenant. The applicant and his/her references must be satisfactory to the Landlord. Please be advised that the date on page one of the lease is not your move-in date. Your move-in date will be arranged with you after you have been approved. No representations or agreements by agents, brokers or others are binding on the Landlord or Agent unless included in the written lease proposed to be executed. I hereby warrant that all my representations set forth herein are true. I recognize the truth of the information contained herein is essential. I further represent that I am not renting a room or an apartment under any other name, nor have I ever been dispossessed from any apartment, nor am I now being dispossessed. I represent that I am over 18 years of age. I have been advised that I have the right, under section 8068 of the Fair Credit Reporting Act, to make a written request, directed to the appropriate credit reporting agency, within reasonable time, for a complete and accurate disclosure of the nature and scope of any credit investigation. I understand that upon submission, this application and all related documents become the property of the Landlord, and will not be returned to me under any circumstances. I authorize the Landlord, Agent and credit reporting agency to obtain a consumer credit report on me and to verify any information on this application with regard to my employment history, current and prior tenancies, bank accounts, and all other information that the Landlord deems pertinent to my obtaining residency. I understand that I shall not be permitted to receive or review my application file or my credit consumer report. I authorize banks, financial institutions, landlords, business associates, credit bureaus, attorneys, accountants and other persons or institutions with whom I am acquainted to furnish any and all information regarding myself. This authorization also applies to any update reports which may be ordered as needed. A photocopy or fax of this authorization shall be accepted with the same authority as this original. I will present any other information required by the Landlord or Agent in connection with the lease contemplated herein. I understand that the application fee is non-refundable. The Civil Rights Act of 1968, as amended by the Fair Housing Amendments Act of 1988, prohibits discrimination in the rental of housing based on race, color, religion, sex, handicap, familial status or national origin. The Federal Agency, which administers compliance with this law, is the U.S. Department of Housing and Urban Development.
+                  </p>
+                </div>
                 <div>
                   <Label className="text-base font-medium">Primary Applicant Signature *</Label>
                   <SignaturePad 
@@ -1136,7 +1148,7 @@ export function ApplicationForm() {
                     {isCompleted ? (
                       <Check className="w-5 h-5" />
                     ) : (
-                      <Icon className="w-5 h-5" />
+                      step.icon ? React.createElement(step.icon, { className: "w-5 h-5" }) : step.title[0]
                     )}
                   </button>
                   {index < STEPS.length - 1 && (
@@ -1148,7 +1160,7 @@ export function ApplicationForm() {
           </div>
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Step {currentStep}: {STEPS[currentStep - 1]?.title}
+              Step {currentStep}: {STEPS[currentStep]?.title}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {currentStep} of {STEPS.length}
@@ -1156,48 +1168,14 @@ export function ApplicationForm() {
           </div>
         </div>
 
-        {/* Application Requirements */}
-        <Card className="border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/20 mb-8">
-          <CardContent className="pt-6">
-            <div className="mb-4">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
-                Application Requirements
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-blue-800 dark:text-blue-200">
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    Applicants must show income of <strong>40 TIMES THE MONTHLY RENT</strong>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    Guarantors must show income of <strong>80 TIMES THE MONTHLY RENT</strong>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    <strong>$50.00</strong> non-refundable processing fee per adult
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    Applications must be submitted in full
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button type="button" variant="outline" onClick={saveDraft} className="w-full sm:w-auto">
-              <Save className="w-4 h-4 mr-2" />
-              Save Draft
-            </Button>
-            <Button type="button" variant="outline" onClick={generatePDF} className="w-full sm:w-auto">
+            <Button
+              type="button"
+              onClick={generatePDF}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold w-full sm:w-auto"
+            >
               <Download className="w-4 h-4 mr-2" />
               Generate PDF
             </Button>
@@ -1221,7 +1199,7 @@ export function ApplicationForm() {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === 0}
                 className="flex items-center"
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
