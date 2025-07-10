@@ -1,8 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Button } from "./ui/button";
+import { DatePicker } from "./ui/date-picker";
+import { Plus, Trash2 } from "lucide-react";
 
 interface FinancialSectionProps {
   title: string;
@@ -38,7 +40,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
               onChange={(e) => handleChange("employer", e.target.value)}
             />
           </div>
-          
+
           <div>
             <Label htmlFor={`${person}-position`}>Position/Title *</Label>
             <Input
@@ -59,7 +61,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
               placeholder="Select employment start date"
             />
           </div>
-          
+
           <div>
             <Label htmlFor={`${person}-income`}>Annual Income ($) *</Label>
             <Input
@@ -70,7 +72,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
               onChange={(e) => handleChange("income", e.target.value)}
             />
           </div>
-          
+
           <div>
             <Label htmlFor={`${person}-otherIncome`}>Other Income ($)</Label>
             <Input
@@ -93,34 +95,98 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
           />
         </div>
 
-        <div className="space-y-3">
-          <h4 className="text-md font-medium text-gray-700">Banking Information</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor={`${person}-bankName`}>Bank Name</Label>
-              <Input
-                id={`${person}-bankName`}
-                placeholder="Bank name"
-                value={personData.bankName || ""}
-                onChange={(e) => handleChange("bankName", e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor={`${person}-accountType`}>Account Type</Label>
-              <Select value={personData.accountType || ""} onValueChange={(value) => handleChange("accountType", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="checking">Checking</SelectItem>
-                  <SelectItem value="savings">Savings</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
+        <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Bank Information</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const bankRecords = formData[person]?.bankRecords || [];
+                      const newRecord = { bankName: '', accountType: '', accountNumber: '' };
+                      updateFormData(person, 'bankRecords', [...bankRecords, newRecord]);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Bank Account
+                  </Button>
+                </div>
+
+                {(formData[person]?.bankRecords || [{ bankName: '', accountType: '', accountNumber: '' }]).map((record: any, index: number) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Bank Account {index + 1}</h4>
+                      {index > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const bankRecords = formData[person]?.bankRecords || [];
+                            const updated = bankRecords.filter((_: any, i: number) => i !== index);
+                            updateFormData(person, 'bankRecords', updated);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Bank Name</Label>
+                        <Input
+                          placeholder="Enter bank name"
+                          className="input-field"
+                          value={record.bankName || ''}
+                          onChange={(e) => {
+                            const bankRecords = [...(formData[person]?.bankRecords || [])];
+                            bankRecords[index] = { ...bankRecords[index], bankName: e.target.value };
+                            updateFormData(person, 'bankRecords', bankRecords);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Account Type</Label>
+                        <Select 
+                          value={record.accountType || ''}
+                          onValueChange={(value) => {
+                            const bankRecords = [...(formData[person]?.bankRecords || [])];
+                            bankRecords[index] = { ...bankRecords[index], accountType: value };
+                            updateFormData(person, 'bankRecords', bankRecords);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="checking">Checking</SelectItem>
+                            <SelectItem value="savings">Savings</SelectItem>
+                            <SelectItem value="money-market">Money Market</SelectItem>
+                            <SelectItem value="cd">Certificate of Deposit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Account Number (Last 4 digits)</Label>
+                      <Input
+                        placeholder="XXXX"
+                        className="input-field"
+                        maxLength={4}
+                        value={record.accountNumber || ''}
+                        onChange={(e) => {
+                          const bankRecords = [...(formData[person]?.bankRecords || [])];
+                          bankRecords[index] = { ...bankRecords[index], accountNumber: e.target.value };
+                          updateFormData(person, 'bankRecords', bankRecords);
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
       </CardContent>
     </Card>
   );

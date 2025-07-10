@@ -992,7 +992,21 @@ export function ApplicationForm() {
                           onChange={(e) => updateFormData('guarantor', 'lengthAtAddress', e.target.value)}
                         />
                       </div>
-                    </div>                  </div>
+                    </div>
+                  </div>
+
+                  <FinancialSection 
+                    title="Guarantor Financial Information"
+                    person="guarantor"
+                    formData={formData}
+                    updateFormData={updateFormData}
+                  />
+
+                  <DocumentSection 
+                    title="Guarantor Documents"
+                    person="guarantor"
+                    onDocumentChange={handleDocumentChange}
+                  />
                 </CardContent>
               </Card>
             )}
