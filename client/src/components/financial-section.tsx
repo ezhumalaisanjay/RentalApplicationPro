@@ -28,7 +28,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
         <CardTitle className="text-lg font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor={`${person}-employer`}>Current Employer *</Label>
             <Input
@@ -50,7 +50,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div>
             <Label htmlFor={`${person}-employmentStart`}>Employment Start Date</Label>
             <DatePicker
@@ -95,7 +95,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
 
         <div className="space-y-3">
           <h4 className="text-md font-medium text-gray-700">Banking Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor={`${person}-bankName`}>Bank Name</Label>
               <Input

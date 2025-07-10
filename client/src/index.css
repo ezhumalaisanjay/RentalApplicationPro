@@ -99,6 +99,103 @@
   border-color: hsl(240, 10%, 3.9%);
 }
 
+/* Mobile-first responsive design */
+@media (max-width: 640px) {
+  .form-section {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0.5rem;
+  }
+  
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .grid {
+    gap: 0.75rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  .text-lg {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  .py-6 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  .space-y-8 > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+
+  .max-w-4xl {
+    max-width: none;
+  }
+
+  .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .py-8 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .sticky {
+    position: relative;
+  }
+
+  .text-sm {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+}
+
+/* Tablet responsive design */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .text-3xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1025px) {
+  .form-section {
+    transition: box-shadow 0.2s ease-in-out;
+  }
+  
+  .form-section:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Conditional section animations */
+.conditional-section {
+  @apply animate-in slide-in-from-top-2 duration-300;
+}
+
+.checkbox-container {
+  @apply hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md p-2 transition-colors;
+}
+
 .checkbox-container {
   cursor: pointer;
 }

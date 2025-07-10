@@ -179,12 +179,12 @@ export function ApplicationForm() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Liberty Place Property Management</h1>
-            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <p>122 East 42nd Street, Suite 1903, New York, NY 10168</p>
-              <p>Tel: (646) 545-6700 | Fax: (646) 304-2255</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Liberty Place Property Management</h1>
+            <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <p className="break-words">122 East 42nd Street, Suite 1903, New York, NY 10168</p>
+              <p className="break-words">Tel: (646) 545-6700 | Fax: (646) 304-2255</p>
               <p className="text-blue-600 dark:text-blue-400 font-medium">Rental Application Form</p>
             </div>
           </div>
@@ -193,18 +193,18 @@ export function ApplicationForm() {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Action Buttons */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={saveDraft}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={saveDraft} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
               Save Draft
             </Button>
-            <Button type="button" variant="outline" onClick={generatePDF}>
+            <Button type="button" variant="outline" onClick={generatePDF} className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Generate PDF
             </Button>
           </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600 dark:text-gray-400 w-full sm:w-auto text-center sm:text-right">
             <CalendarDays className="w-4 h-4 inline mr-1" />
             Today: {new Date().toLocaleDateString()}
           </div>
@@ -221,7 +221,7 @@ export function ApplicationForm() {
                     <FileText className="w-5 h-5 mr-2" />
                     Application Requirements
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800 dark:text-blue-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-blue-800 dark:text-blue-200">
                     <div className="space-y-2">
                       <div className="flex items-center">
                         <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
@@ -1147,7 +1147,7 @@ export function ApplicationForm() {
               <Button 
                 type="submit" 
                 size="lg" 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-3 text-lg font-semibold"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 sm:px-12 py-3 text-base sm:text-lg font-semibold w-full sm:w-auto max-w-md"
               >
                 Submit Application
               </Button>
