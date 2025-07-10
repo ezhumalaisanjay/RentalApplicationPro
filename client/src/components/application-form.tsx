@@ -14,8 +14,10 @@ import { SignaturePad } from "@/components/ui/signature-pad";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FinancialSection } from "./financial-section";
 import { DocumentSection } from "./document-section";
+import { LegalQuestions } from "./legal-questions";
+import { SupportingDocuments } from "./supporting-documents";
 import { PDFGenerator } from "@/lib/pdf-generator";
-import { Download, FileText, Save, Users, UserCheck, CalendarDays } from "lucide-react";
+import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const applicationSchema = z.object({
@@ -47,6 +49,17 @@ const applicationSchema = z.object({
   // Conditional fields
   hasCoApplicant: z.boolean().default(false),
   hasGuarantor: z.boolean().default(false),
+  
+  // Legal Questions
+  hasBankruptcy: z.boolean().default(false),
+  bankruptcyDetails: z.string().optional(),
+  hasEviction: z.boolean().default(false),
+  evictionDetails: z.string().optional(),
+  hasCriminalHistory: z.boolean().default(false),
+  criminalHistoryDetails: z.string().optional(),
+  hasPets: z.boolean().default(false),
+  petDetails: z.string().optional(),
+  smokingStatus: z.string().optional(),
 });
 
 type ApplicationFormData = z.infer<typeof applicationSchema>;
@@ -1105,6 +1118,43 @@ export function ApplicationForm() {
                 />
               </div>
             )}
+
+            {/* Legal Questions */}
+            <Card className="form-section">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Legal Questions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LegalQuestions 
+                  formData={formData.application}
+                  updateFormData={(field, value) => updateFormData('application', field, value)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Supporting Documents */}
+            <Card className="form-section">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FolderOpen className="w-5 h-5 mr-2" />
+                  Supporting Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SupportingDocuments 
+                  formData={formData}
+                  onDocumentChange={(documentType, files) => {
+                    setDocuments((prev: any) => ({
+                      ...prev,
+                      [documentType]: files,
+                    }));
+                  }}
+                />
+              </CardContent>
+            </Card>
 
             {/* Signatures */}
             <Card className="form-section">

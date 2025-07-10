@@ -140,6 +140,58 @@ export class PDFGenerator {
     this.addField("Account Type", person.accountType);
   }
 
+  private addLegalQuestions(data: FormData): void {
+    this.checkPageBreak();
+    this.addSection("Legal Questions");
+    
+    this.addField("Ever filed for bankruptcy?", data.application.hasBankruptcy ? "Yes" : "No");
+    if (data.application.hasBankruptcy && data.application.bankruptcyDetails) {
+      this.addField("Bankruptcy Details", data.application.bankruptcyDetails);
+    }
+    
+    this.addField("Ever been evicted?", data.application.hasEviction ? "Yes" : "No");
+    if (data.application.hasEviction && data.application.evictionDetails) {
+      this.addField("Eviction Details", data.application.evictionDetails);
+    }
+    
+    this.addField("Criminal history?", data.application.hasCriminalHistory ? "Yes" : "No");
+    if (data.application.hasCriminalHistory && data.application.criminalHistoryDetails) {
+      this.addField("Criminal History Details", data.application.criminalHistoryDetails);
+    }
+    
+    this.addField("Have pets?", data.application.hasPets ? "Yes" : "No");
+    if (data.application.hasPets && data.application.petDetails) {
+      this.addField("Pet Details", data.application.petDetails);
+    }
+    
+    this.addField("Smoking Status", data.application.smokingStatus || "Not specified");
+  }
+
+  private addSupportingDocuments(data: FormData): void {
+    this.checkPageBreak();
+    this.addSection("Supporting Documents");
+    
+    this.addText("The following documents are required for application processing:", 10);
+    this.yPosition += 5;
+    
+    const requiredDocs = [
+      "Government-issued Photo ID",
+      "Social Security Card",
+      "Bank Statement (most recent)",
+      "Tax Returns (previous year)",
+      "Employment Letter",
+      "Pay Stubs (last 2-4)"
+    ];
+    
+    requiredDocs.forEach(doc => {
+      this.addText(`• ${doc}`, 9);
+    });
+    
+    this.yPosition += 5;
+    this.addText("Additional documents may be required based on employment status.", 9);
+    this.addText("$50 processing fee required per adult applicant and guarantor.", 9);
+  }
+
   private addSignature(title: string, signature: string): void {
     this.checkPageBreak();
     this.addSection(`${title} Signature`);
@@ -184,6 +236,12 @@ export class PDFGenerator {
       this.addPersonalInfo("Guarantor Information", formData.guarantor);
       this.addFinancialInfo("Guarantor", formData.guarantor);
     }
+    
+    // Add legal questions
+    this.addLegalQuestions(formData);
+    
+    // Add supporting documents
+    this.addSupportingDocuments(formData);
     
     // Add signatures
     if (formData.signatures.applicant) {

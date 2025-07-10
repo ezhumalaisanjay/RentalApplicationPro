@@ -92,6 +92,17 @@ export const rentalApplications = pgTable("rental_applications", {
   coApplicantSignature: text("co_applicant_signature"),
   guarantorSignature: text("guarantor_signature"),
   
+  // Legal Questions
+  hasBankruptcy: boolean("has_bankruptcy").default(false),
+  bankruptcyDetails: text("bankruptcy_details"),
+  hasEviction: boolean("has_eviction").default(false),
+  evictionDetails: text("eviction_details"),
+  hasCriminalHistory: boolean("has_criminal_history").default(false),
+  criminalHistoryDetails: text("criminal_history_details"),
+  hasPets: boolean("has_pets").default(false),
+  petDetails: text("pet_details"),
+  smokingStatus: text("smoking_status"), // "non-smoker", "smoker", "occasional"
+  
   // Documents (JSON array of file paths/URLs)
   documents: text("documents"),
   

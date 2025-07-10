@@ -88,6 +88,16 @@ export class MemStorage implements IStorage {
       applicantSignature: insertApplication.applicantSignature || null,
       coApplicantSignature: insertApplication.coApplicantSignature || null,
       guarantorSignature: insertApplication.guarantorSignature || null,
+      // Legal Questions
+      hasBankruptcy: insertApplication.hasBankruptcy || null,
+      bankruptcyDetails: insertApplication.bankruptcyDetails || null,
+      hasEviction: insertApplication.hasEviction || null,
+      evictionDetails: insertApplication.evictionDetails || null,
+      hasCriminalHistory: insertApplication.hasCriminalHistory || null,
+      criminalHistoryDetails: insertApplication.criminalHistoryDetails || null,
+      hasPets: insertApplication.hasPets || null,
+      petDetails: insertApplication.petDetails || null,
+      smokingStatus: insertApplication.smokingStatus || null,
       documents: insertApplication.documents || null,
     };
     this.applications.set(id, application);
