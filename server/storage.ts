@@ -26,7 +26,9 @@ export class MemStorage implements IStorage {
       ...insertApplication, 
       id,
       applicationDate: new Date(),
+      status: insertApplication.status || 'draft',
       submittedAt: insertApplication.status === 'submitted' ? new Date() : null,
+      howDidYouHear: insertApplication.howDidYouHear || null,
     };
     this.applications.set(id, application);
     return application;

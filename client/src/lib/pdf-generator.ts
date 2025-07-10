@@ -50,12 +50,31 @@ export class PDFGenerator {
   }
 
   private addHeader(): void {
-    this.addText("Liberty Place Property Management", 16, true);
-    this.addText("122 East 42nd Street, Suite 1903, New York, NY 10168", 10);
-    this.addText("Tel: (646) 545-6700 | Fax: (646) 304-2255", 10);
+    // Company name
+    this.doc.setFontSize(18);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text("Liberty Place Property Management", 105, this.yPosition, { align: 'center' });
+    this.yPosition += 8;
+    
+    // Address and contact info
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text("122 East 42nd Street, Suite 1903, New York, NY 10168", 105, this.yPosition, { align: 'center' });
+    this.yPosition += 5;
+    this.doc.text("Tel: (646) 545-6700 | Fax: (646) 304-2255", 105, this.yPosition, { align: 'center' });
+    this.yPosition += 5;
+    this.doc.text("Leasing Direct Line: (646) 545-6700", 105, this.yPosition, { align: 'center' });
     this.yPosition += 10;
     
-    this.doc.setDrawColor(0, 0, 0);
+    // Title
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text("RENTAL APPLICATION", 105, this.yPosition, { align: 'center' });
+    this.yPosition += 10;
+    
+    // Decorative line
+    this.doc.setDrawColor(0, 102, 204);
+    this.doc.setLineWidth(1);
     this.doc.line(this.marginLeft, this.yPosition, this.pageWidth - this.marginRight, this.yPosition);
     this.yPosition += 10;
   }
