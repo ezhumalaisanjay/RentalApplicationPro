@@ -1,0 +1,110 @@
+import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const rentalApplications = pgTable("rental_applications", {
+  id: serial("id").primaryKey(),
+  // Application Info
+  applicationDate: timestamp("application_date").defaultNow(),
+  buildingAddress: text("building_address").notNull(),
+  apartmentNumber: text("apartment_number").notNull(),
+  moveInDate: timestamp("move_in_date").notNull(),
+  monthlyRent: real("monthly_rent").notNull(),
+  apartmentType: text("apartment_type").notNull(),
+  howDidYouHear: text("how_did_you_hear"),
+  
+  // Primary Applicant
+  applicantName: text("applicant_name").notNull(),
+  applicantDob: timestamp("applicant_dob").notNull(),
+  applicantSsn: text("applicant_ssn").notNull(),
+  applicantPhone: text("applicant_phone").notNull(),
+  applicantEmail: text("applicant_email").notNull(),
+  applicantLicense: text("applicant_license"),
+  applicantLicenseState: text("applicant_license_state"),
+  applicantAddress: text("applicant_address").notNull(),
+  applicantCity: text("applicant_city").notNull(),
+  applicantState: text("applicant_state").notNull(),
+  applicantZip: text("applicant_zip").notNull(),
+  applicantLengthAtAddress: text("applicant_length_at_address"),
+  applicantLandlordName: text("applicant_landlord_name"),
+  applicantCurrentRent: real("applicant_current_rent"),
+  applicantReasonForMoving: text("applicant_reason_for_moving"),
+  
+  // Primary Applicant Financial
+  applicantEmployer: text("applicant_employer"),
+  applicantPosition: text("applicant_position"),
+  applicantEmploymentStart: timestamp("applicant_employment_start"),
+  applicantIncome: real("applicant_income"),
+  applicantOtherIncome: real("applicant_other_income"),
+  applicantOtherIncomeSource: text("applicant_other_income_source"),
+  applicantBankName: text("applicant_bank_name"),
+  applicantAccountType: text("applicant_account_type"),
+  
+  // Co-Applicant
+  hasCoApplicant: boolean("has_co_applicant").default(false),
+  coApplicantName: text("co_applicant_name"),
+  coApplicantRelationship: text("co_applicant_relationship"),
+  coApplicantDob: timestamp("co_applicant_dob"),
+  coApplicantSsn: text("co_applicant_ssn"),
+  coApplicantPhone: text("co_applicant_phone"),
+  coApplicantEmail: text("co_applicant_email"),
+  coApplicantSameAddress: boolean("co_applicant_same_address").default(false),
+  coApplicantAddress: text("co_applicant_address"),
+  coApplicantCity: text("co_applicant_city"),
+  coApplicantState: text("co_applicant_state"),
+  coApplicantZip: text("co_applicant_zip"),
+  coApplicantLengthAtAddress: text("co_applicant_length_at_address"),
+  
+  // Co-Applicant Financial
+  coApplicantEmployer: text("co_applicant_employer"),
+  coApplicantPosition: text("co_applicant_position"),
+  coApplicantEmploymentStart: timestamp("co_applicant_employment_start"),
+  coApplicantIncome: real("co_applicant_income"),
+  coApplicantOtherIncome: real("co_applicant_other_income"),
+  coApplicantBankName: text("co_applicant_bank_name"),
+  coApplicantAccountType: text("co_applicant_account_type"),
+  
+  // Guarantor
+  hasGuarantor: boolean("has_guarantor").default(false),
+  guarantorName: text("guarantor_name"),
+  guarantorRelationship: text("guarantor_relationship"),
+  guarantorDob: timestamp("guarantor_dob"),
+  guarantorSsn: text("guarantor_ssn"),
+  guarantorPhone: text("guarantor_phone"),
+  guarantorEmail: text("guarantor_email"),
+  guarantorAddress: text("guarantor_address"),
+  guarantorCity: text("guarantor_city"),
+  guarantorState: text("guarantor_state"),
+  guarantorZip: text("guarantor_zip"),
+  guarantorLengthAtAddress: text("guarantor_length_at_address"),
+  
+  // Guarantor Financial
+  guarantorEmployer: text("guarantor_employer"),
+  guarantorPosition: text("guarantor_position"),
+  guarantorEmploymentStart: timestamp("guarantor_employment_start"),
+  guarantorIncome: real("guarantor_income"),
+  guarantorOtherIncome: real("guarantor_other_income"),
+  guarantorBankName: text("guarantor_bank_name"),
+  guarantorAccountType: text("guarantor_account_type"),
+  
+  // Signatures
+  applicantSignature: text("applicant_signature"),
+  coApplicantSignature: text("co_applicant_signature"),
+  guarantorSignature: text("guarantor_signature"),
+  
+  // Documents (JSON array of file paths/URLs)
+  documents: text("documents"),
+  
+  // Status
+  status: text("status").default("draft"),
+  submittedAt: timestamp("submitted_at"),
+});
+
+export const insertRentalApplicationSchema = createInsertSchema(rentalApplications).omit({
+  id: true,
+  applicationDate: true,
+  submittedAt: true,
+});
+
+export type InsertRentalApplication = z.infer<typeof insertRentalApplicationSchema>;
+export type RentalApplication = typeof rentalApplications.$inferSelect;
