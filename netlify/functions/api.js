@@ -1,6 +1,11 @@
-const express = require('express');
-const serverless = require('serverless-http');
-const { registerRoutes } = require('../../dist/server/index.js');
+import express from 'express';
+import serverless from 'serverless-http';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { registerRoutes } from '../../dist/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -13,4 +18,4 @@ app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../dist/public/index.html'));
 });
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);
