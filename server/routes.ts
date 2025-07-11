@@ -106,10 +106,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Submit application with webhook integration
   app.post("/api/submit-application", async (req, res) => {
     try {
+      console.log('Received submission request:', JSON.stringify(req.body, null, 2));
+      
       const { applicationData, files, signatures } = req.body;
       
+      if (!applicationData) {
+        console.error('No applicationData provided');
+        return res.status(400).json({ error: "No application data provided" });
+      }
+      
       // Validate application data
+      console.log('Validating application data...');
       const validatedData = insertRentalApplicationSchema.parse(applicationData);
+      console.log('Validation successful:', validatedData);
       
       // Create application in database
       const application = await storage.createApplication({

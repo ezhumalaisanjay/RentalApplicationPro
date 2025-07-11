@@ -59,6 +59,7 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
               value={personData.employmentStart ? new Date(personData.employmentStart) : undefined}
               onChange={(date) => handleDateChange("employmentStart", date)}
               placeholder="Select employment start date"
+              disabled={(date) => date > new Date()}
             />
           </div>
 

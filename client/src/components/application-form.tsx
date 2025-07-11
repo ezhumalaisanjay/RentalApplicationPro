@@ -279,14 +279,119 @@ export function ApplicationForm() {
         uploadedFiles = uploadResult.files || [];
       }
 
-      // Submit application with webhook integration
+      // Transform form data to match database schema
+      const transformedData = {
+        // Application Info
+        buildingAddress: data.buildingAddress,
+        apartmentNumber: data.apartmentNumber,
+        moveInDate: data.moveInDate,
+        monthlyRent: data.monthlyRent,
+        apartmentType: data.apartmentType,
+        howDidYouHear: data.howDidYouHear,
+        
+        // Primary Applicant
+        applicantName: data.applicantName,
+        applicantDob: data.applicantDob,
+        applicantSsn: data.applicantSsn,
+        applicantPhone: data.applicantPhone,
+        applicantEmail: data.applicantEmail,
+        applicantLicense: data.applicantLicense,
+        applicantLicenseState: data.applicantLicenseState,
+        applicantAddress: data.applicantAddress,
+        applicantCity: data.applicantCity,
+        applicantState: data.applicantState,
+        applicantZip: data.applicantZip,
+        applicantLengthAtAddress: data.applicantLengthAtAddress,
+        applicantLandlordName: data.applicantLandlordName,
+        applicantCurrentRent: data.applicantCurrentRent,
+        applicantReasonForMoving: data.applicantReasonForMoving,
+        
+        // Primary Applicant Financial (from formData)
+        applicantEmployer: formData.applicant?.employer || null,
+        applicantPosition: formData.applicant?.position || null,
+        applicantEmploymentStart: formData.applicant?.employmentStart ? new Date(formData.applicant.employmentStart) : null,
+        applicantIncome: formData.applicant?.income ? parseFloat(formData.applicant.income) : null,
+        applicantOtherIncome: formData.applicant?.otherIncome ? parseFloat(formData.applicant.otherIncome) : null,
+        applicantOtherIncomeSource: formData.applicant?.otherIncomeSource || null,
+        applicantBankName: formData.applicant?.bankRecords?.[0]?.bankName || null,
+        applicantAccountType: formData.applicant?.bankRecords?.[0]?.accountType || null,
+        
+        // Co-Applicant
+        hasCoApplicant: hasCoApplicant,
+        coApplicantName: formData.coApplicant?.name || null,
+        coApplicantRelationship: formData.coApplicant?.relationship || null,
+        coApplicantDob: formData.coApplicant?.dob || null,
+        coApplicantSsn: formData.coApplicant?.ssn || null,
+        coApplicantPhone: formData.coApplicant?.phone || null,
+        coApplicantEmail: formData.coApplicant?.email || null,
+        coApplicantSameAddress: sameAddressCoApplicant,
+        coApplicantAddress: formData.coApplicant?.address || null,
+        coApplicantCity: formData.coApplicant?.city || null,
+        coApplicantState: formData.coApplicant?.state || null,
+        coApplicantZip: formData.coApplicant?.zip || null,
+        coApplicantLengthAtAddress: formData.coApplicant?.lengthAtAddress || null,
+        
+        // Co-Applicant Financial
+        coApplicantEmployer: formData.coApplicant?.employer || null,
+        coApplicantPosition: formData.coApplicant?.position || null,
+        coApplicantEmploymentStart: formData.coApplicant?.employmentStart ? new Date(formData.coApplicant.employmentStart) : null,
+        coApplicantIncome: formData.coApplicant?.income ? parseFloat(formData.coApplicant.income) : null,
+        coApplicantOtherIncome: formData.coApplicant?.otherIncome ? parseFloat(formData.coApplicant.otherIncome) : null,
+        coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
+        coApplicantAccountType: formData.coApplicant?.bankRecords?.[0]?.accountType || null,
+        
+        // Guarantor
+        hasGuarantor: hasGuarantor,
+        guarantorName: formData.guarantor?.name || null,
+        guarantorRelationship: formData.guarantor?.relationship || null,
+        guarantorDob: formData.guarantor?.dob || null,
+        guarantorSsn: formData.guarantor?.ssn || null,
+        guarantorPhone: formData.guarantor?.phone || null,
+        guarantorEmail: formData.guarantor?.email || null,
+        guarantorAddress: formData.guarantor?.address || null,
+        guarantorCity: formData.guarantor?.city || null,
+        guarantorState: formData.guarantor?.state || null,
+        guarantorZip: formData.guarantor?.zip || null,
+        guarantorLengthAtAddress: formData.guarantor?.lengthAtAddress || null,
+        
+        // Guarantor Financial
+        guarantorEmployer: formData.guarantor?.employer || null,
+        guarantorPosition: formData.guarantor?.position || null,
+        guarantorEmploymentStart: formData.guarantor?.employmentStart ? new Date(formData.guarantor.employmentStart) : null,
+        guarantorIncome: formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null,
+        guarantorOtherIncome: formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null,
+        guarantorBankName: formData.guarantor?.bankRecords?.[0]?.bankName || null,
+        guarantorAccountType: formData.guarantor?.bankRecords?.[0]?.accountType || null,
+        
+        // Signatures
+        applicantSignature: signatures.applicant || null,
+        coApplicantSignature: signatures.coApplicant || null,
+        guarantorSignature: signatures.guarantor || null,
+        
+        // Legal Questions
+        hasBankruptcy: data.hasBankruptcy,
+        bankruptcyDetails: data.bankruptcyDetails,
+        hasEviction: data.hasEviction,
+        evictionDetails: data.evictionDetails,
+        hasCriminalHistory: data.hasCriminalHistory,
+        criminalHistoryDetails: data.criminalHistoryDetails,
+        hasPets: data.hasPets,
+        petDetails: data.petDetails,
+        smokingStatus: data.smokingStatus,
+        
+        // Documents
+        documents: JSON.stringify(uploadedFiles),
+      };
+      
+      console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
+      
       const submissionResponse = await fetch('/api/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          applicationData: data,
+          applicationData: transformedData,
           files: uploadedFiles,
           signatures: signatures
         }),
@@ -553,6 +658,7 @@ export function ApplicationForm() {
                             updateFormData('applicant', 'dob', date);
                           }}
                           placeholder="Select date of birth"
+                          disabled={(date) => date > new Date()}
                         />
                       </FormControl>
                       <FormMessage />
@@ -898,6 +1004,7 @@ export function ApplicationForm() {
                       <DatePicker
                         onChange={(date) => updateFormData('coApplicant', 'dob', date)}
                         placeholder="Select date of birth"
+                        disabled={(date) => date > new Date()}
                       />
                     </div>
                     <div>
@@ -1049,6 +1156,7 @@ export function ApplicationForm() {
                       <DatePicker
                         onChange={(date) => updateFormData('guarantor', 'dob', date)}
                         placeholder="Select date of birth"
+                        disabled={(date) => date > new Date()}
                       />
                     </div>
                     <div>
