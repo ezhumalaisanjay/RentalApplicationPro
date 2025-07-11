@@ -3,74 +3,107 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    
+    <!-- IMMEDIATE ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
     <script>
-      // Suppress browser extension errors and unwanted console messages
       (function() {
-        // Store original console methods
-        const originalError = console.error;
-        const originalWarn = console.warn;
+        'use strict';
         
-        // Filter out browser extension errors
+        // IMMEDIATE: Override console methods before any scripts load
+        const originalConsole = {
+          error: console.error,
+          warn: console.warn,
+          log: console.log
+        };
+        
+        // Create a message filter
+        function shouldSuppress(message) {
+          const msg = String(message).toLowerCase();
+          return (
+            msg.includes('message port closed') ||
+            msg.includes('websocket connection to ws://localhost:8098/') ||
+            msg.includes('inject.bundle.js') ||
+            msg.includes('runtime.lasterror') ||
+            msg.includes('chrome-extension://') ||
+            msg.includes('moz-extension://') ||
+            msg.includes('safari-extension://') ||
+            msg.includes('ms-browser-extension://') ||
+            msg.includes('extension://') ||
+            msg.includes('localhost:8098') ||
+            msg.includes('injected css loaded successfully') ||
+            msg.includes('unchecked runtime.lasterror')
+          );
+        }
+        
+        // Override console.error
         console.error = function(...args) {
           const message = args.join(' ');
-          if (
-            message.includes('message port closed') ||
-            message.includes('WebSocket connection to ws://localhost:8098/') ||
-            message.includes('inject.bundle.js') ||
-            message.includes('runtime.lastError') ||
-            message.includes('chrome-extension://') ||
-            message.includes('moz-extension://') ||
-            message.includes('safari-extension://') ||
-            message.includes('ms-browser-extension://')
-          ) {
-            return; // Suppress these errors
+          if (shouldSuppress(message)) {
+            return; // Completely suppress
           }
-          originalError.apply(console, args);
+          originalConsole.error.apply(console, args);
         };
         
+        // Override console.warn
         console.warn = function(...args) {
           const message = args.join(' ');
-          if (
-            message.includes('message port closed') ||
-            message.includes('WebSocket connection') ||
-            message.includes('inject.bundle.js') ||
-            message.includes('runtime.lastError')
-          ) {
-            return; // Suppress these warnings
+          if (shouldSuppress(message)) {
+            return; // Completely suppress
           }
-          originalWarn.apply(console, args);
+          originalConsole.warn.apply(console, args);
         };
         
-        // Suppress unhandled promise rejections from extensions
-        window.addEventListener('unhandledrejection', function(event) {
-          const message = event.reason?.message || event.reason || '';
-          if (
-            message.includes('message port closed') ||
-            message.includes('WebSocket connection') ||
-            message.includes('inject.bundle.js') ||
-            message.includes('runtime.lastError')
-          ) {
-            event.preventDefault();
-            return false;
+        // Override console.log to filter some messages
+        console.log = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppress(message)) {
+            return; // Suppress extension-related logs
           }
-        });
+          originalConsole.log.apply(console, args);
+        };
         
-        // Block unwanted script injections
+        // BLOCK WebSocket connections to localhost:8098
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          if (url && (url.includes('localhost:8098') || url.includes('ws://localhost:8098'))) {
+            // Return a dummy WebSocket that does nothing
+            return {
+              readyState: 3, // CLOSED
+              url: url,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* do nothing */ },
+              close: function() { /* do nothing */ },
+              addEventListener: function() { /* do nothing */ },
+              removeEventListener: function() { /* do nothing */ },
+              dispatchEvent: function() { return false; }
+            };
+          }
+          return new originalWebSocket(url, protocols);
+        };
+        
+        // BLOCK unwanted script injections
         const originalCreateElement = document.createElement;
         document.createElement = function(tagName) {
           const element = originalCreateElement.call(document, tagName);
           if (tagName.toLowerCase() === 'script') {
             const originalSetAttribute = element.setAttribute;
             element.setAttribute = function(name, value) {
-              if (name === 'src' && (
+              if (name === 'src' && value && (
                 value.includes('inject.bundle.js') ||
                 value.includes('chrome-extension://') ||
                 value.includes('moz-extension://') ||
                 value.includes('safari-extension://') ||
-                value.includes('ms-browser-extension://')
+                value.includes('ms-browser-extension://') ||
+                value.includes('extension://')
               )) {
-                return; // Block unwanted script sources
+                return; // Block the script
               }
               originalSetAttribute.call(this, name, value);
             };
@@ -78,30 +111,42 @@
           return element;
         };
         
-        // Suppress WebSocket connection attempts to localhost
-        const originalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-          if (url && url.includes('localhost:8098')) {
-            // Create a dummy WebSocket that does nothing
-            const dummySocket = {
-              readyState: 3, // CLOSED
-              send: function() {},
-              close: function() {},
-              addEventListener: function() {},
-              removeEventListener: function() {},
-              dispatchEvent: function() { return false; }
-            };
-            return dummySocket;
+        // SUPPRESS unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+          const message = String(event.reason?.message || event.reason || '');
+          if (shouldSuppress(message)) {
+            event.preventDefault();
+            return false;
           }
-          return new originalWebSocket(url, protocols);
-        };
+        }, true);
         
-        console.log('Error suppression and security measures activated');
+        // SUPPRESS global errors
+        window.addEventListener('error', function(event) {
+          const message = String(event.message || '');
+          const filename = String(event.filename || '');
+          if (shouldSuppress(message) || shouldSuppress(filename)) {
+            event.preventDefault();
+            return false;
+          }
+        }, true);
+        
+        // SUPPRESS security policy violations
+        window.addEventListener('securitypolicyviolation', function(event) {
+          if (shouldSuppress(event.violatedDirective) || shouldSuppress(event.blockedURI)) {
+            event.preventDefault();
+            return false;
+          }
+        }, true);
+        
+        // IMMEDIATE: Log that suppression is active
+        originalConsole.log('🔒 Error suppression system activated - all browser extension errors blocked');
+        
       })();
     </script>
+    
+    <script type="module" crossorigin src="/src/main.tsx"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
