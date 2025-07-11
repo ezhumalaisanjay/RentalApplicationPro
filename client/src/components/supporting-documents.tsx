@@ -126,7 +126,7 @@ export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDoc
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="text-lg font-medium">Supporting Documents</CardTitle>
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-50 p-4 rounded-lg mb-3">
           <h4 className="font-medium text-blue-900 mb-2">Application Requirements:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• Applicants must show income of 40 TIMES the monthly rent</li>
@@ -134,6 +134,11 @@ export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDoc
             <li>• $50 non-refundable processing fee per adult applicant and guarantor</li>
             <li>• All documents must be clear, legible, and complete</li>
           </ul>
+        </div>
+        <div className="bg-green-50 p-3 rounded-lg">
+          <p className="text-sm text-green-800">
+            <span className="font-medium">🔒 Security Notice:</span> All documents uploaded in this section will be encrypted before transmission to ensure your privacy and data security.
+          </p>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -185,7 +190,7 @@ export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDoc
                       maxFiles={5}
                       maxSize={10}
                       label={`Upload ${document.name}`}
-                      description="Max 5 files, 10MB each. Accepted: JPG, PNG, PDF"
+                      description="Max 5 files, 10MB each. Accepted: JPG, PNG, PDF - Encrypted"
                       className="mt-2"
                       enableEncryption={true}
                     />

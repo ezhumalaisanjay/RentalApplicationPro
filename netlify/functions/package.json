@@ -1,0 +1,12 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for rental application",
+  "main": "api.js",
+  "dependencies": {
+    "express": "^4.21.2",
+    "serverless-http": "^3.2.0",
+    "zod": "^3.24.2",
+    "crypto-js": "^4.2.0"
+  }
+} 

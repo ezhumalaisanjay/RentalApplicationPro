@@ -17,6 +17,7 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["express", "serverless-http", "zod", "crypto-js"]
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"

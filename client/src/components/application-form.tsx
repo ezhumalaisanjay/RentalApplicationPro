@@ -970,6 +970,7 @@ export function ApplicationForm() {
             title="Primary Applicant Documents"
             person="applicant"
             onDocumentChange={handleDocumentChange}
+            onEncryptedDocumentChange={handleEncryptedDocumentChange}
           />
         );
 
@@ -1162,6 +1163,7 @@ export function ApplicationForm() {
                     title="Co-Applicant Documents"
                     person="coApplicant"
                     onDocumentChange={handleDocumentChange}
+                    onEncryptedDocumentChange={handleEncryptedDocumentChange}
                   />
                 </CardContent>
               </Card>
@@ -1296,6 +1298,7 @@ export function ApplicationForm() {
                     title="Guarantor Documents"
                     person="guarantor"
                     onDocumentChange={handleDocumentChange}
+                    onEncryptedDocumentChange={handleEncryptedDocumentChange}
                   />
                 </CardContent>
               </Card>
