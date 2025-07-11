@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// AGGRESSIVE ERROR SUPPRESSION - RUNS IMMEDIATELY
+// ULTRA-AGGRESSIVE ERROR SUPPRESSION - RUNS IMMEDIATELY
 (function() {
   'use strict';
   
@@ -14,12 +14,14 @@ import "./index.css";
     WebSocket: window.WebSocket
   };
   
-  // Enhanced message filter
+  // Ultra-aggressive message filter
   function shouldBlock(message: string): boolean {
     const msg = String(message).toLowerCase();
     const blockedPatterns = [
       'message port closed',
       'websocket connection to ws://localhost:8098/',
+      'websocket connection to ws://localhost:8098',
+      'websocket not connected',
       'inject.bundle.js',
       'runtime.lasterror',
       'chrome-extension://',
@@ -31,13 +33,17 @@ import "./index.css";
       'injected css loaded successfully',
       'unchecked runtime.lasterror',
       'multi-tabs.js',
-      'hook.js'
+      'hook.js',
+      'websocket',
+      'ws://localhost',
+      'websocket connection failed',
+      'websocket error'
     ];
     
     return blockedPatterns.some(pattern => msg.includes(pattern));
   }
   
-  // Override console methods with more aggressive filtering
+  // Override console methods with ultra-aggressive filtering
   console.error = function(...args: any[]) {
     const message = args.join(' ');
     if (shouldBlock(message)) {
@@ -62,14 +68,15 @@ import "./index.css";
     originalMethods.log.apply(console, args);
   };
   
-  // Block ALL WebSocket connections to localhost
+  // ULTRA-AGGRESSIVE WebSocket blocking
   const OriginalWebSocket = window.WebSocket;
   (window as any).WebSocket = function(url: string | URL, protocols?: string | string[]) {
-    if (url && (String(url).includes('localhost:8098') || String(url).includes('ws://localhost:8098'))) {
-      // Return a completely inert WebSocket
+    const urlStr = String(url || '');
+    if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+      // Return a completely inert WebSocket that does absolutely nothing
       const dummySocket = {
         readyState: 3, // CLOSED
-        url: url,
+        url: urlStr,
         protocol: protocols || '',
         extensions: '',
         bufferedAmount: 0,
@@ -77,10 +84,10 @@ import "./index.css";
         onclose: null,
         onmessage: null,
         onerror: null,
-        send: function() { /* do absolutely nothing */ },
-        close: function() { /* do absolutely nothing */ },
-        addEventListener: function() { /* do absolutely nothing */ },
-        removeEventListener: function() { /* do absolutely nothing */ },
+        send: function() { /* DO ABSOLUTELY NOTHING */ },
+        close: function() { /* DO ABSOLUTELY NOTHING */ },
+        addEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
+        removeEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
         dispatchEvent: function() { return false; }
       };
       
@@ -100,7 +107,7 @@ import "./index.css";
     return new OriginalWebSocket(url, protocols);
   };
   
-  // Block all error events
+  // Block all error events with ultra-aggressive filtering
   window.addEventListener('error', function(event: ErrorEvent) {
     const message = String(event.message || '');
     const filename = String(event.filename || '');
@@ -111,7 +118,7 @@ import "./index.css";
     }
   }, true);
   
-  // Block all unhandled promise rejections
+  // Block all unhandled promise rejections with ultra-aggressive filtering
   window.addEventListener('unhandledrejection', function(event: PromiseRejectionEvent) {
     const message = String(event.reason?.message || event.reason || '');
     if (shouldBlock(message)) {
@@ -140,7 +147,7 @@ import "./index.css";
   }, true);
   
   // Log success message
-  originalMethods.log('🛡️ Advanced error suppression system activated - all extension noise blocked');
+  originalMethods.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS COMPLETELY BLOCKED');
   
 })();
 

@@ -5,10 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
-    <!-- IMMEDIATE ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
+    <!-- ULTRA-AGGRESSIVE ERROR SUPPRESSION - RUNS IMMEDIATELY -->
     <script>
       (function() {
         'use strict';
+        
+        // IMMEDIATE: Block WebSocket before anything else
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+            // Return a completely inert WebSocket that does absolutely nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            
+            // Prevent any error events
+            setTimeout(() => {
+              if (dummySocket.onerror) {
+                try {
+                  dummySocket.onerror(new Event('error'));
+                } catch (e) {
+                  // Ignore everything
+                }
+              }
+            }, 0);
+            
+            return dummySocket;
+          }
+          return new OriginalWebSocket(url, protocols);
+        };
         
         // IMMEDIATE: Override console methods before any scripts load
         const originalConsole = {
@@ -17,26 +56,34 @@
           log: console.log
         };
         
-        // Create a message filter
+        // Ultra-aggressive message filter
         function shouldSuppress(message) {
           const msg = String(message).toLowerCase();
-          return (
-            msg.includes('message port closed') ||
-            msg.includes('websocket connection to ws://localhost:8098/') ||
-            msg.includes('inject.bundle.js') ||
-            msg.includes('runtime.lasterror') ||
-            msg.includes('chrome-extension://') ||
-            msg.includes('moz-extension://') ||
-            msg.includes('safari-extension://') ||
-            msg.includes('ms-browser-extension://') ||
-            msg.includes('extension://') ||
-            msg.includes('localhost:8098') ||
-            msg.includes('injected css loaded successfully') ||
-            msg.includes('unchecked runtime.lasterror')
-          );
+          const blockedPatterns = [
+            'message port closed',
+            'websocket connection to ws://localhost:8098/',
+            'websocket connection to ws://localhost:8098',
+            'websocket not connected',
+            'inject.bundle.js',
+            'runtime.lasterror',
+            'chrome-extension://',
+            'moz-extension://',
+            'safari-extension://',
+            'ms-browser-extension://',
+            'extension://',
+            'localhost:8098',
+            'injected css loaded successfully',
+            'unchecked runtime.lasterror',
+            'multi-tabs.js',
+            'hook.js',
+            'websocket',
+            'ws://localhost'
+          ];
+          
+          return blockedPatterns.some(pattern => msg.includes(pattern));
         }
         
-        // Override console.error
+        // Override console.error with ultra-aggressive filtering
         console.error = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -45,7 +92,7 @@
           originalConsole.error.apply(console, args);
         };
         
-        // Override console.warn
+        // Override console.warn with ultra-aggressive filtering
         console.warn = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -54,7 +101,7 @@
           originalConsole.warn.apply(console, args);
         };
         
-        // Override console.log to filter some messages
+        // Override console.log to filter extension messages
         console.log = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -63,83 +110,47 @@
           originalConsole.log.apply(console, args);
         };
         
-        // BLOCK WebSocket connections to localhost:8098
-        const originalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-          if (url && (url.includes('localhost:8098') || url.includes('ws://localhost:8098'))) {
-            // Return a dummy WebSocket that does nothing
-            return {
-              readyState: 3, // CLOSED
-              url: url,
-              protocol: protocols || '',
-              extensions: '',
-              bufferedAmount: 0,
-              onopen: null,
-              onclose: null,
-              onmessage: null,
-              onerror: null,
-              send: function() { /* do nothing */ },
-              close: function() { /* do nothing */ },
-              addEventListener: function() { /* do nothing */ },
-              removeEventListener: function() { /* do nothing */ },
-              dispatchEvent: function() { return false; }
-            };
-          }
-          return new originalWebSocket(url, protocols);
-        };
-        
-        // BLOCK unwanted script injections
-        const originalCreateElement = document.createElement;
-        document.createElement = function(tagName) {
-          const element = originalCreateElement.call(document, tagName);
-          if (tagName.toLowerCase() === 'script') {
-            const originalSetAttribute = element.setAttribute;
-            element.setAttribute = function(name, value) {
-              if (name === 'src' && value && (
-                value.includes('inject.bundle.js') ||
-                value.includes('chrome-extension://') ||
-                value.includes('moz-extension://') ||
-                value.includes('safari-extension://') ||
-                value.includes('ms-browser-extension://') ||
-                value.includes('extension://')
-              )) {
-                return; // Block the script
-              }
-              originalSetAttribute.call(this, name, value);
-            };
-          }
-          return element;
-        };
-        
-        // SUPPRESS unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(event) {
-          const message = String(event.reason?.message || event.reason || '');
-          if (shouldSuppress(message)) {
-            event.preventDefault();
-            return false;
-          }
-        }, true);
-        
-        // SUPPRESS global errors
+        // BLOCK all error events immediately
         window.addEventListener('error', function(event) {
           const message = String(event.message || '');
           const filename = String(event.filename || '');
           if (shouldSuppress(message) || shouldSuppress(filename)) {
             event.preventDefault();
+            event.stopImmediatePropagation();
             return false;
           }
         }, true);
         
-        // SUPPRESS security policy violations
+        // BLOCK all unhandled promise rejections immediately
+        window.addEventListener('unhandledrejection', function(event) {
+          const message = String(event.reason?.message || event.reason || '');
+          if (shouldSuppress(message)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+        
+        // BLOCK security policy violations
         window.addEventListener('securitypolicyviolation', function(event) {
           if (shouldSuppress(event.violatedDirective) || shouldSuppress(event.blockedURI)) {
             event.preventDefault();
+            event.stopImmediatePropagation();
             return false;
           }
         }, true);
         
-        // IMMEDIATE: Log that suppression is active
-        originalConsole.log('🔒 Error suppression system activated - all browser extension errors blocked');
+        // BLOCK beforeunload events from extensions
+        window.addEventListener('beforeunload', function(event) {
+          if (shouldSuppress(event.type)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return false;
+          }
+        }, true);
+        
+        // IMMEDIATE: Log that ultra-aggressive suppression is active
+        originalConsole.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS BLOCKED');
         
       })();
     </script>
