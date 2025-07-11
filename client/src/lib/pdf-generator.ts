@@ -10,6 +10,7 @@ interface FormData {
     coApplicant?: string;
     guarantor?: string;
   };
+  occupants?: any[]; // Added for Other Occupants
 }
 
 export class PDFGenerator {
@@ -211,7 +212,58 @@ export class PDFGenerator {
     this.addText("Date: " + new Date().toLocaleDateString(), 10);
   }
 
+  private addOccupants(occupants: any[]): void {
+    if (occupants && occupants.length > 0) {
+      this.checkPageBreak();
+      this.addSection("Other Occupants (Not Applicants)");
+      this.addText("List any other people who will be living in the apartment", 9);
+      occupants.forEach((occ, idx) => {
+        this.addText(
+          `${idx + 1}. Name: ${occ.name || ''} | Relationship: ${occ.relationship || ''} | Date of Birth: ${occ.dob ? (occ.dob instanceof Date ? occ.dob.toLocaleDateString() : occ.dob) : ''} | Social Security #: ${occ.ssn || ''} | Age: ${occ.age || ''} | Sex: ${occ.sex || ''}`,
+          9
+        );
+      });
+    }
+  }
+
+  private addTermsAndConditions(): void {
+    this.checkPageBreak();
+    this.addSection("Terms & Conditions / Legal Disclaimer");
+    this.addText(
+      "The Landlord will in no event be bound, nor will possession be given, unless and until a lease executed by the Landlord has been delivered to the Tenant. The applicant and his/her references must be satisfactory to the Landlord. Please be advised that the date on page one of the lease is not your move-in date. Your move-in date will be arranged with you after you have been approved. No representations or agreements by agents, brokers or others are binding on the Landlord or Agent unless included in the written lease proposed to be executed. I hereby warrant that all my representations set forth herein are true. I recognize the truth of the information contained herein is essential. I further represent that I am not renting a room or an apartment under any other name, nor have I ever been dispossessed from any apartment, nor am I now being dispossessed. I represent that I am over 18 years of age. I have been advised that I have the right, under section 8068 of the Fair Credit Reporting Act, to make a written request, directed to the appropriate credit reporting agency, within reasonable time, for a complete and accurate disclosure of the nature and scope of any credit investigation. I understand that upon submission, this application and all related documents become the property of the Landlord, and will not be returned to me under any circumstances. I authorize the Landlord, Agent and credit reporting agency to obtain a consumer credit report on me and to verify any information on this application with regard to my employment history, current and prior tenancies, bank accounts, and all other information that the Landlord deems pertinent to my obtaining residency. I understand that I shall not be permitted to receive or review my application file or my credit consumer report. I authorize banks, financial institutions, landlords, business associates, credit bureaus, attorneys, accountants and other persons or institutions with whom I am acquainted to furnish any and all information regarding myself. This authorization also applies to any update reports which may be ordered as needed. A photocopy or fax of this authorization shall be accepted with the same authority as this original. I will present any other information required by the Landlord or Agent in connection with the lease contemplated herein. I understand that the application fee is non-refundable. The Civil Rights Act of 1968, as amended by the Fair Housing Amendments Act of 1988, prohibits discrimination in the rental of housing based on race, color, religion, sex, handicap, familial status or national origin. The Federal Agency, which administers compliance with this law, is the U.S. Department of Housing and Urban Development.",
+      9
+    );
+  }
+
+  private addInstructionsAndRequirements(): void {
+    this.checkPageBreak();
+    this.addSection("LIBERTY PLACE");
+    this.addText("122 East 42nd Street, Suite 1903 New York, NY 10168", 10);
+    this.addText("Tel: (646) 545-6700 Fax: (646) 304-2255 Leasing Direct Line: (646)545-6700", 10);
+    this.yPosition += 2;
+    this.addText("Thank you for choosing a Liberty Place Property Management apartment.", 10);
+    this.yPosition += 2;
+    this.addText("Applicants must show income of 40 TIMES THE MONTHLY RENT. (may be combined among applicants)", 10);
+    this.addText("Guarantors must show income of 80 TIMES THE MONTHLY RENT. (may NOT be combined with applicants)", 10);
+    this.addText("Applications packages must be submitted in full as detailed below. Only complete applications will be reviewed and considered for tenancy.", 10);
+    this.addText("Applications will not remove apartments from the market.", 10);
+    this.addText("Lease signings must be scheduled within three (3) days of approval or the backup applicant will be considered.", 10);
+    this.yPosition += 2;
+    this.addText("We look forward to servicing your residential needs.", 10);
+    this.yPosition += 2;
+    this.addText("YOUR APPLICATION PACKAGE MUST INCLUDE:", 10, true);
+    this.addText("Completed and Signed application by applicants and guarantors $50.00 Non-refundable processing fee per adult applicant and per guarantor- Money order or cashier's check", 10);
+    this.addText("Driver's License or Photo ID (18 & over) Social Security Card Financial Statement - First Page (Checking, Savings and/or other assets) Previous year tax returns - First Page", 10);
+    this.addText("Proof of Employment if you work for a company: 1. Letter on company letterhead including length of employment, salary & position 2. Last 4 paystubs (If paid weekly) - or - Last 2 paystubs (if paid bi-weekly or semi-monthly)", 10);
+    this.addText("Proof of Employment if you are self-employed: 1. Previous year 1099 2. Notarized Letter from your accountant on his/her company letterhead verifying: A. Nature of the business B. Length of employment C. Income holdings D. Projected annual income expected for the current year and upcoming year.", 10);
+    this.yPosition += 2;
+    this.addText("CORPORATE APPLICANTS MUST SUBMIT A SEPARATE APPLICATION ALONG WITH:", 10, true);
+    this.addText("$150.00 Non-refundable application fee Corporate officer as a guarantor Information of the company employee that will occupy the apartment Certified Financial Statements Corporate Tax Returns (two (2) most recent consecutive returns)", 10);
+  }
+
   public generatePDF(formData: FormData): string {
+    // Add Liberty Place instructions and requirements
+    this.addInstructionsAndRequirements();
     // Add header
     this.addHeader();
     
@@ -242,6 +294,9 @@ export class PDFGenerator {
     
     // Add supporting documents
     this.addSupportingDocuments(formData);
+
+    // Add occupants section
+    this.addOccupants(formData.occupants || []);
     
     // Add signatures
     if (formData.signatures.applicant) {
@@ -255,6 +310,9 @@ export class PDFGenerator {
     if (formData.signatures.guarantor) {
       this.addSignature("Guarantor", formData.signatures.guarantor);
     }
+
+    // Add terms & conditions at the end
+    this.addTermsAndConditions();
     
     // Add footer
     this.checkPageBreak();

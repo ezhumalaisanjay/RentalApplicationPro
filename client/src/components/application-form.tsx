@@ -73,9 +73,10 @@ const STEPS = [
   { id: 2, title: "Primary Applicant", icon: UserCheck },
   { id: 3, title: "Financial Info", icon: CalendarDays },
   { id: 4, title: "Documents", icon: FolderOpen },
-  { id: 5, title: "Additional People", icon: Users },
-  { id: 6, title: "Legal Questions", icon: Shield },
-  { id: 7, title: "Signatures", icon: Check },
+  { id: 5, title: "Other Occupants", icon: Users }, // New dedicated step
+  { id: 6, title: "Additional People", icon: Users },
+  { id: 7, title: "Legal Questions", icon: Shield },
+  { id: 8, title: "Signatures", icon: Check },
 ];
 
 export function ApplicationForm() {
@@ -86,6 +87,7 @@ export function ApplicationForm() {
     applicant: {},
     coApplicant: {},
     guarantor: {},
+    occupants: [], // Each occupant: { name, relationship, dob, ssn, age, sex }
   });
   const [signatures, setSignatures] = useState<any>({});
   const [documents, setDocuments] = useState<any>({});
@@ -1013,6 +1015,117 @@ export function ApplicationForm() {
                     person="guarantor"
                     onDocumentChange={handleDocumentChange}
                   />
+                </CardContent>
+              </Card>
+            )}
+
+            {stepIdx === 5 && (
+              <Card className="form-section border-l-4 border-l-blue-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-700 dark:text-blue-400">
+                    <Users className="w-5 h-5 mr-2" />
+                    Other Occupants (Not Applicants)
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">List any other people who will be living in the apartment</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {formData.occupants && formData.occupants.length > 0 && formData.occupants.map((occ: any, idx: number) => (
+                    <div key={idx} className="border rounded p-4 mb-2 bg-gray-50">
+                      <div className="font-semibold mb-2">Occupant {idx + 1}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Name</Label>
+                          <Input
+                            value={occ.name || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].name = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Full name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Relationship</Label>
+                          <Input
+                            value={occ.relationship || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].relationship = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Relationship"
+                          />
+                        </div>
+                        <div>
+                          <Label>Date of Birth</Label>
+                          <DatePicker
+                            value={occ.dob || undefined}
+                            onChange={date => {
+                              const updated = [...formData.occupants];
+                              updated[idx].dob = date;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="dd-mm-yyyy"
+                          />
+                        </div>
+                        <div>
+                          <Label>Social Security #</Label>
+                          <Input
+                            value={occ.ssn || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].ssn = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="XXX-XX-XXXX"
+                          />
+                        </div>
+                        <div>
+                          <Label>Age</Label>
+                          <Input
+                            type="number"
+                            value={occ.age || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].age = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Age"
+                          />
+                        </div>
+                        <div>
+                          <Label>Sex</Label>
+                          <Select
+                            onValueChange={value => {
+                              const updated = [...formData.occupants];
+                              updated[idx].sex = value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            value={occ.sex || ''}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Button type="button" variant="destructive" onClick={() => {
+                          const updated = formData.occupants.filter((_: any, i: number) => i !== idx);
+                          setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                        }}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={() => {
+                    setFormData((prev: any) => ({ ...prev, occupants: [...(prev.occupants || []), { name: '', relationship: '', dob: undefined, ssn: '', age: '', sex: '' }] }));
+                  }}>Add Another Occupant</Button>
                 </CardContent>
               </Card>
             )}
