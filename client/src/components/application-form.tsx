@@ -425,20 +425,25 @@ export function ApplicationForm() {
       console.log('Current window location:', window.location.href);
       console.log('Making request to:', window.location.origin + '/api/submit-application');
       
+      const requestBody = {
+        applicationData: transformedData,
+        files: uploadedFiles,
+        signatures: signatures,
+        encryptedData: {
+          documents: encryptedDocuments,
+          allEncryptedFiles: allEncryptedFiles
+        }
+      };
+      
+      console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
+      console.log('Request body encryptedData:', requestBody.encryptedData);
+      
       const submissionResponse = await fetch('/api/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          applicationData: transformedData,
-          files: uploadedFiles,
-          signatures: signatures,
-          encryptedData: {
-            documents: encryptedDocuments,
-            allEncryptedFiles: allEncryptedFiles
-          }
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!submissionResponse.ok) {

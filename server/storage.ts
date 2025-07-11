@@ -28,6 +28,9 @@ export class MemStorage implements IStorage {
       applicationDate: new Date(),
       status: insertApplication.status || 'draft',
       submittedAt: insertApplication.status === 'submitted' ? new Date() : null,
+      // Ensure required fields are not null
+      moveInDate: insertApplication.moveInDate || new Date(),
+      applicantDob: insertApplication.applicantDob || new Date(),
       howDidYouHear: insertApplication.howDidYouHear || null,
       applicantLicense: insertApplication.applicantLicense || null,
       applicantLicenseState: insertApplication.applicantLicenseState || null,
@@ -99,7 +102,9 @@ export class MemStorage implements IStorage {
       petDetails: insertApplication.petDetails || null,
       smokingStatus: insertApplication.smokingStatus || null,
       documents: insertApplication.documents || null,
+      encryptedData: insertApplication.encryptedData || null,
     };
+    console.log('Storage: Creating application with encrypted data:', !!application.encryptedData);
     this.applications.set(id, application);
     return application;
   }
@@ -112,6 +117,9 @@ export class MemStorage implements IStorage {
       ...existing, 
       ...updateData,
       submittedAt: updateData.status === 'submitted' ? new Date() : existing.submittedAt,
+      // Ensure required fields are not null
+      moveInDate: updateData.moveInDate || existing.moveInDate,
+      applicantDob: updateData.applicantDob || existing.applicantDob,
     };
     this.applications.set(id, updated);
     return updated;

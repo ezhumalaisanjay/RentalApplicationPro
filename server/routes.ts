@@ -145,6 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse encrypted data field if it exists
       let parsedEncryptedData = null;
+      console.log('Validated data encryptedData field:', validatedData.encryptedData);
       if (validatedData.encryptedData) {
         try {
           parsedEncryptedData = JSON.parse(validatedData.encryptedData);
@@ -158,13 +159,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (error) {
           console.error('Error parsing encrypted data field:', error);
         }
+      } else {
+        console.log('No encryptedData field found in validated data');
       }
       
       // Create application in database
+      console.log('Creating application with encrypted data:', !!validatedData.encryptedData);
       const application = await storage.createApplication({
         ...validatedData,
         status: 'submitted'
       });
+      console.log('Application created successfully with ID:', application.id);
+      console.log('Application encrypted data from DB:', application.encryptedData);
 
       // Prepare webhook payload
       const webhookPayload = {
