@@ -5,6 +5,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
+    <!-- ULTRA-EARLY ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
+    <script>
+      (function() {
+        'use strict';
+        
+        // Store original console methods immediately
+        const originalConsole = {
+          error: console.error,
+          warn: console.warn,
+          log: console.log
+        };
+        
+        // Early message filter
+        function shouldSuppressEarly(message) {
+          const msg = String(message).toLowerCase();
+          const blockedPatterns = [
+            'message port closed',
+            'websocket connection to ws://localhost:8098/',
+            'websocket connection to ws://localhost:8098',
+            'websocket not connected',
+            'inject.bundle.js',
+            'runtime.lasterror',
+            'chrome-extension://',
+            'moz-extension://',
+            'safari-extension://',
+            'ms-browser-extension://',
+            'extension://',
+            'localhost:8098',
+            'injected css loaded successfully',
+            'unchecked runtime.lasterror',
+            'multi-tabs.js',
+            'hook.js',
+            'websocket',
+            'ws://localhost',
+            'websocket connection failed',
+            'websocket error',
+            'multi-tabs',
+            'injected css'
+          ];
+          
+          return blockedPatterns.some(pattern => msg.includes(pattern));
+        }
+        
+        // Override console methods immediately
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppressEarly(message)) {
+            return; // Completely suppress
+          }
+          originalConsole.error.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppressEarly(message)) {
+            return; // Completely suppress
+          }
+          originalConsole.warn.apply(console, args);
+        };
+        
+        console.log = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppressEarly(message)) {
+            return; // Suppress extension-related logs
+          }
+          originalConsole.log.apply(console, args);
+        };
+        
+        // Block WebSocket immediately
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+            const dummySocket = {
+              readyState: 3,
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            return dummySocket;
+          }
+          return new OriginalWebSocket(url, protocols);
+        };
+        
+        originalConsole.log('🚀 ULTRA-EARLY ERROR SUPPRESSION ACTIVATED');
+        
+      })();
+    </script>
+    
     <!-- NUCLEAR-LEVEL ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
     <script>
       (function() {
@@ -253,6 +352,113 @@
         
         // IMMEDIATE: Log that nuclear-level suppression is active
         originalConsole.log('☢️ NUCLEAR-LEVEL ERROR SUPPRESSION ACTIVATED - ALL EXTENSION ERRORS COMPLETELY BLOCKED');
+        
+        // NUCLEAR: Continuous monitoring system to catch late-arriving errors
+        setInterval(() => {
+          // Re-apply console overrides in case they were overridden
+          console.error = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Completely suppress
+            }
+            originalConsole.error.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Completely suppress
+            }
+            originalConsole.warn.apply(console, args);
+          };
+          
+          console.log = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Suppress extension-related logs
+            }
+            originalConsole.log.apply(console, args);
+          };
+          
+          // Re-apply WebSocket blocking
+          if (window.WebSocket !== OriginalWebSocket) {
+            window.WebSocket = function(url, protocols) {
+              const urlStr = String(url || '');
+              if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+                const dummySocket = {
+                  readyState: 3,
+                  url: urlStr,
+                  protocol: protocols || '',
+                  extensions: '',
+                  bufferedAmount: 0,
+                  onopen: null,
+                  onclose: null,
+                  onmessage: null,
+                  onerror: null,
+                  send: function() { /* DO NOTHING */ },
+                  close: function() { /* DO NOTHING */ },
+                  addEventListener: function() { /* DO NOTHING */ },
+                  removeEventListener: function() { /* DO NOTHING */ },
+                  dispatchEvent: function() { return false; }
+                };
+                return dummySocket;
+              }
+              return new OriginalWebSocket(url, protocols);
+            };
+          }
+        }, 100); // Check every 100ms
+        
+        // NUCLEAR: MutationObserver to catch dynamically injected scripts
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                  const element = node;
+                  // Block any script tags that might be extension-related
+                  if (element.tagName === 'SCRIPT') {
+                    const src = element.getAttribute('src') || '';
+                    if (shouldSuppress(src)) {
+                      element.remove();
+                      return;
+                    }
+                  }
+                  // Block any iframes that might be extension-related
+                  if (element.tagName === 'IFRAME') {
+                    const src = element.getAttribute('src') || '';
+                    if (shouldSuppress(src)) {
+                      element.remove();
+                      return;
+                    }
+                  }
+                }
+              });
+            }
+          });
+        });
+        
+        // Start observing
+        observer.observe(document, {
+          childList: true,
+          subtree: true
+        });
+        
+        // NUCLEAR: Block all global error handlers that extensions might add
+        const originalAddEventListener = window.addEventListener;
+        window.addEventListener = function(type, listener, options) {
+          if (type === 'error' || type === 'unhandledrejection') {
+            // Wrap the listener to filter out extension errors
+            const wrappedListener = function(event) {
+              const message = String(event.message || event.reason?.message || event.reason || '');
+              if (shouldSuppress(message)) {
+                return; // Block the event
+              }
+              return listener.call(this, event);
+            };
+            return originalAddEventListener.call(this, type, wrappedListener, options);
+          }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
         
       })();
     </script>

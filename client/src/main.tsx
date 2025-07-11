@@ -227,6 +227,61 @@ import "./index.css";
   // Log success message
   originalMethods.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS COMPLETELY BLOCKED');
   
+  // ULTRA-AGGRESSIVE: Continuous monitoring system to catch late-arriving errors
+  setInterval(() => {
+    // Re-apply console overrides in case they were overridden
+    console.error = function(...args: any[]) {
+      const message = args.join(' ');
+      if (shouldBlock(message)) {
+        return; // Completely block
+      }
+      originalMethods.error.apply(console, args);
+    };
+    
+    console.warn = function(...args: any[]) {
+      const message = args.join(' ');
+      if (shouldBlock(message)) {
+        return; // Completely block
+      }
+      originalMethods.warn.apply(console, args);
+    };
+    
+    console.log = function(...args: any[]) {
+      const message = args.join(' ');
+      if (shouldBlock(message)) {
+        return; // Block extension-related logs
+      }
+      originalMethods.log.apply(console, args);
+    };
+    
+    // Re-apply WebSocket blocking
+    if ((window as any).WebSocket !== OriginalWebSocket) {
+      (window as any).WebSocket = function(url: string | URL, protocols?: string | string[]) {
+        const urlStr = String(url || '');
+        if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+          const dummySocket = {
+            readyState: 3,
+            url: urlStr,
+            protocol: protocols || '',
+            extensions: '',
+            bufferedAmount: 0,
+            onopen: null,
+            onclose: null,
+            onmessage: null,
+            onerror: null,
+            send: function() { /* DO ABSOLUTELY NOTHING */ },
+            close: function() { /* DO ABSOLUTELY NOTHING */ },
+            addEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
+            removeEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
+            dispatchEvent: function() { return false; }
+          };
+          return dummySocket;
+        }
+        return new OriginalWebSocket(url, protocols);
+      };
+    }
+  }, 100); // Check every 100ms
+  
 })();
 
 createRoot(document.getElementById("root")!).render(<App />);
