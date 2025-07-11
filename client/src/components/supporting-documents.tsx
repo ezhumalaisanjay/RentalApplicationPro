@@ -1,14 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { FileUpload } from "./ui/file-upload";
 import { Badge } from "./ui/badge";
-import { CheckCircle, AlertCircle, FileText, DollarSign, Building, User, CreditCard } from "lucide-react";
+import { CheckCircle, AlertCircle, FileText, DollarSign, Building, User, CreditCard, Shield } from "lucide-react";
+import { type EncryptedFile } from "@/lib/file-encryption";
 
 interface SupportingDocumentsProps {
   formData: any;
   onDocumentChange: (documentType: string, files: File[]) => void;
+  onEncryptedDocumentChange?: (documentType: string, encryptedFiles: EncryptedFile[]) => void;
 }
 
-export function SupportingDocuments({ formData, onDocumentChange }: SupportingDocumentsProps) {
+export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDocumentChange }: SupportingDocumentsProps) {
   const requiredDocuments = [
     {
       category: "Identity Documents",
@@ -177,6 +179,7 @@ export function SupportingDocuments({ formData, onDocumentChange }: SupportingDo
                     
                     <FileUpload
                       onFileChange={(files) => onDocumentChange(document.id, files)}
+                      onEncryptedFilesChange={(encryptedFiles) => onEncryptedDocumentChange?.(document.id, encryptedFiles)}
                       accept={document.acceptedTypes}
                       multiple={true}
                       maxFiles={5}
@@ -184,6 +187,7 @@ export function SupportingDocuments({ formData, onDocumentChange }: SupportingDo
                       label={`Upload ${document.name}`}
                       description="Max 5 files, 10MB each. Accepted: JPG, PNG, PDF"
                       className="mt-2"
+                      enableEncryption={true}
                     />
                   </div>
                 );

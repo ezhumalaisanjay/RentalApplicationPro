@@ -22,6 +22,7 @@ import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, Folde
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
 import { useRef } from "react";
+import { type EncryptedFile } from "@/lib/file-encryption";
 
 const applicationSchema = z.object({
   // Application Info
@@ -76,7 +77,7 @@ const STEPS = [
   { id: 5, title: "Other Occupants", icon: Users }, // New dedicated step
   { id: 6, title: "Additional People", icon: Users },
   { id: 7, title: "Legal Questions", icon: Shield },
-  { id: 8, title: "Signatures", icon: Check },
+  { id: 8, title: "Digital Signatures", icon: Check },
 ];
 
 export function ApplicationForm() {
@@ -91,6 +92,7 @@ export function ApplicationForm() {
   });
   const [signatures, setSignatures] = useState<any>({});
   const [documents, setDocuments] = useState<any>({});
+  const [encryptedDocuments, setEncryptedDocuments] = useState<any>({});
   const [hasCoApplicant, setHasCoApplicant] = useState(false);
   const [hasGuarantor, setHasGuarantor] = useState(false);
   const [sameAddressCoApplicant, setSameAddressCoApplicant] = useState(false);
@@ -100,8 +102,45 @@ export function ApplicationForm() {
   const form = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
+      // Application Info
+      buildingAddress: "",
+      apartmentNumber: "",
+      moveInDate: undefined as any,
+      monthlyRent: 0,
+      apartmentType: "",
+      howDidYouHear: "",
+
+      // Primary Applicant
+      applicantName: "",
+      applicantDob: undefined as any,
+      applicantSsn: "",
+      applicantPhone: "",
+      applicantEmail: "",
+      applicantLicense: "",
+      applicantLicenseState: "",
+      applicantAddress: "",
+      applicantCity: "",
+      applicantState: "",
+      applicantZip: "",
+      applicantLengthAtAddress: "",
+      applicantLandlordName: "",
+      applicantCurrentRent: 0,
+      applicantReasonForMoving: "",
+
+      // Conditional fields
       hasCoApplicant: false,
       hasGuarantor: false,
+
+      // Legal Questions
+      hasBankruptcy: false,
+      bankruptcyDetails: "",
+      hasEviction: false,
+      evictionDetails: "",
+      hasCriminalHistory: false,
+      criminalHistoryDetails: "",
+      hasPets: false,
+      petDetails: "",
+      smokingStatus: "",
     },
   });
 
@@ -121,6 +160,16 @@ export function ApplicationForm() {
       [person]: {
         ...prev[person],
         [documentType]: files,
+      },
+    }));
+  };
+
+  const handleEncryptedDocumentChange = (person: string, documentType: string, encryptedFiles: EncryptedFile[]) => {
+    setEncryptedDocuments((prev: any) => ({
+      ...prev,
+      [person]: {
+        ...prev[person],
+        [documentType]: encryptedFiles,
       },
     }));
   };
@@ -184,15 +233,86 @@ export function ApplicationForm() {
     setCurrentStep(step);
   };
 
-  const onSubmit = (data: ApplicationFormData) => {
-    console.log("Submitting application:", { ...data, formData, signatures, documents });
+  const uploadEncryptedFiles = async (encryptedFiles: EncryptedFile[]) => {
+    try {
+      const response = await fetch('/api/upload-files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files: encryptedFiles,
+          applicationId: Date.now(), // You can use actual application ID when available
+        }),
+      });
 
-    toast({
-      title: "Application Submitted",
-      description: "Your rental application has been submitted successfully.",
-    });
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
 
-    generatePDF();
+      const result = await response.json();
+      console.log('Files uploaded successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to upload files:', error);
+      throw error;
+    }
+  };
+
+  const onSubmit = async (data: ApplicationFormData) => {
+    try {
+      console.log("Submitting application:", { ...data, formData, signatures, documents, encryptedDocuments });
+
+      // Upload all encrypted documents first
+      const allEncryptedFiles: EncryptedFile[] = [];
+      Object.values(encryptedDocuments).forEach((personDocs: any) => {
+        Object.values(personDocs).forEach((docFiles: any) => {
+          if (Array.isArray(docFiles)) {
+            allEncryptedFiles.push(...docFiles);
+          }
+        });
+      });
+
+      let uploadedFiles = [];
+      if (allEncryptedFiles.length > 0) {
+        const uploadResult = await uploadEncryptedFiles(allEncryptedFiles);
+        uploadedFiles = uploadResult.files || [];
+      }
+
+      // Submit application with webhook integration
+      const submissionResponse = await fetch('/api/submit-application', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          applicationData: data,
+          files: uploadedFiles,
+          signatures: signatures
+        }),
+      });
+
+      if (!submissionResponse.ok) {
+        throw new Error(`Submission failed: ${submissionResponse.statusText}`);
+      }
+
+      const submissionResult = await submissionResponse.json();
+      console.log('Application submitted successfully:', submissionResult);
+
+      toast({
+        title: "Application Submitted",
+        description: "Your rental application has been submitted successfully and sent to our processing system.",
+      });
+
+      generatePDF();
+    } catch (error) {
+      console.error('Failed to submit application:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyAddressToCoApplicant = () => {
@@ -220,6 +340,8 @@ export function ApplicationForm() {
       updateFormData('guarantor', 'lengthAtAddress', applicantAddress.lengthAtAddress);
     }
   };
+
+
 
   // Refactor renderStep to accept a stepIdx argument
   const renderStep = (stepIdx = currentStep) => {
@@ -1169,10 +1291,19 @@ export function ApplicationForm() {
                       [documentType]: files,
                     }));
                   }}
+                  onEncryptedDocumentChange={(documentType, encryptedFiles) => 
+                    handleEncryptedDocumentChange('applicant', documentType, encryptedFiles)
+                  }
                 />
+
               </CardContent>
             </Card>
+          </div>
+        );
 
+      case 8:
+        return (
+          <div className="space-y-8">
             <Card className="form-section">
               <CardHeader>
                 <CardTitle>Digital Signatures</CardTitle>
@@ -1323,10 +1454,11 @@ export function ApplicationForm() {
                 Step {currentStep} of {STEPS.length}
               </div>
 
-              {currentStep === STEPS.length ? (
-                <Button 
-                  type="submit" 
+              {currentStep === STEPS.length - 1 ? (
+                <Button
+                  type="button"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
+                  onClick={() => onSubmit(form.getValues())}
                 >
                   Submit Application
                 </Button>
