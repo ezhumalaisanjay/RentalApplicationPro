@@ -22,7 +22,7 @@ import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, Folde
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
 import { useRef } from "react";
-import { type EncryptedFile } from "@/lib/file-encryption";
+import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
 
 const applicationSchema = z.object({
   // Application Info
@@ -267,15 +267,15 @@ export function ApplicationForm() {
   const onSubmit = async (data: ApplicationFormData) => {
     try {
       console.log("Submitting application:", { ...data, formData, signatures, documents, encryptedDocuments });
+      console.log("Encrypted documents state:", encryptedDocuments);
+      console.log("Encrypted documents keys:", Object.keys(encryptedDocuments));
 
       // Upload all encrypted documents first
       const allEncryptedFiles: EncryptedFile[] = [];
-      Object.values(encryptedDocuments).forEach((personDocs: any) => {
-        Object.values(personDocs).forEach((docFiles: any) => {
-          if (Array.isArray(docFiles)) {
-            allEncryptedFiles.push(...docFiles);
-          }
-        });
+      Object.values(encryptedDocuments).forEach((docFiles: any) => {
+        if (Array.isArray(docFiles)) {
+          allEncryptedFiles.push(...docFiles);
+        }
       });
 
       let uploadedFiles = [];
@@ -396,6 +396,31 @@ export function ApplicationForm() {
       // Documents
       transformedData.documents = JSON.stringify(uploadedFiles);
       
+      // Encrypted Data
+      const encryptedDataPayload = {
+        documents: encryptedDocuments,
+        allEncryptedFiles: allEncryptedFiles,
+        encryptionTimestamp: new Date().toISOString(),
+        encryptionVersion: '1.0.0',
+        totalEncryptedFiles: allEncryptedFiles.length,
+        documentTypes: Object.keys(encryptedDocuments)
+      };
+      
+      console.log('Encrypted data payload before validation:', encryptedDataPayload);
+      
+      // Validate encrypted data before submission (only if there are encrypted files)
+      if (allEncryptedFiles.length > 0 && !validateEncryptedData(encryptedDataPayload)) {
+        throw new Error('Invalid encrypted data structure');
+      }
+      
+      const encryptedDataSummary = createEncryptedDataSummary(encryptedDataPayload);
+      console.log('Encrypted data summary:', encryptedDataSummary);
+      
+      transformedData.encryptedData = JSON.stringify(encryptedDataPayload);
+      
+      console.log('Final transformed data includes encryptedData:', !!transformedData.encryptedData);
+      console.log('Encrypted data length:', transformedData.encryptedData ? transformedData.encryptedData.length : 0);
+      
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
       console.log('Current window location:', window.location.href);
       console.log('Making request to:', window.location.origin + '/api/submit-application');
@@ -408,7 +433,11 @@ export function ApplicationForm() {
         body: JSON.stringify({
           applicationData: transformedData,
           files: uploadedFiles,
-          signatures: signatures
+          signatures: signatures,
+          encryptedData: {
+            documents: encryptedDocuments,
+            allEncryptedFiles: allEncryptedFiles
+          }
         }),
       });
 
@@ -1417,9 +1446,13 @@ export function ApplicationForm() {
                       [documentType]: files,
                     }));
                   }}
-                  onEncryptedDocumentChange={(documentType, encryptedFiles) => 
-                    handleEncryptedDocumentChange('applicant', documentType, encryptedFiles)
-                  }
+                  onEncryptedDocumentChange={(documentType, encryptedFiles) => {
+                    console.log('Encrypted document change:', documentType, encryptedFiles);
+                    setEncryptedDocuments((prev: any) => ({
+                      ...prev,
+                      [documentType]: encryptedFiles,
+                    }));
+                  }}
                 />
 
               </CardContent>
@@ -1480,8 +1513,8 @@ export function ApplicationForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
+      {/* Header - Hidden */}
+      {/* <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
           <div className="text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Liberty Place Property Management</h1>
@@ -1492,7 +1525,7 @@ export function ApplicationForm() {
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Progress Steps */}
@@ -1528,33 +1561,10 @@ export function ApplicationForm() {
               );
             })}
           </div>
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Step {currentStep}: {STEPS[currentStep]?.title}
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {currentStep} of {STEPS.length}
-            </p>
-          </div>
+          {/* Step title and progress indicator removed */}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              type="button"
-              onClick={generatePDF}
-              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold w-full sm:w-auto"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Generate PDF
-            </Button>
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 w-full sm:w-auto text-center sm:text-right">
-            <CalendarDays className="w-4 h-4 inline mr-1" />
-            Today: {new Date().toLocaleDateString()}
-          </div>
-        </div>
+        {/* Action Buttons - Removed */}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

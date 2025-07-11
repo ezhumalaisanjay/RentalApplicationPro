@@ -7,6 +7,7 @@ This application now supports encrypted file uploads using AES encryption. Files
 1. **Frontend**: Files are converted to Base64 and encrypted using crypto-js
 2. **Backend**: Files are decrypted and saved to the uploads directory
 3. **Security**: All file data is encrypted in transit and at rest
+4. **Form Submission**: Encrypted data is included in application submissions for complete audit trail
 
 ## 🛠️ Setup Instructions
 
@@ -82,17 +83,68 @@ Uploads encrypted files to the server.
 }
 ```
 
+### POST /api/submit-application
+
+Submits application with encrypted data included.
+
+**Request Body:**
+```json
+{
+  "applicationData": {
+    // ... application fields ...
+    "encryptedData": "{\"documents\":{},\"allEncryptedFiles\":[],\"encryptionTimestamp\":\"2024-01-01T00:00:00.000Z\",\"encryptionVersion\":\"1.0.0\"}"
+  },
+  "files": [...],
+  "signatures": {...},
+  "encryptedData": {
+    "documents": {...},
+    "allEncryptedFiles": [...]
+  }
+}
+```
+
 ## 🚀 Usage
 
 The encryption is automatically enabled for all file uploads in the Supporting Documents section. Users will see a shield icon indicating that files are being encrypted.
 
-## 🔒 Security Features
+### Encrypted Data in Form Submissions
+
+When a user submits an application, the system now includes:
+
+1. **Encrypted Documents**: All encrypted file data organized by document type
+2. **File Metadata**: Original filenames, sizes, and upload timestamps
+3. **Encryption Details**: Timestamp and version information
+4. **Validation**: Automatic validation of encrypted data structure
+
+### Database Storage
+
+Encrypted data is stored in the `encrypted_data` field of the `rental_applications` table as a JSON string containing:
+
+```json
+{
+  "documents": {
+    "applicant": {
+      "paystubs": [...],
+      "bankStatements": [...]
+    }
+  },
+  "allEncryptedFiles": [...],
+  "encryptionTimestamp": "2024-01-01T00:00:00.000Z",
+  "encryptionVersion": "1.0.0",
+  "totalEncryptedFiles": 5,
+  "documentCategories": ["applicant"]
+}
+```
+
+## �� Security Features
 
 - **AES Encryption**: Industry-standard encryption algorithm
 - **Base64 Encoding**: Ensures safe transmission of binary data
 - **Unique Filenames**: Prevents filename conflicts
 - **File Validation**: Size and type restrictions
 - **Error Handling**: Graceful failure handling
+- **Data Validation**: Automatic validation of encrypted data structure
+- **Audit Trail**: Complete tracking of encrypted data in submissions
 
 ## 🐛 Troubleshooting
 
@@ -109,6 +161,10 @@ The encryption is automatically enabled for all file uploads in the Supporting D
    - The server will create the directory automatically
    - Check file permissions if issues persist
 
+4. **"Invalid encrypted data structure"**
+   - Check that all required fields are present in encrypted data
+   - Verify file encryption process completed successfully
+
 ### Debug Mode
 
 Enable debug logging by setting:
@@ -123,4 +179,6 @@ DEBUG=true
 - Original filenames are preserved in metadata
 - File size increases by ~33% due to Base64 encoding
 - Maximum file size: 10MB per file
-- Supported formats: JPG, JPEG, PNG, PDF 
+- Supported formats: JPG, JPEG, PNG, PDF
+- Encrypted data is validated before submission
+- Complete audit trail maintained in database 

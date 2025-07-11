@@ -106,6 +106,9 @@ export const rentalApplications = pgTable("rental_applications", {
   // Documents (JSON array of file paths/URLs)
   documents: text("documents"),
   
+  // Encrypted Data (JSON object containing encrypted documents and metadata)
+  encryptedData: text("encrypted_data"),
+  
   // Status
   status: text("status").default("draft"),
   submittedAt: timestamp("submitted_at"),

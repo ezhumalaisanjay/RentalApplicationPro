@@ -101,3 +101,76 @@ export function validateFileForEncryption(file: File, maxSizeMB: number = 10): s
   
   return null;
 } 
+
+/**
+ * Validates encrypted data structure
+ */
+export function validateEncryptedData(encryptedData: any): boolean {
+  try {
+    if (!encryptedData || typeof encryptedData !== 'object') {
+      return false;
+    }
+    
+    // Check if it has the required structure
+    if (!encryptedData.documents || !encryptedData.allEncryptedFiles) {
+      return false;
+    }
+    
+    // Validate allEncryptedFiles array
+    if (!Array.isArray(encryptedData.allEncryptedFiles)) {
+      return false;
+    }
+    
+    // If there are no encrypted files, the structure is still valid
+    if (encryptedData.allEncryptedFiles.length === 0) {
+      return true;
+    }
+    
+    // Validate each encrypted file
+    for (const file of encryptedData.allEncryptedFiles) {
+      if (!file.encryptedData || !file.filename || !file.originalSize || !file.mimeType) {
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error validating encrypted data:', error);
+    return false;
+  }
+}
+
+/**
+ * Creates a summary of encrypted data for logging and debugging
+ */
+export function createEncryptedDataSummary(encryptedData: any): any {
+  try {
+    if (!validateEncryptedData(encryptedData)) {
+      return { valid: false, error: 'Invalid encrypted data structure' };
+    }
+    
+    const summary = {
+      valid: true,
+      totalFiles: encryptedData.allEncryptedFiles.length,
+      documentTypes: Object.keys(encryptedData.documents || {}),
+      fileTypes: {} as Record<string, number>,
+      totalSize: 0,
+      encryptionTimestamp: encryptedData.encryptionTimestamp,
+      encryptionVersion: encryptedData.encryptionVersion
+    };
+    
+    // Analyze file types and sizes (only if there are files)
+    if (encryptedData.allEncryptedFiles.length > 0) {
+      for (const file of encryptedData.allEncryptedFiles) {
+        const mimeType = file.mimeType;
+        summary.fileTypes[mimeType] = (summary.fileTypes[mimeType] || 0) + 1;
+        summary.totalSize += file.originalSize;
+      }
+    }
+    
+    return summary;
+  } catch (error) {
+    console.error('Error creating encrypted data summary:', error);
+    return { valid: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+} 

@@ -108,7 +108,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Received submission request:', JSON.stringify(req.body, null, 2));
       
-      const { applicationData, files, signatures } = req.body;
+      const { applicationData, files, signatures, encryptedData } = req.body;
+      
+      console.log('Files received:', JSON.stringify(files, null, 2));
+      console.log('Files type:', typeof files);
+      console.log('Files is array:', Array.isArray(files));
+      console.log('Files length:', files ? files.length : 'null');
+      console.log('Encrypted data received:', encryptedData ? 'Yes' : 'No');
+      console.log('Raw encrypted data:', encryptedData);
+      if (encryptedData) {
+        console.log('Encrypted documents count:', Object.keys(encryptedData.documents || {}).length);
+        console.log('All encrypted files count:', encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0);
+        console.log('Document types:', Object.keys(encryptedData.documents || {}));
+      }
       
       if (!applicationData) {
         console.error('No applicationData provided');
@@ -119,6 +131,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Validating application data...');
       const validatedData = insertRentalApplicationSchema.parse(applicationData);
       console.log('Validation successful:', validatedData);
+      
+      // Parse documents field if it exists
+      let parsedFiles = [];
+      if (validatedData.documents) {
+        try {
+          parsedFiles = JSON.parse(validatedData.documents);
+          console.log('Parsed files from documents field:', JSON.stringify(parsedFiles, null, 2));
+        } catch (error) {
+          console.error('Error parsing documents field:', error);
+        }
+      }
+      
+      // Parse encrypted data field if it exists
+      let parsedEncryptedData = null;
+      if (validatedData.encryptedData) {
+        try {
+          parsedEncryptedData = JSON.parse(validatedData.encryptedData);
+          console.log('Parsed encrypted data:', {
+            documentsCount: Object.keys(parsedEncryptedData.documents || {}).length,
+            allEncryptedFilesCount: parsedEncryptedData.allEncryptedFiles ? parsedEncryptedData.allEncryptedFiles.length : 0,
+            documentTypes: Object.keys(parsedEncryptedData.documents || {}),
+            encryptionTimestamp: parsedEncryptedData.encryptionTimestamp,
+            encryptionVersion: parsedEncryptedData.encryptionVersion
+          });
+        } catch (error) {
+          console.error('Error parsing encrypted data field:', error);
+        }
+      }
       
       // Create application in database
       const application = await storage.createApplication({
@@ -163,7 +203,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           submittedAt: new Date().toISOString()
         },
         files: files || [],
+        documentsFiles: parsedFiles || [],
         signatures: signatures || {},
+        encryptedData: {
+          raw: encryptedData || {},
+          parsed: parsedEncryptedData || null
+        },
         metadata: {
           source: 'rental-application-system',
           version: '1.0.0',
