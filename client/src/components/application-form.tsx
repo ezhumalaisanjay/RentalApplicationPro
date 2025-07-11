@@ -1517,7 +1517,7 @@ export function ApplicationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 sm:bg-gradient-to-br sm:from-blue-50 sm:to-gray-100 sm:dark:from-gray-900 sm:dark:to-gray-800">
       {/* Header - Hidden */}
       {/* <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
@@ -1532,10 +1532,10 @@ export function ApplicationForm() {
         </div>
       </header> */}
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="w-full max-w-4xl mx-auto px-3 py-4 sm:px-4 sm:py-8">
         {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-2 sm:mb-4 overflow-x-auto">
             {STEPS.map((step, index) => {
               const Icon = step.icon;
               const isActive = currentStep === step.id;
@@ -1545,7 +1545,7 @@ export function ApplicationForm() {
                 <div key={step.id} className="flex items-center">
                   <button
                     onClick={() => goToStep(step.id)}
-                    className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                    className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors flex-shrink-0 ${
                       isActive
                         ? 'bg-blue-600 border-blue-600 text-white'
                         : isCompleted
@@ -1554,13 +1554,13 @@ export function ApplicationForm() {
                     }`}
                   >
                     {isCompleted ? (
-                      <Check className="w-5 h-5" />
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : (
-                      step.icon ? React.createElement(step.icon, { className: "w-5 h-5" }) : step.title[0]
+                      step.icon ? React.createElement(step.icon, { className: "w-4 h-4 sm:w-5 sm:h-5" }) : step.title[0]
                     )}
                   </button>
                   {index < STEPS.length - 1 && (
-                    <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'}`} />
+                    <div className={`flex-1 h-1 mx-1 sm:mx-2 ${isCompleted ? 'bg-green-600' : 'bg-gray-300'}`} />
                   )}
                 </div>
               );
@@ -1572,14 +1572,14 @@ export function ApplicationForm() {
         {/* Action Buttons - Removed */}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-8">
             {/* Current Step Content */}
             <div className="form-container">
               {renderStep()}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between items-center pt-6">
+            <div className="flex justify-between items-center pt-4 sm:pt-6">
               <Button
                 type="button"
                 variant="outline"
@@ -1591,7 +1591,7 @@ export function ApplicationForm() {
                 Previous
               </Button>
 
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 Step {currentStep} of {STEPS.length}
               </div>
 

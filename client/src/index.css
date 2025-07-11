@@ -160,7 +160,16 @@ html, body {
     margin-left: 0;
     margin-right: 0;
     border-radius: 0.5rem;
-    padding: 1rem;
+    padding: 0.75rem;
+  }
+  
+  /* Improve gradient background for mobile */
+  .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #eff6ff, #f3f4f6);
+  }
+  
+  .dark .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #111827, #1f2937);
   }
   
   .form-grid.two-column,
