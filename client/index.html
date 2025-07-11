@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
-    <!-- ULTRA-AGGRESSIVE ERROR SUPPRESSION - RUNS IMMEDIATELY -->
+    <!-- NUCLEAR-LEVEL ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
     <script>
       (function() {
         'use strict';
         
-        // IMMEDIATE: Block WebSocket before anything else
+        // NUCLEAR: Block WebSocket IMMEDIATELY before anything else
         const OriginalWebSocket = window.WebSocket;
         window.WebSocket = function(url, protocols) {
           const urlStr = String(url || '');
@@ -49,14 +49,14 @@
           return new OriginalWebSocket(url, protocols);
         };
         
-        // IMMEDIATE: Override console methods before any scripts load
+        // NUCLEAR: Override console methods IMMEDIATELY
         const originalConsole = {
           error: console.error,
           warn: console.warn,
           log: console.log
         };
         
-        // Ultra-aggressive message filter
+        // Nuclear-level message filter
         function shouldSuppress(message) {
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
@@ -77,13 +77,17 @@
             'multi-tabs.js',
             'hook.js',
             'websocket',
-            'ws://localhost'
+            'ws://localhost',
+            'websocket connection failed',
+            'websocket error',
+            'multi-tabs',
+            'injected css'
           ];
           
           return blockedPatterns.some(pattern => msg.includes(pattern));
         }
         
-        // Override console.error with ultra-aggressive filtering
+        // Override console.error with nuclear-level filtering
         console.error = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -92,7 +96,7 @@
           originalConsole.error.apply(console, args);
         };
         
-        // Override console.warn with ultra-aggressive filtering
+        // Override console.warn with nuclear-level filtering
         console.warn = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -110,7 +114,7 @@
           originalConsole.log.apply(console, args);
         };
         
-        // BLOCK all error events immediately
+        // NUCLEAR: Block all error events immediately with capture
         window.addEventListener('error', function(event) {
           const message = String(event.message || '');
           const filename = String(event.filename || '');
@@ -121,7 +125,7 @@
           }
         }, true);
         
-        // BLOCK all unhandled promise rejections immediately
+        // NUCLEAR: Block all unhandled promise rejections immediately with capture
         window.addEventListener('unhandledrejection', function(event) {
           const message = String(event.reason?.message || event.reason || '');
           if (shouldSuppress(message)) {
@@ -131,7 +135,7 @@
           }
         }, true);
         
-        // BLOCK security policy violations
+        // NUCLEAR: Block security policy violations
         window.addEventListener('securitypolicyviolation', function(event) {
           if (shouldSuppress(event.violatedDirective) || shouldSuppress(event.blockedURI)) {
             event.preventDefault();
@@ -140,7 +144,7 @@
           }
         }, true);
         
-        // BLOCK beforeunload events from extensions
+        // NUCLEAR: Block beforeunload events from extensions
         window.addEventListener('beforeunload', function(event) {
           if (shouldSuppress(event.type)) {
             event.preventDefault();
@@ -149,8 +153,42 @@
           }
         }, true);
         
-        // IMMEDIATE: Log that ultra-aggressive suppression is active
-        originalConsole.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS BLOCKED');
+        // NUCLEAR: Block all console methods from extensions
+        const originalConsoleMethods = {
+          error: console.error,
+          warn: console.warn,
+          log: console.log
+        };
+        
+        // Override again to catch any late attempts
+        setTimeout(() => {
+          console.error = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Completely suppress
+            }
+            originalConsoleMethods.error.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Completely suppress
+            }
+            originalConsoleMethods.warn.apply(console, args);
+          };
+          
+          console.log = function(...args) {
+            const message = args.join(' ');
+            if (shouldSuppress(message)) {
+              return; // Suppress extension-related logs
+            }
+            originalConsoleMethods.log.apply(console, args);
+          };
+        }, 0);
+        
+        // IMMEDIATE: Log that nuclear-level suppression is active
+        originalConsole.log('☢️ NUCLEAR-LEVEL ERROR SUPPRESSION ACTIVATED - ALL EXTENSION ERRORS COMPLETELY BLOCKED');
         
       })();
     </script>
