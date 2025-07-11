@@ -116,7 +116,7 @@ export const rentalApplications = pgTable("rental_applications", {
 
 // Helper function to convert string dates to Date objects
 const dateStringToDate = z.string().or(z.date()).or(z.null()).transform((val) => {
-  if (val === null) {
+  if (val === null || val === undefined) {
     return null;
   }
   if (typeof val === 'string') {
@@ -138,7 +138,25 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   applicantEmploymentStart: dateStringToDate.optional(),
   coApplicantDob: dateStringToDate.optional(),
   coApplicantEmploymentStart: dateStringToDate.optional(),
-  // Override all guarantor fields to allow null values
+  // Make co-applicant fields optional and nullable
+  coApplicantName: z.string().optional().nullable(),
+  coApplicantRelationship: z.string().optional().nullable(),
+  coApplicantSsn: z.string().optional().nullable(),
+  coApplicantPhone: z.string().optional().nullable(),
+  coApplicantEmail: z.string().optional().nullable(),
+  coApplicantAddress: z.string().optional().nullable(),
+  coApplicantCity: z.string().optional().nullable(),
+  coApplicantState: z.string().optional().nullable(),
+  coApplicantZip: z.string().optional().nullable(),
+  coApplicantLengthAtAddress: z.string().optional().nullable(),
+  coApplicantEmployer: z.string().optional().nullable(),
+  coApplicantPosition: z.string().optional().nullable(),
+  coApplicantIncome: z.number().optional().nullable(),
+  coApplicantOtherIncome: z.number().optional().nullable(),
+  coApplicantBankName: z.string().optional().nullable(),
+  coApplicantAccountType: z.string().optional().nullable(),
+  coApplicantSignature: z.string().optional().nullable(),
+  // Make guarantor fields optional and nullable
   guarantorName: z.string().optional().nullable(),
   guarantorRelationship: z.string().optional().nullable(),
   guarantorDob: dateStringToDate.optional().nullable(),
@@ -158,6 +176,15 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   guarantorBankName: z.string().optional().nullable(),
   guarantorAccountType: z.string().optional().nullable(),
   guarantorSignature: z.string().optional().nullable(),
+  // Make applicant financial fields optional
+  applicantEmployer: z.string().optional().nullable(),
+  applicantPosition: z.string().optional().nullable(),
+  applicantIncome: z.number().optional().nullable(),
+  applicantOtherIncome: z.number().optional().nullable(),
+  applicantOtherIncomeSource: z.string().optional().nullable(),
+  applicantBankName: z.string().optional().nullable(),
+  applicantAccountType: z.string().optional().nullable(),
+  applicantSignature: z.string().optional().nullable(),
 });
 
 export type InsertRentalApplication = z.infer<typeof insertRentalApplicationSchema>;
