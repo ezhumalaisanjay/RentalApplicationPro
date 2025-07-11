@@ -1585,10 +1585,11 @@ export function ApplicationForm() {
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 0}
-                className="flex items-center"
+                className="flex items-center text-xs sm:text-sm px-2 sm:px-4 py-2"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                Previous
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </Button>
 
               <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
@@ -1598,19 +1599,21 @@ export function ApplicationForm() {
               {currentStep === STEPS.length - 1 ? (
                 <Button
                   type="button"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-8 py-2 sm:py-3 text-sm sm:text-base font-semibold"
                   onClick={() => onSubmit(form.getValues())}
                 >
-                  Submit Application
+                  <span className="hidden sm:inline">Submit Application</span>
+                  <span className="sm:hidden">Submit</span>
                 </Button>
               ) : (
                 <Button
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex items-center bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-3 sm:px-6 py-2"
                 >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-2" />
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
                 </Button>
               )}
             </div>

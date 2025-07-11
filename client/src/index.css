@@ -212,6 +212,17 @@ html, body {
   .max-w-4xl {
     max-width: none;
   }
+  
+  /* Improve card spacing on mobile */
+  .form-section {
+    margin-bottom: 1rem;
+  }
+  
+  /* Better button sizing on mobile */
+  .btn-mobile {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
 
   .px-4 {
     padding-left: 0.75rem;
