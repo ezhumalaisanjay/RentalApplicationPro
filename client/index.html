@@ -3,6 +3,102 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none';">
+    <script>
+      // Suppress browser extension errors and unwanted console messages
+      (function() {
+        // Store original console methods
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        // Filter out browser extension errors
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (
+            message.includes('message port closed') ||
+            message.includes('WebSocket connection to ws://localhost:8098/') ||
+            message.includes('inject.bundle.js') ||
+            message.includes('runtime.lastError') ||
+            message.includes('chrome-extension://') ||
+            message.includes('moz-extension://') ||
+            message.includes('safari-extension://') ||
+            message.includes('ms-browser-extension://')
+          ) {
+            return; // Suppress these errors
+          }
+          originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+          const message = args.join(' ');
+          if (
+            message.includes('message port closed') ||
+            message.includes('WebSocket connection') ||
+            message.includes('inject.bundle.js') ||
+            message.includes('runtime.lastError')
+          ) {
+            return; // Suppress these warnings
+          }
+          originalWarn.apply(console, args);
+        };
+        
+        // Suppress unhandled promise rejections from extensions
+        window.addEventListener('unhandledrejection', function(event) {
+          const message = event.reason?.message || event.reason || '';
+          if (
+            message.includes('message port closed') ||
+            message.includes('WebSocket connection') ||
+            message.includes('inject.bundle.js') ||
+            message.includes('runtime.lastError')
+          ) {
+            event.preventDefault();
+            return false;
+          }
+        });
+        
+        // Block unwanted script injections
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElement.call(document, tagName);
+          if (tagName.toLowerCase() === 'script') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && (
+                value.includes('inject.bundle.js') ||
+                value.includes('chrome-extension://') ||
+                value.includes('moz-extension://') ||
+                value.includes('safari-extension://') ||
+                value.includes('ms-browser-extension://')
+              )) {
+                return; // Block unwanted script sources
+              }
+              originalSetAttribute.call(this, name, value);
+            };
+          }
+          return element;
+        };
+        
+        // Suppress WebSocket connection attempts to localhost
+        const originalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          if (url && url.includes('localhost:8098')) {
+            // Create a dummy WebSocket that does nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              send: function() {},
+              close: function() {},
+              addEventListener: function() {},
+              removeEventListener: function() {},
+              dispatchEvent: function() { return false; }
+            };
+            return dummySocket;
+          }
+          return new originalWebSocket(url, protocols);
+        };
+        
+        console.log('Error suppression and security measures activated');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
