@@ -90,5 +90,4 @@ export const ApplicationInstructions: React.FC<ApplicationInstructionsProps> = (
   </div>
 );
 
-console.log("ApplicationInstructions component loaded");
 export default ApplicationInstructions; 

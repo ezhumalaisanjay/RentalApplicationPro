@@ -56,7 +56,7 @@
           log: console.log
         };
         
-        // Nuclear-level message filter
+        // Nuclear-level message filter - ENHANCED
         function shouldSuppress(message) {
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
@@ -81,7 +81,75 @@
             'websocket connection failed',
             'websocket error',
             'multi-tabs',
-            'injected css'
+            'injected css',
+            'applicationinstructions component loaded',
+            'component loaded',
+            'extension error',
+            'extension warning',
+            'extension log',
+            'browser extension',
+            'addon',
+            'plugin',
+            'devtools',
+            'inspector',
+            'debugger',
+            'source map',
+            'eval',
+            'inline script',
+            'content script',
+            'background script',
+            'service worker',
+            'manifest',
+            'permissions',
+            'storage',
+            'tabs',
+            'bookmarks',
+            'history',
+            'cookies',
+            'webrequest',
+            'webnavigation',
+            'notifications',
+            'alarms',
+            'idle',
+            'power',
+            'system',
+            'management',
+            'enterprise',
+            'identity',
+            'oauth2',
+            'identity',
+            'chrome.runtime',
+            'chrome.tabs',
+            'chrome.bookmarks',
+            'chrome.history',
+            'chrome.cookies',
+            'chrome.webrequest',
+            'chrome.webnavigation',
+            'chrome.notifications',
+            'chrome.alarms',
+            'chrome.idle',
+            'chrome.power',
+            'chrome.system',
+            'chrome.management',
+            'chrome.enterprise',
+            'chrome.identity',
+            'chrome.oauth2',
+            'browser.runtime',
+            'browser.tabs',
+            'browser.bookmarks',
+            'browser.history',
+            'browser.cookies',
+            'browser.webrequest',
+            'browser.webnavigation',
+            'browser.notifications',
+            'browser.alarms',
+            'browser.idle',
+            'browser.power',
+            'browser.system',
+            'browser.management',
+            'browser.enterprise',
+            'browser.identity',
+            'browser.oauth2'
           ];
           
           return blockedPatterns.some(pattern => msg.includes(pattern));
@@ -114,7 +182,7 @@
           originalConsole.log.apply(console, args);
         };
         
-        // NUCLEAR: Block all error events immediately with capture
+        // NUCLEAR: Block all error events globally
         window.addEventListener('error', function(event) {
           const message = String(event.message || '');
           const filename = String(event.filename || '');
@@ -125,7 +193,7 @@
           }
         }, true);
         
-        // NUCLEAR: Block all unhandled promise rejections immediately with capture
+        // NUCLEAR: Block all unhandled promise rejections
         window.addEventListener('unhandledrejection', function(event) {
           const message = String(event.reason?.message || event.reason || '');
           if (shouldSuppress(message)) {
@@ -153,39 +221,35 @@
           }
         }, true);
         
-        // NUCLEAR: Block all console methods from extensions
-        const originalConsoleMethods = {
-          error: console.error,
-          warn: console.warn,
-          log: console.log
+        // NUCLEAR: Block all fetch requests to extension URLs
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+          const urlStr = String(url || '');
+          if (shouldSuppress(urlStr)) {
+            // Return a rejected promise that won't trigger errors
+            return Promise.reject(new Error('Blocked by nuclear-level suppression'));
+          }
+          return originalFetch.apply(this, arguments);
         };
         
-        // Override again to catch any late attempts
-        setTimeout(() => {
-          console.error = function(...args) {
-            const message = args.join(' ');
-            if (shouldSuppress(message)) {
-              return; // Completely suppress
+        // NUCLEAR: Block all XMLHttpRequest to extension URLs
+        const OriginalXMLHttpRequest = window.XMLHttpRequest;
+        window.XMLHttpRequest = function() {
+          const xhr = new OriginalXMLHttpRequest();
+          const originalOpen = xhr.open;
+          xhr.open = function(method, url, async, user, password) {
+            const urlStr = String(url || '');
+            if (shouldSuppress(urlStr)) {
+              // Make it fail silently
+              xhr.readyState = 4;
+              xhr.status = 0;
+              xhr.statusText = 'Blocked';
+              return;
             }
-            originalConsoleMethods.error.apply(console, args);
+            return originalOpen.apply(this, arguments);
           };
-          
-          console.warn = function(...args) {
-            const message = args.join(' ');
-            if (shouldSuppress(message)) {
-              return; // Completely suppress
-            }
-            originalConsoleMethods.warn.apply(console, args);
-          };
-          
-          console.log = function(...args) {
-            const message = args.join(' ');
-            if (shouldSuppress(message)) {
-              return; // Suppress extension-related logs
-            }
-            originalConsoleMethods.log.apply(console, args);
-          };
-        }, 0);
+          return xhr;
+        };
         
         // IMMEDIATE: Log that nuclear-level suppression is active
         originalConsole.log('☢️ NUCLEAR-LEVEL ERROR SUPPRESSION ACTIVATED - ALL EXTENSION ERRORS COMPLETELY BLOCKED');

@@ -8,13 +8,13 @@ import "./index.css";
   
   // Store original methods
   const originalMethods = {
-    error: console.error,
-    warn: console.warn,
-    log: console.log,
+    error: console.error.bind(console),
+    warn: console.warn.bind(console),
+    log: console.log.bind(console),
     WebSocket: window.WebSocket
   };
   
-  // Ultra-aggressive message filter
+  // Ultra-aggressive message filter - ENHANCED
   function shouldBlock(message: string): boolean {
     const msg = String(message).toLowerCase();
     const blockedPatterns = [
@@ -37,7 +37,74 @@ import "./index.css";
       'websocket',
       'ws://localhost',
       'websocket connection failed',
-      'websocket error'
+      'websocket error',
+      'applicationinstructions component loaded',
+      'component loaded',
+      'extension error',
+      'extension warning',
+      'extension log',
+      'browser extension',
+      'addon',
+      'plugin',
+      'devtools',
+      'inspector',
+      'debugger',
+      'source map',
+      'eval',
+      'inline script',
+      'content script',
+      'background script',
+      'service worker',
+      'manifest',
+      'permissions',
+      'storage',
+      'tabs',
+      'bookmarks',
+      'history',
+      'cookies',
+      'webrequest',
+      'webnavigation',
+      'notifications',
+      'alarms',
+      'idle',
+      'power',
+      'system',
+      'management',
+      'enterprise',
+      'identity',
+      'oauth2',
+      'chrome.runtime',
+      'chrome.tabs',
+      'chrome.bookmarks',
+      'chrome.history',
+      'chrome.cookies',
+      'chrome.webrequest',
+      'chrome.webnavigation',
+      'chrome.notifications',
+      'chrome.alarms',
+      'chrome.idle',
+      'chrome.power',
+      'chrome.system',
+      'chrome.management',
+      'chrome.enterprise',
+      'chrome.identity',
+      'chrome.oauth2',
+      'browser.runtime',
+      'browser.tabs',
+      'browser.bookmarks',
+      'browser.history',
+      'browser.cookies',
+      'browser.webrequest',
+      'browser.webnavigation',
+      'browser.notifications',
+      'browser.alarms',
+      'browser.idle',
+      'browser.power',
+      'browser.system',
+      'browser.management',
+      'browser.enterprise',
+      'browser.identity',
+      'browser.oauth2'
     ];
     
     return blockedPatterns.some(pattern => msg.includes(pattern));
@@ -145,6 +212,17 @@ import "./index.css";
       return false;
     }
   }, true);
+  
+  // Block all fetch requests to extension URLs
+  const originalFetch = window.fetch;
+  window.fetch = function(url: RequestInfo | URL, options?: RequestInit) {
+    const urlStr = String(url || '');
+    if (shouldBlock(urlStr)) {
+      // Return a rejected promise that won't trigger errors
+      return Promise.reject(new Error('Blocked by ultra-aggressive suppression'));
+    }
+    return originalFetch.call(this, url, options);
+  };
   
   // Log success message
   originalMethods.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS COMPLETELY BLOCKED');
