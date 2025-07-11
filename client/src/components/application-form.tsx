@@ -235,6 +235,8 @@ export function ApplicationForm() {
 
   const uploadEncryptedFiles = async (encryptedFiles: EncryptedFile[]) => {
     try {
+
+      
       const response = await fetch('/api/upload-files', {
         method: 'POST',
         headers: {
@@ -247,7 +249,10 @@ export function ApplicationForm() {
       });
 
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Upload response error:', response.status, response.statusText);
+        console.error('Error response body:', errorText);
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -280,20 +285,20 @@ export function ApplicationForm() {
       }
 
       // Transform form data to match database schema
-      const transformedData = {
+      const transformedData: any = {
         // Application Info
         buildingAddress: data.buildingAddress,
         apartmentNumber: data.apartmentNumber,
-        moveInDate: data.moveInDate,
+        moveInDate: data.moveInDate ? new Date(data.moveInDate) : null,
         monthlyRent: data.monthlyRent,
         apartmentType: data.apartmentType,
         howDidYouHear: data.howDidYouHear,
         
         // Primary Applicant
         applicantName: data.applicantName,
-        applicantDob: data.applicantDob,
-        applicantSsn: data.applicantSsn,
-        applicantPhone: data.applicantPhone,
+        applicantDob: data.applicantDob ? new Date(data.applicantDob) : null,
+        applicantSsn: data.applicantSsn || '',
+        applicantPhone: data.applicantPhone || '',
         applicantEmail: data.applicantEmail,
         applicantLicense: data.applicantLicense,
         applicantLicenseState: data.applicantLicenseState,
@@ -320,7 +325,7 @@ export function ApplicationForm() {
         hasCoApplicant: hasCoApplicant,
         coApplicantName: formData.coApplicant?.name || null,
         coApplicantRelationship: formData.coApplicant?.relationship || null,
-        coApplicantDob: formData.coApplicant?.dob || null,
+        coApplicantDob: formData.coApplicant?.dob ? new Date(formData.coApplicant.dob) : null,
         coApplicantSsn: formData.coApplicant?.ssn || null,
         coApplicantPhone: formData.coApplicant?.phone || null,
         coApplicantEmail: formData.coApplicant?.email || null,
@@ -340,50 +345,60 @@ export function ApplicationForm() {
         coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
         coApplicantAccountType: formData.coApplicant?.bankRecords?.[0]?.accountType || null,
         
-        // Guarantor
+        // Guarantor - only include if hasGuarantor is true
         hasGuarantor: hasGuarantor,
-        guarantorName: formData.guarantor?.name || null,
-        guarantorRelationship: formData.guarantor?.relationship || null,
-        guarantorDob: formData.guarantor?.dob || null,
-        guarantorSsn: formData.guarantor?.ssn || null,
-        guarantorPhone: formData.guarantor?.phone || null,
-        guarantorEmail: formData.guarantor?.email || null,
-        guarantorAddress: formData.guarantor?.address || null,
-        guarantorCity: formData.guarantor?.city || null,
-        guarantorState: formData.guarantor?.state || null,
-        guarantorZip: formData.guarantor?.zip || null,
-        guarantorLengthAtAddress: formData.guarantor?.lengthAtAddress || null,
+      };
+
+      // Only add guarantor fields if hasGuarantor is true
+      console.log('hasGuarantor value:', hasGuarantor);
+      if (hasGuarantor) {
+        console.log('Adding guarantor fields...');
+        transformedData.guarantorName = formData.guarantor?.name || null;
+        transformedData.guarantorRelationship = formData.guarantor?.relationship || null;
+        transformedData.guarantorDob = formData.guarantor?.dob ? new Date(formData.guarantor.dob) : null;
+        transformedData.guarantorSsn = formData.guarantor?.ssn || null;
+        transformedData.guarantorPhone = formData.guarantor?.phone || null;
+        transformedData.guarantorEmail = formData.guarantor?.email || null;
+        transformedData.guarantorAddress = formData.guarantor?.address || null;
+        transformedData.guarantorCity = formData.guarantor?.city || null;
+        transformedData.guarantorState = formData.guarantor?.state || null;
+        transformedData.guarantorZip = formData.guarantor?.zip || null;
+        transformedData.guarantorLengthAtAddress = formData.guarantor?.lengthAtAddress || null;
         
         // Guarantor Financial
-        guarantorEmployer: formData.guarantor?.employer || null,
-        guarantorPosition: formData.guarantor?.position || null,
-        guarantorEmploymentStart: formData.guarantor?.employmentStart ? new Date(formData.guarantor.employmentStart) : null,
-        guarantorIncome: formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null,
-        guarantorOtherIncome: formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null,
-        guarantorBankName: formData.guarantor?.bankRecords?.[0]?.bankName || null,
-        guarantorAccountType: formData.guarantor?.bankRecords?.[0]?.accountType || null,
-        
-        // Signatures
-        applicantSignature: signatures.applicant || null,
-        coApplicantSignature: signatures.coApplicant || null,
-        guarantorSignature: signatures.guarantor || null,
-        
-        // Legal Questions
-        hasBankruptcy: data.hasBankruptcy,
-        bankruptcyDetails: data.bankruptcyDetails,
-        hasEviction: data.hasEviction,
-        evictionDetails: data.evictionDetails,
-        hasCriminalHistory: data.hasCriminalHistory,
-        criminalHistoryDetails: data.criminalHistoryDetails,
-        hasPets: data.hasPets,
-        petDetails: data.petDetails,
-        smokingStatus: data.smokingStatus,
-        
-        // Documents
-        documents: JSON.stringify(uploadedFiles),
-      };
+        transformedData.guarantorEmployer = formData.guarantor?.employer || null;
+        transformedData.guarantorPosition = formData.guarantor?.position || null;
+        transformedData.guarantorEmploymentStart = formData.guarantor?.employmentStart ? new Date(formData.guarantor.employmentStart) : null;
+        transformedData.guarantorIncome = formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null;
+        transformedData.guarantorOtherIncome = formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null;
+        transformedData.guarantorBankName = formData.guarantor?.bankRecords?.[0]?.bankName || null;
+        transformedData.guarantorAccountType = formData.guarantor?.bankRecords?.[0]?.accountType || null;
+        transformedData.guarantorSignature = signatures.guarantor || null;
+      } else {
+        console.log('Skipping guarantor fields - hasGuarantor is false');
+      }
+
+      // Add signatures for applicant and co-applicant
+      transformedData.applicantSignature = signatures.applicant || null;
+      transformedData.coApplicantSignature = signatures.coApplicant || null;
+      
+      // Legal Questions
+      transformedData.hasBankruptcy = data.hasBankruptcy;
+      transformedData.bankruptcyDetails = data.bankruptcyDetails;
+      transformedData.hasEviction = data.hasEviction;
+      transformedData.evictionDetails = data.evictionDetails;
+      transformedData.hasCriminalHistory = data.hasCriminalHistory;
+      transformedData.criminalHistoryDetails = data.criminalHistoryDetails;
+      transformedData.hasPets = data.hasPets;
+      transformedData.petDetails = data.petDetails;
+      transformedData.smokingStatus = data.smokingStatus;
+      
+      // Documents
+      transformedData.documents = JSON.stringify(uploadedFiles);
       
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
+      console.log('Current window location:', window.location.href);
+      console.log('Making request to:', window.location.origin + '/api/submit-application');
       
       const submissionResponse = await fetch('/api/submit-application', {
         method: 'POST',
@@ -398,7 +413,10 @@ export function ApplicationForm() {
       });
 
       if (!submissionResponse.ok) {
-        throw new Error(`Submission failed: ${submissionResponse.statusText}`);
+        const errorText = await submissionResponse.text();
+        console.error('Submission response error:', submissionResponse.status, submissionResponse.statusText);
+        console.error('Error response body:', errorText);
+        throw new Error(`Submission failed: ${submissionResponse.status} ${submissionResponse.statusText}`);
       }
 
       const submissionResult = await submissionResponse.json();

@@ -111,10 +111,50 @@ export const rentalApplications = pgTable("rental_applications", {
   submittedAt: timestamp("submitted_at"),
 });
 
-export const insertRentalApplicationSchema = createInsertSchema(rentalApplications).omit({
+// Helper function to convert string dates to Date objects
+const dateStringToDate = z.string().or(z.date()).or(z.null()).transform((val) => {
+  if (val === null) {
+    return null;
+  }
+  if (typeof val === 'string') {
+    return new Date(val);
+  }
+  return val;
+});
+
+// Create base schema and then override date fields
+const baseSchema = createInsertSchema(rentalApplications).omit({
   id: true,
   applicationDate: true,
   submittedAt: true,
+});
+
+export const insertRentalApplicationSchema = baseSchema.extend({
+  moveInDate: dateStringToDate,
+  applicantDob: dateStringToDate,
+  applicantEmploymentStart: dateStringToDate.optional(),
+  coApplicantDob: dateStringToDate.optional(),
+  coApplicantEmploymentStart: dateStringToDate.optional(),
+  // Override all guarantor fields to allow null values
+  guarantorName: z.string().optional().nullable(),
+  guarantorRelationship: z.string().optional().nullable(),
+  guarantorDob: dateStringToDate.optional().nullable(),
+  guarantorSsn: z.string().optional().nullable(),
+  guarantorPhone: z.string().optional().nullable(),
+  guarantorEmail: z.string().optional().nullable(),
+  guarantorAddress: z.string().optional().nullable(),
+  guarantorCity: z.string().optional().nullable(),
+  guarantorState: z.string().optional().nullable(),
+  guarantorZip: z.string().optional().nullable(),
+  guarantorLengthAtAddress: z.string().optional().nullable(),
+  guarantorEmployer: z.string().optional().nullable(),
+  guarantorPosition: z.string().optional().nullable(),
+  guarantorEmploymentStart: dateStringToDate.optional().nullable(),
+  guarantorIncome: z.number().optional().nullable(),
+  guarantorOtherIncome: z.number().optional().nullable(),
+  guarantorBankName: z.string().optional().nullable(),
+  guarantorAccountType: z.string().optional().nullable(),
+  guarantorSignature: z.string().optional().nullable(),
 });
 
 export type InsertRentalApplication = z.infer<typeof insertRentalApplicationSchema>;
