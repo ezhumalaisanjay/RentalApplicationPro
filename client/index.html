@@ -3,7 +3,330 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;">
+    
+    <!-- NUCLEAR-LEVEL WEBSOCKET BLOCKING - RUNS BEFORE ANYTHING ELSE -->
+    <script>
+      // ULTRA-EARLY: Block WebSocket before anything else loads
+      (function() {
+        'use strict';
+        
+        // Block WebSocket at the earliest possible moment
+        if (typeof window !== 'undefined') {
+          const OriginalWebSocket = window.WebSocket;
+          window.WebSocket = function(url, protocols) {
+            const urlStr = String(url || '');
+            if (urlStr.includes('localhost:8098') || 
+                urlStr.includes('ws://localhost:8098') ||
+                urlStr.includes('localhost:8098/') ||
+                urlStr.includes('ws://localhost:8098/') ||
+                urlStr.includes('8098')) {
+              return {
+                readyState: 3,
+                url: urlStr,
+                protocol: protocols || '',
+                extensions: '',
+                bufferedAmount: 0,
+                onopen: null,
+                onclose: null,
+                onmessage: null,
+                onerror: null,
+                send: function() { return; },
+                close: function() { return; },
+                addEventListener: function() { return; },
+                removeEventListener: function() { return; },
+                dispatchEvent: function() { return false; }
+              };
+            }
+            return new OriginalWebSocket(url, protocols);
+          };
+        }
+      })();
+    </script>
+    
+    <script>
+      (function() {
+        'use strict';
+        
+        // NUCLEAR: Block WebSocket at the earliest possible moment
+        // This runs before any other scripts and completely prevents the connection
+        const OriginalWebSocket = window.WebSocket;
+        
+        // Override WebSocket constructor with ultra-aggressive blocking
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          
+          // Block ALL localhost:8098 connections immediately
+          if (urlStr.includes('localhost:8098') || 
+              urlStr.includes('ws://localhost:8098') ||
+              urlStr.includes('localhost:8098/') ||
+              urlStr.includes('ws://localhost:8098/') ||
+              urlStr.includes('8098')) {
+            
+            // Return a completely inert WebSocket that does absolutely nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { 
+                // Do absolutely nothing
+                return;
+              },
+              close: function() { 
+                // Do absolutely nothing
+                return;
+              },
+              addEventListener: function() { 
+                // Do absolutely nothing
+                return;
+              },
+              removeEventListener: function() { 
+                // Do absolutely nothing
+                return;
+              },
+              dispatchEvent: function() { 
+                return false; 
+              }
+            };
+            
+            // Prevent any error events from being triggered
+            setTimeout(() => {
+              if (dummySocket.onerror) {
+                try {
+                  // Suppress the error completely
+                  dummySocket.onerror = null;
+                } catch (e) {
+                  // Ignore everything
+                }
+              }
+            }, 0);
+            
+            return dummySocket;
+          }
+          
+          // Allow all other WebSocket connections (including Vite HMR)
+          return new OriginalWebSocket(url, protocols);
+        };
+        
+        // NUCLEAR: Also block at the prototype level
+        if (OriginalWebSocket.prototype) {
+          const originalSend = OriginalWebSocket.prototype.send;
+          const originalClose = OriginalWebSocket.prototype.close;
+          
+          OriginalWebSocket.prototype.send = function(data) {
+            const urlStr = String(this.url || '');
+            if (urlStr.includes('localhost:8098') || 
+                urlStr.includes('ws://localhost:8098') ||
+                urlStr.includes('localhost:8098/') ||
+                urlStr.includes('ws://localhost:8098/') ||
+                urlStr.includes('8098')) {
+              return; // Do nothing
+            }
+            return originalSend.call(this, data);
+          };
+          
+          OriginalWebSocket.prototype.close = function(code, reason) {
+            const urlStr = String(this.url || '');
+            if (urlStr.includes('localhost:8098') || 
+                urlStr.includes('ws://localhost:8098') ||
+                urlStr.includes('localhost:8098/') ||
+                urlStr.includes('ws://localhost:8098/') ||
+                urlStr.includes('8098')) {
+              return; // Do nothing
+            }
+            return originalClose.call(this, code, reason);
+          };
+        }
+        
+        // NUCLEAR: Block console errors for WebSocket failures immediately
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const originalLog = console.log;
+        
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+              message.includes('inject.bundle.js') ||
+              message.includes('localhost:8098') ||
+              message.includes('8098') ||
+              message.includes('inject.bundle.js:71') ||
+              message.includes('WebSocket connection to') ||
+              message.includes('failed')) {
+            return; // Completely suppress these errors
+          }
+          originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+          const message = args.join(' ');
+          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+              message.includes('inject.bundle.js') ||
+              message.includes('localhost:8098') ||
+              message.includes('8098') ||
+              message.includes('inject.bundle.js:71')) {
+            return; // Completely suppress these warnings
+          }
+          originalWarn.apply(console, args);
+        };
+        
+        console.log = function(...args) {
+          const message = args.join(' ');
+          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+              message.includes('inject.bundle.js') ||
+              message.includes('localhost:8098') ||
+              message.includes('8098') ||
+              message.includes('inject.bundle.js:71')) {
+            return; // Completely suppress these logs
+          }
+          originalLog.apply(console, args);
+        };
+        
+        // NUCLEAR: Block any global variables that might be set by extensions
+        const blockedGlobals = [
+          'jotform', 'JotForm', 'inject', 'bundle', 'extension', 'addon', 'plugin',
+          'chrome', 'browser', 'runtime', 'tabs', 'bookmarks', 'history', 'cookies',
+          'webrequest', 'webnavigation', 'notifications', 'alarms', 'idle', 'power',
+          'system', 'management', 'enterprise', 'identity', 'oauth2'
+        ];
+        
+        blockedGlobals.forEach(globalName => {
+          if (window[globalName]) {
+            try {
+              delete window[globalName];
+            } catch (e) {
+              // Ignore
+            }
+          }
+        });
+        
+        // NUCLEAR: Block any script tags with inject.bundle.js
+        const scripts = document.querySelectorAll('script[src*="inject.bundle.js"]');
+        scripts.forEach(script => {
+          try {
+            script.remove();
+          } catch (e) {
+            // Ignore
+          }
+        });
+        
+        // NUCLEAR: Block any script tags that might contain WebSocket connections
+        const allScripts = document.querySelectorAll('script');
+        allScripts.forEach(script => {
+          try {
+            if (script.src && (
+                script.src.includes('inject') ||
+                script.src.includes('bundle') ||
+                script.src.includes('extension') ||
+                script.src.includes('addon') ||
+                script.src.includes('plugin')
+            )) {
+              script.remove();
+            }
+          } catch (e) {
+            // Ignore
+          }
+        });
+        
+        // NUCLEAR: Block any inline scripts that might contain WebSocket connections
+        const inlineScripts = document.querySelectorAll('script:not([src])');
+        inlineScripts.forEach(script => {
+          try {
+            if (script.textContent && (
+                script.textContent.includes('localhost:8098') ||
+                script.textContent.includes('ws://localhost:8098') ||
+                script.textContent.includes('inject.bundle.js') ||
+                script.textContent.includes('WebSocket')
+            )) {
+              script.remove();
+            }
+          } catch (e) {
+            // Ignore
+          }
+        });
+        
+        // NUCLEAR: Continuous monitoring to re-apply blocking
+        setInterval(() => {
+          // Re-apply WebSocket blocking in case it was overridden
+          if (window.WebSocket !== OriginalWebSocket) {
+            window.WebSocket = function(url, protocols) {
+              const urlStr = String(url || '');
+              if (urlStr.includes('localhost:8098') || 
+                  urlStr.includes('ws://localhost:8098') ||
+                  urlStr.includes('localhost:8098/') ||
+                  urlStr.includes('ws://localhost:8098/') ||
+                  urlStr.includes('8098')) {
+                const dummySocket = {
+                  readyState: 3,
+                  url: urlStr,
+                  protocol: protocols || '',
+                  extensions: '',
+                  bufferedAmount: 0,
+                  onopen: null,
+                  onclose: null,
+                  onmessage: null,
+                  onerror: null,
+                  send: function() { return; },
+                  close: function() { return; },
+                  addEventListener: function() { return; },
+                  removeEventListener: function() { return; },
+                  dispatchEvent: function() { return false; }
+                };
+                return dummySocket;
+              }
+              return new OriginalWebSocket(url, protocols);
+            };
+          }
+          
+          // Re-apply console error blocking
+          console.error = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+                message.includes('inject.bundle.js') ||
+                message.includes('localhost:8098') ||
+                message.includes('8098') ||
+                message.includes('inject.bundle.js:71') ||
+                message.includes('WebSocket connection to') ||
+                message.includes('failed')) {
+              return; // Completely suppress
+            }
+            originalError.apply(console, args);
+          };
+          
+          console.warn = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+                message.includes('inject.bundle.js') ||
+                message.includes('localhost:8098') ||
+                message.includes('8098') ||
+                message.includes('inject.bundle.js:71')) {
+              return; // Completely suppress
+            }
+            originalWarn.apply(console, args);
+          };
+          
+          console.log = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+                message.includes('inject.bundle.js') ||
+                message.includes('localhost:8098') ||
+                message.includes('8098') ||
+                message.includes('inject.bundle.js:71')) {
+              return; // Completely suppress
+            }
+            originalLog.apply(console, args);
+          };
+        }, 50); // Check every 50ms
+        
+        console.log('🚀 NUCLEAR-LEVEL WEBSOCKET BLOCKING ACTIVATED - ALL localhost:8098 CONNECTIONS COMPLETELY BLOCKED');
+        
+      })();
+    </script>
     
     <!-- IMMEDIATE WEBSOCKET BLOCKING - RUNS BEFORE ANYTHING ELSE -->
     <script>

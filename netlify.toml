@@ -29,7 +29,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com data:;
       img-src 'self' data: https:;
-      connect-src 'self' https://hook.us1.make.com;
+      connect-src 'self' https://hook.us1.make.com wss: ws:;
       worker-src 'none';
       child-src 'none';
       frame-src 'none';
