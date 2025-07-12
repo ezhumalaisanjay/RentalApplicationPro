@@ -157,42 +157,55 @@
               message.includes('8098') ||
               message.includes('inject.bundle.js:71') ||
               message.includes('WebSocket connection to') ||
-              message.includes('failed')) {
+              message.includes('failed') ||
+              message.includes('Unchecked runtime.lastError') ||
+              message.includes('The message port closed before a response was received') ||
+              message.includes('runtime.lastError') ||
+              message.includes('message port closed')) {
             return; // Completely suppress these errors
           }
           originalError.apply(console, args);
         };
         
-        console.warn = function(...args) {
-          const message = args.join(' ');
-          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
-              message.includes('inject.bundle.js') ||
-              message.includes('localhost:8098') ||
-              message.includes('8098') ||
-              message.includes('inject.bundle.js:71')) {
-            return; // Completely suppress these warnings
-          }
-          originalWarn.apply(console, args);
-        };
+                  console.warn = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+                message.includes('inject.bundle.js') ||
+                message.includes('localhost:8098') ||
+                message.includes('8098') ||
+                message.includes('inject.bundle.js:71') ||
+                message.includes('Unchecked runtime.lastError') ||
+                message.includes('The message port closed before a response was received') ||
+                message.includes('runtime.lastError') ||
+                message.includes('message port closed')) {
+              return; // Completely suppress these warnings
+            }
+            originalWarn.apply(console, args);
+          };
         
-        console.log = function(...args) {
-          const message = args.join(' ');
-          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
-              message.includes('inject.bundle.js') ||
-              message.includes('localhost:8098') ||
-              message.includes('8098') ||
-              message.includes('inject.bundle.js:71')) {
-            return; // Completely suppress these logs
-          }
-          originalLog.apply(console, args);
-        };
+                  console.log = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+                message.includes('inject.bundle.js') ||
+                message.includes('localhost:8098') ||
+                message.includes('8098') ||
+                message.includes('inject.bundle.js:71') ||
+                message.includes('Unchecked runtime.lastError') ||
+                message.includes('The message port closed before a response was received') ||
+                message.includes('runtime.lastError') ||
+                message.includes('message port closed')) {
+              return; // Completely suppress these logs
+            }
+            originalLog.apply(console, args);
+          };
         
         // NUCLEAR: Block any global variables that might be set by extensions
         const blockedGlobals = [
           'jotform', 'JotForm', 'inject', 'bundle', 'extension', 'addon', 'plugin',
           'chrome', 'browser', 'runtime', 'tabs', 'bookmarks', 'history', 'cookies',
           'webrequest', 'webnavigation', 'notifications', 'alarms', 'idle', 'power',
-          'system', 'management', 'enterprise', 'identity', 'oauth2'
+          'system', 'management', 'enterprise', 'identity', 'oauth2', 'lastError',
+          'runtime', 'messagePort', 'port'
         ];
         
         blockedGlobals.forEach(globalName => {
@@ -292,7 +305,11 @@
                 message.includes('8098') ||
                 message.includes('inject.bundle.js:71') ||
                 message.includes('WebSocket connection to') ||
-                message.includes('failed')) {
+                message.includes('failed') ||
+                message.includes('Unchecked runtime.lastError') ||
+                message.includes('The message port closed before a response was received') ||
+                message.includes('runtime.lastError') ||
+                message.includes('message port closed')) {
               return; // Completely suppress
             }
             originalError.apply(console, args);
@@ -304,7 +321,11 @@
                 message.includes('inject.bundle.js') ||
                 message.includes('localhost:8098') ||
                 message.includes('8098') ||
-                message.includes('inject.bundle.js:71')) {
+                message.includes('inject.bundle.js:71') ||
+                message.includes('Unchecked runtime.lastError') ||
+                message.includes('The message port closed before a response was received') ||
+                message.includes('runtime.lastError') ||
+                message.includes('message port closed')) {
               return; // Completely suppress
             }
             originalWarn.apply(console, args);
@@ -316,7 +337,11 @@
                 message.includes('inject.bundle.js') ||
                 message.includes('localhost:8098') ||
                 message.includes('8098') ||
-                message.includes('inject.bundle.js:71')) {
+                message.includes('inject.bundle.js:71') ||
+                message.includes('Unchecked runtime.lastError') ||
+                message.includes('The message port closed before a response was received') ||
+                message.includes('runtime.lastError') ||
+                message.includes('message port closed')) {
               return; // Completely suppress
             }
             originalLog.apply(console, args);
