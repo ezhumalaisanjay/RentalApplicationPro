@@ -359,7 +359,6 @@
             'enterprise',
             'identity',
             'oauth2',
-            'identity',
             'chrome.runtime',
             'chrome.tabs',
             'chrome.bookmarks',
@@ -489,7 +488,22 @@
             'browser.oauth2'
           ];
           
-          return blockedPatterns.some(pattern => msg.includes(pattern));
+          // Only block if the message contains extension-related patterns
+          // AND is not from our application
+          const isExtensionRelated = blockedPatterns.some(pattern => msg.includes(pattern));
+          const isOurApp = msg.includes('react') || 
+                          msg.includes('vite') || 
+                          msg.includes('main.tsx') || 
+                          msg.includes('application') ||
+                          msg.includes('rental') ||
+                          msg.includes('liberty place') ||
+                          msg.includes('jotform') ||
+                          msg.includes('netlify') ||
+                          msg.includes('localhost:5000') ||
+                          msg.includes('localhost:3000') ||
+                          msg.includes('localhost:5173');
+          
+          return isExtensionRelated && !isOurApp;
         }
         
         // Override console.error with nuclear-level filtering
@@ -1144,57 +1158,36 @@
           }
         };
         
-        // NUCLEAR: Block all console methods at the native level
-        const consoleMethods = ['error', 'warn', 'log', 'info', 'debug'];
-        consoleMethods.forEach(function(method) {
-          const originalMethod = console[method];
-          Object.defineProperty(console, method, {
-            value: function(...args) {
-              const message = args.join(' ');
-              if (shouldSuppress(message)) {
-                return; // Completely suppress
-              }
-              return originalMethod.apply(console, args);
-            },
-            writable: false,
-            configurable: false
-          });
-        });
+        // NUCLEAR: Block only extension-related console messages
+        const originalConsoleErrorNative = console.error;
+        const originalConsoleWarnNative = console.warn;
+        const originalConsoleLogNative = console.log;
         
-        // NUCLEAR: Block all error events at the native level
-        const originalErrorEvent = window.ErrorEvent;
-        if (originalErrorEvent) {
-          window.ErrorEvent = function(type, eventInitDict) {
-            if (eventInitDict && shouldSuppress(String(eventInitDict.message || ''))) {
-              // Create a silent error event
-              const silentEvent = new originalErrorEvent('error', {
-                message: '',
-                filename: '',
-                lineno: 0,
-                colno: 0,
-                error: null
-              });
-              return silentEvent;
-            }
-            return new originalErrorEvent(type, eventInitDict);
-          };
-        }
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppress(message)) {
+            return; // Completely suppress
+          }
+          return originalConsoleErrorNative.apply(console, args);
+        };
         
-        // NUCLEAR: Block all unhandledrejection events at the native level
-        const originalPromiseRejectionEvent = window.PromiseRejectionEvent;
-        if (originalPromiseRejectionEvent) {
-          window.PromiseRejectionEvent = function(type, eventInitDict) {
-            if (eventInitDict && shouldSuppress(String(eventInitDict.reason || ''))) {
-              // Create a silent rejection event
-              const silentEvent = new originalPromiseRejectionEvent('unhandledrejection', {
-                promise: Promise.resolve(),
-                reason: null
-              });
-              return silentEvent;
-            }
-            return new originalPromiseRejectionEvent(type, eventInitDict);
-          };
-        }
+        console.warn = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppress(message)) {
+            return; // Completely suppress
+          }
+          return originalConsoleWarnNative.apply(console, args);
+        };
+        
+        console.log = function(...args) {
+          const message = args.join(' ');
+          if (shouldSuppress(message)) {
+            return; // Suppress extension-related logs
+          }
+          return originalConsoleLogNative.apply(console, args);
+        };
+        
+
         
         // NUCLEAR: Block all WebSocket connections at the native level
         const originalWebSocketConstructor = window.WebSocket;
@@ -1239,102 +1232,16 @@
           configurable: false
         });
         
-        // NUCLEAR: Block all extension-related network requests
+        // NUCLEAR: Block only extension-related network requests
         const originalFetchNative = window.fetch;
-        Object.defineProperty(window, 'fetch', {
-          value: function(url, options) {
-            const urlStr = String(url || '');
-            if (shouldSuppress(urlStr)) {
-              // Return a rejected promise that won't trigger errors
-              return Promise.reject(new Error('Blocked by nuclear suppression'));
-            }
-            return originalFetchNative.call(this, url, options);
-          },
-          writable: false,
-          configurable: false
-        });
-        
-        // NUCLEAR: Block all extension-related XMLHttpRequest
-        const originalXMLHttpRequestNative = window.XMLHttpRequest;
-        Object.defineProperty(window, 'XMLHttpRequest', {
-          value: function() {
-            const xhr = new originalXMLHttpRequestNative();
-            const originalOpen = xhr.open;
-            xhr.open = function(method, url, async, user, password) {
-              const urlStr = String(url || '');
-              if (shouldSuppress(urlStr)) {
-                // Make it fail silently by not calling the original open
-                return;
-              }
-              return originalOpen.call(this, method, url, async, user, password);
-            };
-            return xhr;
-          },
-          writable: false,
-          configurable: false
-        });
-        
-        // NUCLEAR: Block all extension-related script loading
-        const originalCreateElementNative = document.createElement;
-        Object.defineProperty(document, 'createElement', {
-          value: function(tagName) {
-            const element = originalCreateElementNative.call(document, tagName);
-            if (tagName.toLowerCase() === 'script') {
-              const originalSetAttribute = element.setAttribute;
-              element.setAttribute = function(name, value) {
-                if (name === 'src' && shouldSuppress(String(value || ''))) {
-                  // Don't set the src attribute for blocked scripts
-                  return;
-                }
-                return originalSetAttribute.call(this, name, value);
-              };
-            }
-            return element;
-          },
-          writable: false,
-          configurable: false
-        });
-        
-        // NUCLEAR: Block all extension-related element insertion
-        const originalAppendChildNative = Node.prototype.appendChild;
-        Object.defineProperty(Node.prototype, 'appendChild', {
-          value: function(child) {
-            if (child && child.tagName === 'SCRIPT') {
-              const src = child.getAttribute('src') || '';
-              const text = child.textContent || '';
-              if (shouldSuppress(src) || shouldSuppress(text)) {
-                // Create a dummy script that does nothing
-                const dummyScript = document.createElement('script');
-                dummyScript.textContent = '// Blocked by nuclear suppression';
-                return originalAppendChildNative.call(this, dummyScript);
-              }
-            }
-            return originalAppendChildNative.call(this, child);
-          },
-          writable: false,
-          configurable: false
-        });
-        
-        // NUCLEAR: Block all extension-related event listeners
-        const originalAddEventListenerNative = EventTarget.prototype.addEventListener;
-        Object.defineProperty(EventTarget.prototype, 'addEventListener', {
-          value: function(type, listener, options) {
-            if (type === 'error' || type === 'unhandledrejection') {
-              // Wrap the listener to filter out extension errors
-              const wrappedListener = function(event) {
-                const message = String(event.message || event.reason?.message || event.reason || '');
-                if (shouldSuppress(message)) {
-                  return; // Block the event
-                }
-                return listener.call(this, event);
-              };
-              return originalAddEventListenerNative.call(this, type, wrappedListener, options);
-            }
-            return originalAddEventListenerNative.call(this, type, listener, options);
-          },
-          writable: false,
-          configurable: false
-        });
+        window.fetch = function(url, options) {
+          const urlStr = String(url || '');
+          if (shouldSuppress(urlStr)) {
+            // Return a rejected promise that won't trigger errors
+            return Promise.reject(new Error('Blocked by nuclear suppression'));
+          }
+          return originalFetchNative.call(this, url, options);
+        };
         
       })();
     </script>
