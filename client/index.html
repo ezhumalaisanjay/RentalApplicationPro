@@ -151,6 +151,57 @@
             };
           }
         }, 50);
+        
+        // NUCLEAR: Block ALL console methods for inject.bundle.js
+        setInterval(function() {
+          if (console) {
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            const originalLog = console.log;
+            
+            console.error = function(...args) {
+              const message = args.join(' ');
+              if (message.includes('inject.bundle.js') || 
+                  message.includes('multi-tabs.js') ||
+                  message.includes('When merging two experiments') ||
+                  message.includes('found unequal data') ||
+                  message.includes('Using the earlier value') ||
+                  message.includes('advanced-webinar-entry-points') ||
+                  message.includes('WebSocket connection to ws://localhost:8098/') ||
+                  message.includes('Unchecked runtime.lastError') ||
+                  message.includes('The message port closed before a response was received')) {
+                return; // Completely suppress
+              }
+              originalError.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+              const message = args.join(' ');
+              if (message.includes('inject.bundle.js') || 
+                  message.includes('multi-tabs.js') ||
+                  message.includes('When merging two experiments') ||
+                  message.includes('found unequal data') ||
+                  message.includes('Using the earlier value') ||
+                  message.includes('advanced-webinar-entry-points')) {
+                return; // Completely suppress
+              }
+              originalWarn.apply(console, args);
+            };
+            
+            console.log = function(...args) {
+              const message = args.join(' ');
+              if (message.includes('inject.bundle.js') || 
+                  message.includes('multi-tabs.js') ||
+                  message.includes('When merging two experiments') ||
+                  message.includes('found unequal data') ||
+                  message.includes('Using the earlier value') ||
+                  message.includes('advanced-webinar-entry-points')) {
+                return; // Completely suppress
+              }
+              originalLog.apply(console, args);
+            };
+          }
+        }, 10); // Run every 10ms for maximum coverage
       })();
     </script>
     
