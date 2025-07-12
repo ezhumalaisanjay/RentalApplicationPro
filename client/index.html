@@ -17,7 +17,7 @@
           log: console.log
         };
         
-        // Early message filter
+        // Early message filter - ENHANCED
         function shouldSuppressEarly(message) {
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
@@ -37,7 +37,38 @@
             'multi-tabs.js',
             'hook.js',
             'multi-tabs',
-            'injected css'
+            'injected css',
+            // ADDITIONAL PATTERNS FOR SPECIFIC ERRORS YOU'RE SEEING
+            'jotform',
+            'jotform-v.netlify.app',
+            'injected css loaded successfully',
+            'unchecked runtime.lasterror: the message port closed before a response was received',
+            'websocket connection to ws://localhost:8098/ failed',
+            'inject.bundle.js:71',
+            'inject.bundle.js',
+            'bundle.js',
+            'extension bundle',
+            'content script bundle',
+            'background script bundle',
+            'service worker bundle',
+            'manifest bundle',
+            'permissions bundle',
+            'storage bundle',
+            'tabs bundle',
+            'bookmarks bundle',
+            'history bundle',
+            'cookies bundle',
+            'webrequest bundle',
+            'webnavigation bundle',
+            'notifications bundle',
+            'alarms bundle',
+            'idle bundle',
+            'power bundle',
+            'system bundle',
+            'management bundle',
+            'enterprise bundle',
+            'identity bundle',
+            'oauth2 bundle'
           ];
           
           return blockedPatterns.some(pattern => msg.includes(pattern));
@@ -110,8 +141,11 @@
         const OriginalWebSocket = window.WebSocket;
         window.WebSocket = function(url, protocols) {
           const urlStr = String(url || '');
-          // Only block specific problematic WebSocket connections
-          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+          // Block ALL problematic WebSocket connections
+          if (urlStr.includes('localhost:8098') || 
+              urlStr.includes('ws://localhost:8098') ||
+              urlStr.includes('localhost:8098/') ||
+              urlStr.includes('ws://localhost:8098/')) {
             // Return a completely inert WebSocket that does absolutely nothing
             const dummySocket = {
               readyState: 3, // CLOSED
@@ -146,6 +180,34 @@
           // Allow all other WebSocket connections (including Vite HMR)
           return new OriginalWebSocket(url, protocols);
         };
+        
+        // NUCLEAR: Also block WebSocket at the prototype level
+        if (OriginalWebSocket.prototype) {
+          const originalSend = OriginalWebSocket.prototype.send;
+          const originalClose = OriginalWebSocket.prototype.close;
+          
+          OriginalWebSocket.prototype.send = function(data) {
+            const urlStr = String(this.url || '');
+            if (urlStr.includes('localhost:8098') || 
+                urlStr.includes('ws://localhost:8098') ||
+                urlStr.includes('localhost:8098/') ||
+                urlStr.includes('ws://localhost:8098/')) {
+              return; // Do nothing
+            }
+            return originalSend.call(this, data);
+          };
+          
+          OriginalWebSocket.prototype.close = function(code, reason) {
+            const urlStr = String(this.url || '');
+            if (urlStr.includes('localhost:8098') || 
+                urlStr.includes('ws://localhost:8098') ||
+                urlStr.includes('localhost:8098/') ||
+                urlStr.includes('ws://localhost:8098/')) {
+              return; // Do nothing
+            }
+            return originalClose.call(this, code, reason);
+          };
+        }
         
         // NUCLEAR: Override console methods IMMEDIATELY
         const originalConsole = {
@@ -242,7 +304,70 @@
             'browser.management',
             'browser.enterprise',
             'browser.identity',
-            'browser.oauth2'
+            'browser.oauth2',
+            // ADDITIONAL PATTERNS FOR SPECIFIC ERRORS YOU'RE SEEING
+            'jotform',
+            'jotform-v.netlify.app',
+            'injected css loaded successfully',
+            'unchecked runtime.lasterror: the message port closed before a response was received',
+            'websocket connection to ws://localhost:8098/ failed',
+            'inject.bundle.js:71',
+            'inject.bundle.js',
+            'bundle.js',
+            'extension bundle',
+            'content script bundle',
+            'background script bundle',
+            'service worker bundle',
+            'manifest bundle',
+            'permissions bundle',
+            'storage bundle',
+            'tabs bundle',
+            'bookmarks bundle',
+            'history bundle',
+            'cookies bundle',
+            'webrequest bundle',
+            'webnavigation bundle',
+            'notifications bundle',
+            'alarms bundle',
+            'idle bundle',
+            'power bundle',
+            'system bundle',
+            'management bundle',
+            'enterprise bundle',
+            'identity bundle',
+            'oauth2 bundle',
+            'chrome.runtime bundle',
+            'chrome.tabs bundle',
+            'chrome.bookmarks bundle',
+            'chrome.history bundle',
+            'chrome.cookies bundle',
+            'chrome.webrequest bundle',
+            'chrome.webnavigation bundle',
+            'chrome.notifications bundle',
+            'chrome.alarms bundle',
+            'chrome.idle bundle',
+            'chrome.power bundle',
+            'chrome.system bundle',
+            'chrome.management bundle',
+            'chrome.enterprise bundle',
+            'chrome.identity bundle',
+            'chrome.oauth2 bundle',
+            'browser.runtime bundle',
+            'browser.tabs bundle',
+            'browser.bookmarks bundle',
+            'browser.history bundle',
+            'browser.cookies bundle',
+            'browser.webrequest bundle',
+            'browser.webnavigation bundle',
+            'browser.notifications bundle',
+            'browser.alarms bundle',
+            'browser.idle bundle',
+            'browser.power bundle',
+            'browser.system bundle',
+            'browser.management bundle',
+            'browser.enterprise bundle',
+            'browser.identity bundle',
+            'browser.oauth2 bundle'
           ];
           
           return blockedPatterns.some(pattern => msg.includes(pattern));
@@ -372,12 +497,15 @@
             originalConsole.log.apply(console, args);
           };
           
-          // Re-apply WebSocket blocking
+          // Re-apply WebSocket blocking with enhanced patterns
           if (window.WebSocket !== OriginalWebSocket) {
             window.WebSocket = function(url, protocols) {
               const urlStr = String(url || '');
-              // Only block specific problematic WebSocket connections
-              if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+              // Block ALL problematic WebSocket connections
+              if (urlStr.includes('localhost:8098') || 
+                  urlStr.includes('ws://localhost:8098') ||
+                  urlStr.includes('localhost:8098/') ||
+                  urlStr.includes('ws://localhost:8098/')) {
                 const dummySocket = {
                   readyState: 3,
                   url: urlStr,
@@ -400,7 +528,28 @@
               return new OriginalWebSocket(url, protocols);
             };
           }
-        }, 100); // Check every 100ms
+          
+          // Re-block JotForm extension specifically
+          if (window.jotform || window.JotForm) {
+            try {
+              delete window.jotform;
+              delete window.JotForm;
+            } catch (e) {
+              // Ignore
+            }
+          }
+          
+          // Re-block any global variables that might be set by extensions
+          blockedGlobals.forEach(globalName => {
+            if (window[globalName]) {
+              try {
+                delete window[globalName];
+              } catch (e) {
+                // Ignore
+              }
+            }
+          });
+        }, 50); // Check every 50ms for more aggressive monitoring
         
         // NUCLEAR: MutationObserver to catch dynamically injected scripts
         const observer = new MutationObserver(function(mutations) {
@@ -415,6 +564,18 @@
                       // Remove the script element
                       element.remove();
                     }
+                  } else if (element.tagName === 'LINK') {
+                    const href = element.getAttribute('href');
+                    if (href && shouldSuppress(href)) {
+                      // Remove the link element
+                      element.remove();
+                    }
+                  } else if (element.tagName === 'STYLE') {
+                    const textContent = element.textContent || '';
+                    if (shouldSuppress(textContent)) {
+                      // Remove the style element
+                      element.remove();
+                    }
                   }
                 }
               });
@@ -426,6 +587,34 @@
         observer.observe(document, {
           childList: true,
           subtree: true
+        });
+        
+        // NUCLEAR: Block JotForm extension specifically
+        if (window.jotform || window.JotForm) {
+          try {
+            delete window.jotform;
+            delete window.JotForm;
+          } catch (e) {
+            // Ignore
+          }
+        }
+        
+        // NUCLEAR: Block any global variables that might be set by extensions
+        const blockedGlobals = [
+          'jotform', 'JotForm', 'inject', 'bundle', 'extension', 'addon', 'plugin',
+          'chrome', 'browser', 'runtime', 'tabs', 'bookmarks', 'history', 'cookies',
+          'webrequest', 'webnavigation', 'notifications', 'alarms', 'idle', 'power',
+          'system', 'management', 'enterprise', 'identity', 'oauth2'
+        ];
+        
+        blockedGlobals.forEach(globalName => {
+          if (window[globalName]) {
+            try {
+              delete window[globalName];
+            } catch (e) {
+              // Ignore
+            }
+          }
         });
         
         // NUCLEAR: Override addEventListener to catch error listeners
