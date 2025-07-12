@@ -26,25 +26,25 @@ import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary }
 
 const applicationSchema = z.object({
   // Application Info
-  buildingAddress: z.string().min(1, "Building address is required"),
-  apartmentNumber: z.string().min(1, "Apartment number is required"),
-  moveInDate: z.date({ required_error: "Move-in date is required" }),
-  monthlyRent: z.number().min(0, "Monthly rent must be positive"),
-  apartmentType: z.string().min(1, "Apartment type is required"),
+  buildingAddress: z.string().optional(),
+  apartmentNumber: z.string().optional(),
+  moveInDate: z.date().optional(),
+  monthlyRent: z.number().optional(),
+  apartmentType: z.string().optional(),
   howDidYouHear: z.string().optional(),
 
   // Primary Applicant
-  applicantName: z.string().min(1, "Full name is required"),
-  applicantDob: z.date({ required_error: "Date of birth is required" }),
-  applicantSsn: z.string().min(1, "SSN is required"),
-  applicantPhone: z.string().min(1, "Phone number is required"),
-  applicantEmail: z.string().email("Valid email is required"),
+  applicantName: z.string().optional(),
+  applicantDob: z.date().optional(),
+  applicantSsn: z.string().optional(),
+  applicantPhone: z.string().optional(),
+  applicantEmail: z.string().optional(),
   applicantLicense: z.string().optional(),
   applicantLicenseState: z.string().optional(),
-  applicantAddress: z.string().min(1, "Address is required"),
-  applicantCity: z.string().min(1, "City is required"),
-  applicantState: z.string().min(1, "State is required"),
-  applicantZip: z.string().min(1, "ZIP code is required"),
+  applicantAddress: z.string().optional(),
+  applicantCity: z.string().optional(),
+  applicantState: z.string().optional(),
+  applicantZip: z.string().optional(),
   applicantLengthAtAddress: z.string().optional(),
   applicantLandlordName: z.string().optional(),
   applicantCurrentRent: z.number().optional(),
@@ -560,7 +560,7 @@ export function ApplicationForm() {
                   name="buildingAddress"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Building Address *</FormLabel>
+                      <FormLabel>Building Address</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Enter building address" 
@@ -582,7 +582,7 @@ export function ApplicationForm() {
                   name="apartmentNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Apartment # *</FormLabel>
+                      <FormLabel>Apartment #</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="e.g., 5A" 
@@ -604,7 +604,7 @@ export function ApplicationForm() {
                   name="moveInDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Move-in Date *</FormLabel>
+                      <FormLabel>Move-in Date</FormLabel>
                       <FormControl>
                         <DatePicker
                           value={field.value}
@@ -628,7 +628,7 @@ export function ApplicationForm() {
                   name="monthlyRent"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Monthly Rent ($) *</FormLabel>
+                      <FormLabel>Monthly Rent ($)</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -652,7 +652,7 @@ export function ApplicationForm() {
                   name="apartmentType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Apartment Type *</FormLabel>
+                      <FormLabel>Apartment Type</FormLabel>
                       <Select 
                         onValueChange={(value) => {
                           field.onChange(value);
@@ -717,7 +717,7 @@ export function ApplicationForm() {
                     name="applicantName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name *</FormLabel>
+                        <FormLabel>Full Name</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter full name" 
@@ -740,7 +740,7 @@ export function ApplicationForm() {
                   name="applicantDob"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date of Birth *</FormLabel>
+                      <FormLabel>Date of Birth</FormLabel>
                       <FormControl>
                         <DatePicker
                           value={field.value}
@@ -764,7 +764,7 @@ export function ApplicationForm() {
                   name="applicantSsn"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Social Security Number *</FormLabel>
+                      <FormLabel>Social Security Number</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="XXX-XX-XXXX" 
@@ -786,7 +786,7 @@ export function ApplicationForm() {
                   name="applicantPhone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="(XXX) XXX-XXXX" 
@@ -808,7 +808,7 @@ export function ApplicationForm() {
                   name="applicantEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address *</FormLabel>
+                      <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input 
                           type="email" 
@@ -882,7 +882,7 @@ export function ApplicationForm() {
                       name="applicantAddress"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Street Address *</FormLabel>
+                          <FormLabel>Street Address</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="Enter street address" 
@@ -905,7 +905,7 @@ export function ApplicationForm() {
                     name="applicantCity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>City *</FormLabel>
+                        <FormLabel>City</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Enter city" 
@@ -927,7 +927,7 @@ export function ApplicationForm() {
                     name="applicantState"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>State *</FormLabel>
+                        <FormLabel>State</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="e.g., NY" 
@@ -949,7 +949,7 @@ export function ApplicationForm() {
                     name="applicantZip"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ZIP Code *</FormLabel>
+                        <FormLabel>ZIP Code</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="XXXXX" 
@@ -1073,7 +1073,7 @@ export function ApplicationForm() {
                       />
                     </div>
                     <div>
-                      <Label>Relationship to Primary Applicant *</Label>
+                      <Label>Relationship to Primary Applicant</Label>
                       <Select onValueChange={(value) => updateFormData('coApplicant', 'relationship', value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select relationship" />
@@ -1219,7 +1219,7 @@ export function ApplicationForm() {
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label>Full Name *</Label>
+                      <Label>Full Name</Label>
                       <Input 
                         placeholder="Enter full name"
                         className="input-field"
