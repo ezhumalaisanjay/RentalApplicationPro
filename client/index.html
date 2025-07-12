@@ -24,7 +24,6 @@
             'message port closed',
             'websocket connection to ws://localhost:8098/',
             'websocket connection to ws://localhost:8098',
-            'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
             'chrome-extension://',
@@ -37,10 +36,6 @@
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
-            'websocket',
-            'ws://localhost',
-            'websocket connection failed',
-            'websocket error',
             'multi-tabs',
             'injected css'
           ];
@@ -77,6 +72,7 @@
         const OriginalWebSocket = window.WebSocket;
         window.WebSocket = function(url, protocols) {
           const urlStr = String(url || '');
+          // Only block specific problematic WebSocket connections
           if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
             const dummySocket = {
               readyState: 3,
@@ -96,6 +92,7 @@
             };
             return dummySocket;
           }
+          // Allow all other WebSocket connections (including Vite HMR)
           return new OriginalWebSocket(url, protocols);
         };
         
@@ -113,6 +110,7 @@
         const OriginalWebSocket = window.WebSocket;
         window.WebSocket = function(url, protocols) {
           const urlStr = String(url || '');
+          // Only block specific problematic WebSocket connections
           if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
             // Return a completely inert WebSocket that does absolutely nothing
             const dummySocket = {
@@ -145,6 +143,7 @@
             
             return dummySocket;
           }
+          // Allow all other WebSocket connections (including Vite HMR)
           return new OriginalWebSocket(url, protocols);
         };
         
@@ -162,7 +161,6 @@
             'message port closed',
             'websocket connection to ws://localhost:8098/',
             'websocket connection to ws://localhost:8098',
-            'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
             'chrome-extension://',
@@ -175,10 +173,6 @@
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
-            'websocket',
-            'ws://localhost',
-            'websocket connection failed',
-            'websocket error',
             'multi-tabs',
             'injected css',
             'applicationinstructions component loaded',
@@ -382,6 +376,7 @@
           if (window.WebSocket !== OriginalWebSocket) {
             window.WebSocket = function(url, protocols) {
               const urlStr = String(url || '');
+              // Only block specific problematic WebSocket connections
               if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
                 const dummySocket = {
                   readyState: 3,
@@ -401,6 +396,7 @@
                 };
                 return dummySocket;
               }
+              // Allow all other WebSocket connections (including Vite HMR)
               return new OriginalWebSocket(url, protocols);
             };
           }

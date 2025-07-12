@@ -306,6 +306,120 @@ app.post("/api/submit-application", async (req, res) => {
   }
 });
 
+// New loan application webhook endpoint
+app.post("/api/submit-loan-application", async (req, res) => {
+  try {
+    console.log('Received loan application submission:', JSON.stringify(req.body, null, 2));
+    
+    const { applicationData, files, signatures, encryptedData } = req.body;
+    
+    if (!applicationData) {
+      console.error('No applicationData provided');
+      return res.status(400).json({ error: "No application data provided" });
+    }
+    
+    // Validate application data
+    console.log('Validating loan application data...');
+    const validatedData = insertRentalApplicationSchema.parse(applicationData);
+    console.log('Validation successful:', validatedData);
+    
+    // Create application in database
+    console.log('Creating loan application with encrypted data:', !!validatedData.encryptedData);
+    const application = await storage.createApplication({
+      ...validatedData,
+      status: 'submitted'
+    });
+    console.log('Loan application created successfully with ID:', application.id);
+
+    // Convert rental application to loan application format
+    const loanApplicationData = [
+      {
+        "From": application.applicantEmail || "noreply@castellanre.com",
+        "Subject": `Loan Application - ${application.applicantName || 'Applicant'} - ${application.buildingAddress || 'Property'}`,
+        "Received Date": new Date().toISOString(),
+        "Recipients": [
+          "loans@castellancapital.com"
+        ],
+        "Loan Amount Requested": application.monthlyRent ? application.monthlyRent * 12 * 30 : 0, // 30x annual rent as loan amount
+        "Loan Type": "Acquisition", // Default value, can be made configurable
+        "Property Type": "Mixed Use", // Default value, can be made configurable
+        "Property Address": application.buildingAddress || "",
+        "Gross square feet (SF) [GSF]": "",
+        "Net Square feet [NSF]": "",
+        "Purchase Price of the Property": application.monthlyRent ? application.monthlyRent * 12 * 30 * 1.67 : 0, // Estimate based on loan amount
+        "Number of Residential Units": 1, // Default for rental application
+        "Number of Commercial Units": 0, // Default for rental application
+        "Loan to value (LTV) [LTPP] %": "",
+        "Loan to cost (LTC) %": "55-60",
+        "Net Operating Income (NOI)": "",
+        // Additional fields from rental application
+        "Applicant Name": application.applicantName || "",
+        "Applicant Phone": application.applicantPhone || "",
+        "Applicant Email": application.applicantEmail || "",
+        "Monthly Rent": application.monthlyRent || 0,
+        "Apartment Type": application.apartmentType || "",
+        "Move In Date": application.moveInDate || "",
+        "Co-Applicant Name": application.coApplicantName || "",
+        "Co-Applicant Email": application.coApplicantEmail || "",
+        "Guarantor Name": application.guarantorName || "",
+        "Guarantor Email": application.guarantorEmail || "",
+        "Application ID": application.id,
+        "Application Status": application.status,
+        "Submitted At": application.submittedAt
+      }
+    ];
+
+    // Send to Make.com webhook for loan applications
+    try {
+      console.log('Sending loan application webhook payload:', JSON.stringify(loanApplicationData, null, 2));
+      
+      const webhookResponse = await fetch('https://hook.us1.make.com/37yhndnke102glc74y0nx58tsb7n2n86', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loanApplicationData)
+      });
+
+      if (!webhookResponse.ok) {
+        console.error('Loan webhook failed:', webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error('Loan webhook error response:', errorText);
+        // Continue with submission even if webhook fails
+      } else {
+        console.log('Loan webhook sent successfully');
+        const responseText = await webhookResponse.text();
+        console.log('Loan webhook response:', responseText);
+      }
+    } catch (webhookError) {
+      console.error('Loan webhook error:', webhookError);
+      // Continue with submission even if webhook fails
+    }
+
+    res.status(201).json({ 
+      message: "Loan application submitted successfully", 
+      applicationId: application.id,
+      loanWebhookSent: true,
+      loanData: loanApplicationData
+    });
+    
+  } catch (error) {
+    console.error('Error in submit-loan-application:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: "Validation failed", 
+        details: error.errors 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to submit loan application",
+      message: error.message 
+    });
+  }
+});
+
 // File upload endpoint
 app.post("/api/upload", async (req, res) => {
   try {
