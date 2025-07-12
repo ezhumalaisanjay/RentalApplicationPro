@@ -10,8 +10,7 @@ import "./index.css";
   const originalMethods = {
     error: console.error.bind(console),
     warn: console.warn.bind(console),
-    log: console.log.bind(console),
-    WebSocket: window.WebSocket
+    log: console.log.bind(console)
   };
   
   // Ultra-aggressive message filter - ENHANCED
@@ -19,6 +18,8 @@ import "./index.css";
     const msg = String(message).toLowerCase();
     const blockedPatterns = [
       'message port closed',
+      'websocket connection to ws://localhost:8098/',
+      'websocket connection to ws://localhost:8098',
       'websocket not connected',
       'inject.bundle.js',
       'runtime.lasterror',
@@ -27,10 +28,15 @@ import "./index.css";
       'safari-extension://',
       'ms-browser-extension://',
       'extension://',
+      'localhost:8098',
       'injected css loaded successfully',
       'unchecked runtime.lasterror',
       'multi-tabs.js',
       'hook.js',
+      'websocket',
+      'ws://localhost',
+      'websocket connection failed',
+      'websocket error',
       'applicationinstructions component loaded',
       'component loaded',
       'extension error',

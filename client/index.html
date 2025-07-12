@@ -22,6 +22,8 @@
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
             'message port closed',
+            'websocket connection to ws://localhost:8098/',
+            'websocket connection to ws://localhost:8098',
             'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
@@ -30,10 +32,15 @@
             'safari-extension://',
             'ms-browser-extension://',
             'extension://',
+            'localhost:8098',
             'injected css loaded successfully',
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
+            'websocket',
+            'ws://localhost',
+            'websocket connection failed',
+            'websocket error',
             'multi-tabs',
             'injected css'
           ];
@@ -66,6 +73,32 @@
           originalConsole.log.apply(console, args);
         };
         
+        // Block WebSocket immediately
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+            const dummySocket = {
+              readyState: 3,
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            return dummySocket;
+          }
+          return new OriginalWebSocket(url, protocols);
+        };
+        
         originalConsole.log('🚀 ULTRA-EARLY ERROR SUPPRESSION ACTIVATED');
         
       })();
@@ -75,6 +108,45 @@
     <script>
       (function() {
         'use strict';
+        
+        // NUCLEAR: Block WebSocket IMMEDIATELY before anything else
+        const OriginalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+            // Return a completely inert WebSocket that does absolutely nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            
+            // Prevent any error events
+            setTimeout(() => {
+              if (dummySocket.onerror) {
+                try {
+                  dummySocket.onerror(new Event('error'));
+                } catch (e) {
+                  // Ignore everything
+                }
+              }
+            }, 0);
+            
+            return dummySocket;
+          }
+          return new OriginalWebSocket(url, protocols);
+        };
         
         // NUCLEAR: Override console methods IMMEDIATELY
         const originalConsole = {
@@ -88,6 +160,8 @@
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
             'message port closed',
+            'websocket connection to ws://localhost:8098/',
+            'websocket connection to ws://localhost:8098',
             'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
@@ -96,10 +170,15 @@
             'safari-extension://',
             'ms-browser-extension://',
             'extension://',
+            'localhost:8098',
             'injected css loaded successfully',
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
+            'websocket',
+            'ws://localhost',
+            'websocket connection failed',
+            'websocket error',
             'multi-tabs',
             'injected css',
             'applicationinstructions component loaded',
@@ -298,6 +377,33 @@
             }
             originalConsole.log.apply(console, args);
           };
+          
+          // Re-apply WebSocket blocking
+          if (window.WebSocket !== OriginalWebSocket) {
+            window.WebSocket = function(url, protocols) {
+              const urlStr = String(url || '');
+              if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+                const dummySocket = {
+                  readyState: 3,
+                  url: urlStr,
+                  protocol: protocols || '',
+                  extensions: '',
+                  bufferedAmount: 0,
+                  onopen: null,
+                  onclose: null,
+                  onmessage: null,
+                  onerror: null,
+                  send: function() { /* DO NOTHING */ },
+                  close: function() { /* DO NOTHING */ },
+                  addEventListener: function() { /* DO NOTHING */ },
+                  removeEventListener: function() { /* DO NOTHING */ },
+                  dispatchEvent: function() { return false; }
+                };
+                return dummySocket;
+              }
+              return new OriginalWebSocket(url, protocols);
+            };
+          }
         }, 100); // Check every 100ms
         
         // NUCLEAR: MutationObserver to catch dynamically injected scripts
