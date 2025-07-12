@@ -5,6 +5,149 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
+    <!-- CSS-BASED EXTENSION BLOCKING -->
+    <style>
+      /* Hide all extension-related elements */
+      [src*="chrome-extension"],
+      [src*="moz-extension"],
+      [src*="safari-extension"],
+      [src*="ms-browser-extension"],
+      [src*="extension://"],
+      [src*="localhost:8098"],
+      [src*="ws://localhost:8098"],
+      [src*="inject.bundle.js"],
+      [src*="multi-tabs.js"],
+      [src*="hook.js"],
+      [src*="extension"],
+      [src*="addon"],
+      [src*="plugin"],
+      [src*="devtools"],
+      [src*="inspector"],
+      [src*="debugger"],
+      [src*="source map"],
+      [src*="eval"],
+      [src*="inline script"],
+      [src*="content script"],
+      [src*="background script"],
+      [src*="service worker"],
+      [src*="manifest"],
+      [src*="permissions"],
+      [src*="storage"],
+      [src*="tabs"],
+      [src*="bookmarks"],
+      [src*="history"],
+      [src*="cookies"],
+      [src*="webrequest"],
+      [src*="webnavigation"],
+      [src*="notifications"],
+      [src*="alarms"],
+      [src*="idle"],
+      [src*="power"],
+      [src*="system"],
+      [src*="management"],
+      [src*="enterprise"],
+      [src*="identity"],
+      [src*="oauth2"],
+      [src*="chrome.runtime"],
+      [src*="chrome.tabs"],
+      [src*="chrome.bookmarks"],
+      [src*="chrome.history"],
+      [src*="chrome.cookies"],
+      [src*="chrome.webrequest"],
+      [src*="chrome.webnavigation"],
+      [src*="chrome.notifications"],
+      [src*="chrome.alarms"],
+      [src*="chrome.idle"],
+      [src*="chrome.power"],
+      [src*="chrome.system"],
+      [src*="chrome.management"],
+      [src*="chrome.enterprise"],
+      [src*="chrome.identity"],
+      [src*="chrome.oauth2"],
+      [src*="browser.runtime"],
+      [src*="browser.tabs"],
+      [src*="browser.bookmarks"],
+      [src*="browser.history"],
+      [src*="browser.cookies"],
+      [src*="browser.webrequest"],
+      [src*="browser.webnavigation"],
+      [src*="browser.notifications"],
+      [src*="browser.alarms"],
+      [src*="browser.idle"],
+      [src*="browser.power"],
+      [src*="browser.system"],
+      [src*="browser.management"],
+      [src*="browser.enterprise"],
+      [src*="browser.identity"],
+      [src*="browser.oauth2"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        outline: 0 !important;
+        background: transparent !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        z-index: -9999 !important;
+      }
+      
+      /* Hide any elements with extension-related classes or IDs */
+      [class*="extension"],
+      [class*="addon"],
+      [class*="plugin"],
+      [class*="devtools"],
+      [class*="inspector"],
+      [class*="debugger"],
+      [class*="chrome"],
+      [class*="browser"],
+      [class*="multi-tabs"],
+      [class*="hook"],
+      [class*="inject"],
+      [id*="extension"],
+      [id*="addon"],
+      [id*="plugin"],
+      [id*="devtools"],
+      [id*="inspector"],
+      [id*="debugger"],
+      [id*="chrome"],
+      [id*="browser"],
+      [id*="multi-tabs"],
+      [id*="hook"],
+      [id*="inject"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        outline: 0 !important;
+        background: transparent !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        z-index: -9999 !important;
+      }
+    </style>
+    
     <!-- ULTRA-EARLY ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
     <script>
       (function() {
@@ -765,6 +908,433 @@
           }
           return false;
         };
+        
+        // NUCLEAR: Block all script loading at the document level
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElement.call(document, tagName);
+          if (tagName.toLowerCase() === 'script') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && shouldSuppress(String(value || ''))) {
+                // Don't set the src attribute for blocked scripts
+                return;
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+            
+            const originalAppendChild = element.appendChild;
+            element.appendChild = function(child) {
+              if (shouldSuppress(String(child || ''))) {
+                return child; // Return the child without appending
+              }
+              return originalAppendChild.call(this, child);
+            };
+          }
+          return element;
+        };
+        
+        // NUCLEAR: Block all script execution
+        const originalAppendChild = Node.prototype.appendChild;
+        const originalInsertBefore = Node.prototype.insertBefore;
+        const originalReplaceChild = Node.prototype.replaceChild;
+        
+        Node.prototype.appendChild = function(child) {
+          if (child && child.tagName === 'SCRIPT') {
+            const src = child.getAttribute('src') || '';
+            const text = child.textContent || '';
+            if (shouldSuppress(src) || shouldSuppress(text)) {
+              // Create a dummy script that does nothing
+              const dummyScript = document.createElement('script');
+              dummyScript.textContent = '// Blocked by nuclear suppression';
+              return originalAppendChild.call(this, dummyScript);
+            }
+          }
+          return originalAppendChild.call(this, child);
+        };
+        
+        Node.prototype.insertBefore = function(child, referenceNode) {
+          if (child && child.tagName === 'SCRIPT') {
+            const src = child.getAttribute('src') || '';
+            const text = child.textContent || '';
+            if (shouldSuppress(src) || shouldSuppress(text)) {
+              // Create a dummy script that does nothing
+              const dummyScript = document.createElement('script');
+              dummyScript.textContent = '// Blocked by nuclear suppression';
+              return originalInsertBefore.call(this, dummyScript, referenceNode);
+            }
+          }
+          return originalInsertBefore.call(this, child, referenceNode);
+        };
+        
+        Node.prototype.replaceChild = function(newChild, oldChild) {
+          if (newChild && newChild.tagName === 'SCRIPT') {
+            const src = newChild.getAttribute('src') || '';
+            const text = newChild.textContent || '';
+            if (shouldSuppress(src) || shouldSuppress(text)) {
+              // Create a dummy script that does nothing
+              const dummyScript = document.createElement('script');
+              dummyScript.textContent = '// Blocked by nuclear suppression';
+              return originalReplaceChild.call(this, dummyScript, oldChild);
+            }
+          }
+          return originalReplaceChild.call(this, newChild, oldChild);
+        };
+        
+        // NUCLEAR: Block all dynamic script creation
+        const originalCreateElementNS = document.createElementNS;
+        document.createElementNS = function(namespaceURI, qualifiedName) {
+          const element = originalCreateElementNS.call(document, namespaceURI, qualifiedName);
+          if (qualifiedName.toLowerCase() === 'script') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && shouldSuppress(String(value || ''))) {
+                return; // Don't set the src attribute
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+          }
+          return element;
+        };
+        
+        // NUCLEAR: Block all iframe creation
+        const originalCreateElementIframe = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElementIframe.call(document, tagName);
+          if (tagName.toLowerCase() === 'iframe') {
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+              if (name === 'src' && shouldSuppress(String(value || ''))) {
+                return; // Don't set the src attribute
+              }
+              return originalSetAttribute.call(this, name, value);
+            };
+          }
+          return element;
+        };
+        
+        // NUCLEAR: Block all browser extension APIs
+        if (typeof chrome !== 'undefined') {
+          Object.defineProperty(window, 'chrome', {
+            get: function() {
+              return undefined; // Return undefined instead of chrome object
+            },
+            set: function() {
+              return; // Prevent setting
+            },
+            configurable: false
+          });
+        }
+        
+        if (typeof browser !== 'undefined') {
+          Object.defineProperty(window, 'browser', {
+            get: function() {
+              return undefined; // Return undefined instead of browser object
+            },
+            set: function() {
+              return; // Prevent setting
+            },
+            configurable: false
+          });
+        }
+        
+        // NUCLEAR: Block all extension-related global variables
+        const extensionGlobals = [
+          'chrome',
+          'browser',
+          'extension',
+          'addon',
+          'plugin',
+          'devtools',
+          'inspector',
+          'debugger',
+          'multi-tabs',
+          'hook',
+          'inject'
+        ];
+        
+        extensionGlobals.forEach(function(globalName) {
+          if (window[globalName]) {
+            Object.defineProperty(window, globalName, {
+              get: function() {
+                return undefined;
+              },
+              set: function() {
+                return;
+              },
+              configurable: false
+            });
+          }
+        });
+        
+        // NUCLEAR: Block all extension-related function calls
+        const originalCall = Function.prototype.call;
+        const originalApply = Function.prototype.apply;
+        
+        Function.prototype.call = function(thisArg, ...args) {
+          const funcStr = this.toString();
+          if (shouldSuppress(funcStr)) {
+            return undefined; // Return undefined instead of calling
+          }
+          return originalCall.call(this, thisArg, ...args);
+        };
+        
+        Function.prototype.apply = function(thisArg, argsArray) {
+          const funcStr = this.toString();
+          if (shouldSuppress(funcStr)) {
+            return undefined; // Return undefined instead of calling
+          }
+          return originalApply.call(this, thisArg, argsArray);
+        };
+        
+        // NUCLEAR: Block all extension-related property access
+        const originalGetOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
+        Object.getOwnPropertyDescriptor = function(obj, prop) {
+          const descriptor = originalGetOwnPropertyDescriptor.call(Object, obj, prop);
+          if (descriptor && shouldSuppress(String(prop))) {
+            return undefined; // Return undefined descriptor
+          }
+          return descriptor;
+        };
+        
+        // NUCLEAR: Block all extension-related property definition
+        const originalDefineProperty = Object.defineProperty;
+        Object.defineProperty = function(obj, prop, descriptor) {
+          if (shouldSuppress(String(prop))) {
+            return obj; // Return the object without defining the property
+          }
+          return originalDefineProperty.call(Object, obj, prop, descriptor);
+        };
+        
+        // NUCLEAR: Block all extension-related property deletion
+        const originalDeleteProperty = Object.deleteProperty;
+        Object.deleteProperty = function(obj, prop) {
+          if (shouldSuppress(String(prop))) {
+            return true; // Pretend the deletion was successful
+          }
+          return originalDeleteProperty.call(Object, obj, prop);
+        };
+        
+        // NUCLEAR: Block all extension-related property enumeration
+        const originalGetOwnPropertyNames = Object.getOwnPropertyNames;
+        Object.getOwnPropertyNames = function(obj) {
+          const names = originalGetOwnPropertyNames.call(Object, obj);
+          return names.filter(function(name) {
+            return !shouldSuppress(String(name));
+          });
+        };
+        
+        // NUCLEAR: Block all extension-related property keys
+        const originalKeys = Object.keys;
+        Object.keys = function(obj) {
+          const keys = originalKeys.call(Object, obj);
+          return keys.filter(function(key) {
+            return !shouldSuppress(String(key));
+          });
+        };
+        
+        // NUCLEAR: Block all error reporting at the browser level
+        const originalErrorReporter = window.reportError || window.onerror;
+        window.reportError = function(error) {
+          if (shouldSuppress(String(error || ''))) {
+            return; // Don't report the error
+          }
+          if (originalErrorReporter) {
+            return originalErrorReporter.call(this, error);
+          }
+        };
+        
+        // NUCLEAR: Block all console methods at the native level
+        const consoleMethods = ['error', 'warn', 'log', 'info', 'debug'];
+        consoleMethods.forEach(function(method) {
+          const originalMethod = console[method];
+          Object.defineProperty(console, method, {
+            value: function(...args) {
+              const message = args.join(' ');
+              if (shouldSuppress(message)) {
+                return; // Completely suppress
+              }
+              return originalMethod.apply(console, args);
+            },
+            writable: false,
+            configurable: false
+          });
+        });
+        
+        // NUCLEAR: Block all error events at the native level
+        const originalErrorEvent = window.ErrorEvent;
+        if (originalErrorEvent) {
+          window.ErrorEvent = function(type, eventInitDict) {
+            if (eventInitDict && shouldSuppress(String(eventInitDict.message || ''))) {
+              // Create a silent error event
+              const silentEvent = new originalErrorEvent('error', {
+                message: '',
+                filename: '',
+                lineno: 0,
+                colno: 0,
+                error: null
+              });
+              return silentEvent;
+            }
+            return new originalErrorEvent(type, eventInitDict);
+          };
+        }
+        
+        // NUCLEAR: Block all unhandledrejection events at the native level
+        const originalPromiseRejectionEvent = window.PromiseRejectionEvent;
+        if (originalPromiseRejectionEvent) {
+          window.PromiseRejectionEvent = function(type, eventInitDict) {
+            if (eventInitDict && shouldSuppress(String(eventInitDict.reason || ''))) {
+              // Create a silent rejection event
+              const silentEvent = new originalPromiseRejectionEvent('unhandledrejection', {
+                promise: Promise.resolve(),
+                reason: null
+              });
+              return silentEvent;
+            }
+            return new originalPromiseRejectionEvent(type, eventInitDict);
+          };
+        }
+        
+        // NUCLEAR: Block all WebSocket connections at the native level
+        const originalWebSocketConstructor = window.WebSocket;
+        Object.defineProperty(window, 'WebSocket', {
+          value: function(url, protocols) {
+            const urlStr = String(url || '');
+            if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
+              // Return a completely inert WebSocket that does absolutely nothing
+              const dummySocket = {
+                readyState: 3, // CLOSED
+                url: urlStr,
+                protocol: protocols || '',
+                extensions: '',
+                bufferedAmount: 0,
+                onopen: null,
+                onclose: null,
+                onmessage: null,
+                onerror: null,
+                send: function() { /* DO NOTHING */ },
+                close: function() { /* DO NOTHING */ },
+                addEventListener: function() { /* DO NOTHING */ },
+                removeEventListener: function() { /* DO NOTHING */ },
+                dispatchEvent: function() { return false; }
+              };
+              
+              // Prevent any error events from firing
+              setTimeout(() => {
+                if (dummySocket.onerror) {
+                  try {
+                    dummySocket.onerror(new Event('error'));
+                  } catch (e) {
+                    // Ignore everything
+                  }
+                }
+              }, 0);
+              
+              return dummySocket;
+            }
+            return new originalWebSocketConstructor(url, protocols);
+          },
+          writable: false,
+          configurable: false
+        });
+        
+        // NUCLEAR: Block all extension-related network requests
+        const originalFetchNative = window.fetch;
+        Object.defineProperty(window, 'fetch', {
+          value: function(url, options) {
+            const urlStr = String(url || '');
+            if (shouldSuppress(urlStr)) {
+              // Return a rejected promise that won't trigger errors
+              return Promise.reject(new Error('Blocked by nuclear suppression'));
+            }
+            return originalFetchNative.call(this, url, options);
+          },
+          writable: false,
+          configurable: false
+        });
+        
+        // NUCLEAR: Block all extension-related XMLHttpRequest
+        const originalXMLHttpRequestNative = window.XMLHttpRequest;
+        Object.defineProperty(window, 'XMLHttpRequest', {
+          value: function() {
+            const xhr = new originalXMLHttpRequestNative();
+            const originalOpen = xhr.open;
+            xhr.open = function(method, url, async, user, password) {
+              const urlStr = String(url || '');
+              if (shouldSuppress(urlStr)) {
+                // Make it fail silently by not calling the original open
+                return;
+              }
+              return originalOpen.call(this, method, url, async, user, password);
+            };
+            return xhr;
+          },
+          writable: false,
+          configurable: false
+        });
+        
+        // NUCLEAR: Block all extension-related script loading
+        const originalCreateElementNative = document.createElement;
+        Object.defineProperty(document, 'createElement', {
+          value: function(tagName) {
+            const element = originalCreateElementNative.call(document, tagName);
+            if (tagName.toLowerCase() === 'script') {
+              const originalSetAttribute = element.setAttribute;
+              element.setAttribute = function(name, value) {
+                if (name === 'src' && shouldSuppress(String(value || ''))) {
+                  // Don't set the src attribute for blocked scripts
+                  return;
+                }
+                return originalSetAttribute.call(this, name, value);
+              };
+            }
+            return element;
+          },
+          writable: false,
+          configurable: false
+        });
+        
+        // NUCLEAR: Block all extension-related element insertion
+        const originalAppendChildNative = Node.prototype.appendChild;
+        Object.defineProperty(Node.prototype, 'appendChild', {
+          value: function(child) {
+            if (child && child.tagName === 'SCRIPT') {
+              const src = child.getAttribute('src') || '';
+              const text = child.textContent || '';
+              if (shouldSuppress(src) || shouldSuppress(text)) {
+                // Create a dummy script that does nothing
+                const dummyScript = document.createElement('script');
+                dummyScript.textContent = '// Blocked by nuclear suppression';
+                return originalAppendChildNative.call(this, dummyScript);
+              }
+            }
+            return originalAppendChildNative.call(this, child);
+          },
+          writable: false,
+          configurable: false
+        });
+        
+        // NUCLEAR: Block all extension-related event listeners
+        const originalAddEventListenerNative = EventTarget.prototype.addEventListener;
+        Object.defineProperty(EventTarget.prototype, 'addEventListener', {
+          value: function(type, listener, options) {
+            if (type === 'error' || type === 'unhandledrejection') {
+              // Wrap the listener to filter out extension errors
+              const wrappedListener = function(event) {
+                const message = String(event.message || event.reason?.message || event.reason || '');
+                if (shouldSuppress(message)) {
+                  return; // Block the event
+                }
+                return listener.call(this, event);
+              };
+              return originalAddEventListenerNative.call(this, type, wrappedListener, options);
+            }
+            return originalAddEventListenerNative.call(this, type, listener, options);
+          },
+          writable: false,
+          configurable: false
+        });
         
       })();
     </script>
