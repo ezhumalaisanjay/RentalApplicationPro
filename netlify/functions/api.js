@@ -437,22 +437,22 @@ app.post("/api/upload-files", async (req, res) => {
   try {
     const { files, applicationId } = req.body;
     
+    console.log('Upload files request received:', {
+      filesCount: files ? files.length : 0,
+      applicationId: applicationId
+    });
+    
     if (!files || !Array.isArray(files)) {
       return res.status(400).json({ error: "No files provided" });
     }
 
     const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    
-    // Create uploads directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
     const uploadedFiles = [];
 
     for (const encryptedFile of files) {
       try {
+        console.log(`Processing file: ${encryptedFile.filename}`);
+        
         // Decrypt the file
         const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
         const base64Str = bytes.toString(CryptoJS.enc.Utf8);
@@ -462,10 +462,10 @@ app.post("/api/upload-files", async (req, res) => {
         const timestamp = Date.now();
         const safeFilename = encryptedFile.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filename = `${timestamp}_${safeFilename}`;
-        const filePath = path.join(uploadDir, filename);
 
-        // Save the decrypted file
-        fs.writeFileSync(filePath, fileBuffer);
+        // In serverless environment, we can't write to filesystem
+        // Instead, we'll store the file data in memory and return metadata
+        // In production, you'd want to upload to a cloud storage service like AWS S3
 
         uploadedFiles.push({
           originalName: encryptedFile.filename,
@@ -473,29 +473,38 @@ app.post("/api/upload-files", async (req, res) => {
           size: encryptedFile.originalSize,
           mimeType: encryptedFile.mimeType,
           uploadDate: encryptedFile.uploadDate,
-          path: filePath
+          // Store the decrypted data as base64 for now
+          // In production, upload to cloud storage and store the URL
+          data: base64Str,
+          status: 'processed'
         });
+
+        console.log(`File processed successfully: ${encryptedFile.filename}`);
 
       } catch (decryptError) {
         console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
         return res.status(400).json({ 
-          error: `Failed to decrypt file ${encryptedFile.filename}` 
+          error: `Failed to decrypt file ${encryptedFile.filename}`,
+          details: decryptError.message
         });
       }
     }
 
-    // Store file metadata in database (you can extend your schema to include this)
-    // await storage.saveFileMetadata(applicationId, uploadedFiles);
+    console.log(`Successfully processed ${uploadedFiles.length} files`);
 
     res.json({ 
       message: "Files uploaded successfully", 
       files: uploadedFiles,
-      count: uploadedFiles.length
+      count: uploadedFiles.length,
+      note: "Files are stored in memory. For production, implement cloud storage upload."
     });
 
   } catch (error) {
     console.error("File upload error:", error);
-    res.status(500).json({ error: "Failed to upload files" });
+    res.status(500).json({ 
+      error: "Failed to upload files",
+      details: error.message 
+    });
   }
 });
 
