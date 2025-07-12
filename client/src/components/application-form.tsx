@@ -265,6 +265,45 @@ export function ApplicationForm() {
   };
 
   const onSubmit = async (data: ApplicationFormData) => {
+    // Ensure all required fields are present and valid
+    const requiredFields = [
+      'buildingAddress',
+      'apartmentNumber',
+      'monthlyRent',
+      'apartmentType',
+      'applicantName',
+      'applicantSsn',
+      'applicantPhone',
+      'applicantEmail',
+      'applicantAddress',
+      'applicantCity',
+      'applicantState',
+      'applicantZip',
+    ];
+    let missingFields = [];
+    for (const field of requiredFields) {
+      if (
+        data[field] === undefined ||
+        data[field] === null ||
+        (typeof data[field] === 'string' && data[field].trim() === '') ||
+        (field === 'monthlyRent' && (!data[field] || isNaN(data[field]) || data[field] <= 0))
+      ) {
+        missingFields.push(field);
+      }
+    }
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.applicantEmail || '')) {
+      missingFields.push('applicantEmail');
+    }
+    if (missingFields.length > 0) {
+      toast({
+        title: 'Missing or invalid fields',
+        description: `Please fill out: ${missingFields.join(', ')}`,
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       console.log("Submitting application:", { ...data, formData, signatures, documents, encryptedDocuments });
       console.log("Encrypted documents state:", encryptedDocuments);
