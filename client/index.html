@@ -100,10 +100,54 @@
                   message.includes('Unchecked runtime.lastError') ||
                   message.includes('The message port closed before a response was received') ||
                   message.includes('runtime.lastError') ||
-                  message.includes('message port closed')) {
+                  message.includes('message port closed') ||
+                  message.includes('When merging two experiments') ||
+                  message.includes('found unequal data') ||
+                  message.includes('Using the earlier value') ||
+                  message.includes('advanced-webinar-entry-points') ||
+                  message.includes('bulk-select-feature-gate-redesign') ||
+                  message.includes('call-assistant-seat-admin-banner-text') ||
+                  message.includes('companies-lookalike-standalone-filter') ||
+                  message.includes('credit-limit-feature-gate-legal-test') ||
+                  message.includes('extension-profile-header-revamp') ||
+                  message.includes('mc-quality-improvement-experiment-1') ||
+                  message.includes('people-page-validation') ||
+                  message.includes('powerup-button-label') ||
+                  message.includes('top-feature-gates-redesign') ||
+                  message.includes('unified-sequence-builder-experiment-rerun') ||
+                  message.includes('unified-template-modal-sequences') ||
+                  message.includes('unified-template-modal-workflows') ||
+                  message.includes('upgrade-banners') ||
+                  message.includes('workflows-or-interaction-or-side-panel-or-click-to-add-node') ||
+                  message.includes('control treatment') ||
+                  message.includes('variant-2') ||
+                  message.includes('treatment-a') ||
+                  message.includes('treatment-b')) {
                 return; // Completely suppress these errors
               }
               originalError.apply(console, args);
+            };
+          }
+        }, 50);
+        
+        // Also block console warnings for experiment messages
+        setInterval(function() {
+          if (console && console.warn) {
+            const originalWarn = console.warn;
+            console.warn = function(...args) {
+              const message = args.join(' ');
+              if (message.includes('When merging two experiments') ||
+                  message.includes('found unequal data') ||
+                  message.includes('Using the earlier value') ||
+                  message.includes('advanced-webinar-entry-points') ||
+                  message.includes('inject.bundle.js:71') ||
+                  message.includes('control treatment') ||
+                  message.includes('variant-2') ||
+                  message.includes('treatment-a') ||
+                  message.includes('treatment-b')) {
+                return; // Completely suppress these warnings
+              }
+              originalWarn.apply(console, args);
             };
           }
         }, 50);
