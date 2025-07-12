@@ -19,8 +19,6 @@ import "./index.css";
     const msg = String(message).toLowerCase();
     const blockedPatterns = [
       'message port closed',
-      'websocket connection to ws://localhost:8098/',
-      'websocket connection to ws://localhost:8098',
       'websocket not connected',
       'inject.bundle.js',
       'runtime.lasterror',
@@ -29,15 +27,10 @@ import "./index.css";
       'safari-extension://',
       'ms-browser-extension://',
       'extension://',
-      'localhost:8098',
       'injected css loaded successfully',
       'unchecked runtime.lasterror',
       'multi-tabs.js',
       'hook.js',
-      'websocket',
-      'ws://localhost',
-      'websocket connection failed',
-      'websocket error',
       'applicationinstructions component loaded',
       'component loaded',
       'extension error',
@@ -135,45 +128,6 @@ import "./index.css";
     originalMethods.log.apply(console, args);
   };
   
-  // ULTRA-AGGRESSIVE WebSocket blocking
-  const OriginalWebSocket = window.WebSocket;
-  (window as any).WebSocket = function(url: string | URL, protocols?: string | string[]) {
-    const urlStr = String(url || '');
-    if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
-      // Return a completely inert WebSocket that does absolutely nothing
-      const dummySocket = {
-        readyState: 3, // CLOSED
-        url: urlStr,
-        protocol: protocols || '',
-        extensions: '',
-        bufferedAmount: 0,
-        onopen: null,
-        onclose: null,
-        onmessage: null,
-        onerror: null,
-        send: function() { /* DO ABSOLUTELY NOTHING */ },
-        close: function() { /* DO ABSOLUTELY NOTHING */ },
-        addEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
-        removeEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
-        dispatchEvent: function() { return false; }
-      };
-      
-      // Prevent any events from firing
-      setTimeout(() => {
-        if (dummySocket.onerror) {
-          try {
-            dummySocket.onerror(new Event('error'));
-          } catch (e) {
-            // Ignore any errors from the error handler
-          }
-        }
-      }, 0);
-      
-      return dummySocket;
-    }
-    return new OriginalWebSocket(url, protocols);
-  };
-  
   // Block all error events with ultra-aggressive filtering
   window.addEventListener('error', function(event: ErrorEvent) {
     const message = String(event.message || '');
@@ -225,7 +179,7 @@ import "./index.css";
   };
   
   // Log success message
-  originalMethods.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL WEBSOCKET ERRORS COMPLETELY BLOCKED');
+  originalMethods.log('🛡️ ULTRA-AGGRESSIVE ERROR SUPPRESSION ACTIVATED - ALL EXTENSION ERRORS COMPLETELY BLOCKED');
   
   // ULTRA-AGGRESSIVE: Continuous monitoring system to catch late-arriving errors
   setInterval(() => {
@@ -253,33 +207,6 @@ import "./index.css";
       }
       originalMethods.log.apply(console, args);
     };
-    
-    // Re-apply WebSocket blocking
-    if ((window as any).WebSocket !== OriginalWebSocket) {
-      (window as any).WebSocket = function(url: string | URL, protocols?: string | string[]) {
-        const urlStr = String(url || '');
-        if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
-          const dummySocket = {
-            readyState: 3,
-            url: urlStr,
-            protocol: protocols || '',
-            extensions: '',
-            bufferedAmount: 0,
-            onopen: null,
-            onclose: null,
-            onmessage: null,
-            onerror: null,
-            send: function() { /* DO ABSOLUTELY NOTHING */ },
-            close: function() { /* DO ABSOLUTELY NOTHING */ },
-            addEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
-            removeEventListener: function() { /* DO ABSOLUTELY NOTHING */ },
-            dispatchEvent: function() { return false; }
-          };
-          return dummySocket;
-        }
-        return new OriginalWebSocket(url, protocols);
-      };
-    }
   }, 100); // Check every 100ms
   
 })();

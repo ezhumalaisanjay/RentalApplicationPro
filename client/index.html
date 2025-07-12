@@ -22,8 +22,6 @@
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
             'message port closed',
-            'websocket connection to ws://localhost:8098/',
-            'websocket connection to ws://localhost:8098',
             'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
@@ -32,15 +30,10 @@
             'safari-extension://',
             'ms-browser-extension://',
             'extension://',
-            'localhost:8098',
             'injected css loaded successfully',
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
-            'websocket',
-            'ws://localhost',
-            'websocket connection failed',
-            'websocket error',
             'multi-tabs',
             'injected css'
           ];
@@ -73,32 +66,6 @@
           originalConsole.log.apply(console, args);
         };
         
-        // Block WebSocket immediately
-        const OriginalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-          const urlStr = String(url || '');
-          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
-            const dummySocket = {
-              readyState: 3,
-              url: urlStr,
-              protocol: protocols || '',
-              extensions: '',
-              bufferedAmount: 0,
-              onopen: null,
-              onclose: null,
-              onmessage: null,
-              onerror: null,
-              send: function() { /* DO NOTHING */ },
-              close: function() { /* DO NOTHING */ },
-              addEventListener: function() { /* DO NOTHING */ },
-              removeEventListener: function() { /* DO NOTHING */ },
-              dispatchEvent: function() { return false; }
-            };
-            return dummySocket;
-          }
-          return new OriginalWebSocket(url, protocols);
-        };
-        
         originalConsole.log('🚀 ULTRA-EARLY ERROR SUPPRESSION ACTIVATED');
         
       })();
@@ -108,45 +75,6 @@
     <script>
       (function() {
         'use strict';
-        
-        // NUCLEAR: Block WebSocket IMMEDIATELY before anything else
-        const OriginalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-          const urlStr = String(url || '');
-          if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
-            // Return a completely inert WebSocket that does absolutely nothing
-            const dummySocket = {
-              readyState: 3, // CLOSED
-              url: urlStr,
-              protocol: protocols || '',
-              extensions: '',
-              bufferedAmount: 0,
-              onopen: null,
-              onclose: null,
-              onmessage: null,
-              onerror: null,
-              send: function() { /* DO NOTHING */ },
-              close: function() { /* DO NOTHING */ },
-              addEventListener: function() { /* DO NOTHING */ },
-              removeEventListener: function() { /* DO NOTHING */ },
-              dispatchEvent: function() { return false; }
-            };
-            
-            // Prevent any error events
-            setTimeout(() => {
-              if (dummySocket.onerror) {
-                try {
-                  dummySocket.onerror(new Event('error'));
-                } catch (e) {
-                  // Ignore everything
-                }
-              }
-            }, 0);
-            
-            return dummySocket;
-          }
-          return new OriginalWebSocket(url, protocols);
-        };
         
         // NUCLEAR: Override console methods IMMEDIATELY
         const originalConsole = {
@@ -160,8 +88,6 @@
           const msg = String(message).toLowerCase();
           const blockedPatterns = [
             'message port closed',
-            'websocket connection to ws://localhost:8098/',
-            'websocket connection to ws://localhost:8098',
             'websocket not connected',
             'inject.bundle.js',
             'runtime.lasterror',
@@ -170,15 +96,10 @@
             'safari-extension://',
             'ms-browser-extension://',
             'extension://',
-            'localhost:8098',
             'injected css loaded successfully',
             'unchecked runtime.lasterror',
             'multi-tabs.js',
             'hook.js',
-            'websocket',
-            'ws://localhost',
-            'websocket connection failed',
-            'websocket error',
             'multi-tabs',
             'injected css',
             'applicationinstructions component loaded',
@@ -254,7 +175,7 @@
           return blockedPatterns.some(pattern => msg.includes(pattern));
         }
         
-        // Override console.error with nuclear-level filtering
+        // Override console methods immediately
         console.error = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -263,7 +184,6 @@
           originalConsole.error.apply(console, args);
         };
         
-        // Override console.warn with nuclear-level filtering
         console.warn = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -272,7 +192,6 @@
           originalConsole.warn.apply(console, args);
         };
         
-        // Override console.log to filter extension messages
         console.log = function(...args) {
           const message = args.join(' ');
           if (shouldSuppress(message)) {
@@ -379,33 +298,6 @@
             }
             originalConsole.log.apply(console, args);
           };
-          
-          // Re-apply WebSocket blocking
-          if (window.WebSocket !== OriginalWebSocket) {
-            window.WebSocket = function(url, protocols) {
-              const urlStr = String(url || '');
-              if (urlStr.includes('localhost:8098') || urlStr.includes('ws://localhost:8098')) {
-                const dummySocket = {
-                  readyState: 3,
-                  url: urlStr,
-                  protocol: protocols || '',
-                  extensions: '',
-                  bufferedAmount: 0,
-                  onopen: null,
-                  onclose: null,
-                  onmessage: null,
-                  onerror: null,
-                  send: function() { /* DO NOTHING */ },
-                  close: function() { /* DO NOTHING */ },
-                  addEventListener: function() { /* DO NOTHING */ },
-                  removeEventListener: function() { /* DO NOTHING */ },
-                  dispatchEvent: function() { return false; }
-                };
-                return dummySocket;
-              }
-              return new OriginalWebSocket(url, protocols);
-            };
-          }
         }, 100); // Check every 100ms
         
         // NUCLEAR: MutationObserver to catch dynamically injected scripts
@@ -415,20 +307,11 @@
               mutation.addedNodes.forEach(function(node) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                   const element = node;
-                  // Block any script tags that might be extension-related
                   if (element.tagName === 'SCRIPT') {
-                    const src = element.getAttribute('src') || '';
-                    if (shouldSuppress(src)) {
+                    const src = element.getAttribute('src');
+                    if (src && shouldSuppress(src)) {
+                      // Remove the script element
                       element.remove();
-                      return;
-                    }
-                  }
-                  // Block any iframes that might be extension-related
-                  if (element.tagName === 'IFRAME') {
-                    const src = element.getAttribute('src') || '';
-                    if (shouldSuppress(src)) {
-                      element.remove();
-                      return;
                     }
                   }
                 }
@@ -443,7 +326,7 @@
           subtree: true
         });
         
-        // NUCLEAR: Block all global error handlers that extensions might add
+        // NUCLEAR: Override addEventListener to catch error listeners
         const originalAddEventListener = window.addEventListener;
         window.addEventListener = function(type, listener, options) {
           if (type === 'error' || type === 'unhandledrejection') {
