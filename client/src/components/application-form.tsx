@@ -36,8 +36,8 @@ const applicationSchema = z.object({
   // Primary Applicant
   applicantName: z.string().optional(),
   applicantDob: z.date().optional(),
-  applicantSsn: z.string().optional(),
-  applicantPhone: z.string().optional(),
+  applicantSsn: z.string().min(9, 'SSN is required').regex(/^\d{3}-\d{2}-\d{4}$/, 'Invalid SSN format (XXX-XX-XXXX)'),
+  applicantPhone: z.string().min(10, 'Phone is required').regex(/^\(\d{3}\) \d{3}-\d{4}$/, 'Invalid phone format ((XXX) XXX-XXXX)'),
   applicantEmail: z.string().optional(),
   applicantLicense: z.string().optional(),
   applicantLicenseState: z.string().optional(),
@@ -266,14 +266,14 @@ export function ApplicationForm() {
 
   const onSubmit = async (data: ApplicationFormData) => {
     // Ensure all required fields are present and valid
-    const requiredFields = [
+    const requiredFields: (keyof ApplicationFormData)[] = [
       'buildingAddress',
       'apartmentNumber',
       'monthlyRent',
       'apartmentType',
       'applicantName',
-      'applicantSsn',
-      'applicantPhone',
+      'applicantSsn', // now required
+      'applicantPhone', // now required
       'applicantEmail',
       'applicantAddress',
       'applicantCity',
@@ -286,7 +286,7 @@ export function ApplicationForm() {
         data[field] === undefined ||
         data[field] === null ||
         (typeof data[field] === 'string' && data[field].trim() === '') ||
-        (field === 'monthlyRent' && (!data[field] || isNaN(data[field]) || data[field] <= 0))
+        (field === 'monthlyRent' && (!data[field] || isNaN(data[field] as any) || (data[field] as any) <= 0))
       ) {
         missingFields.push(field);
       }
@@ -764,7 +764,7 @@ export function ApplicationForm() {
                   name="applicantSsn"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Social Security Number</FormLabel>
+                      <FormLabel>Social Security Number <span style={{color: 'red'}}>*</span></FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="XXX-XX-XXXX" 
@@ -786,7 +786,7 @@ export function ApplicationForm() {
                   name="applicantPhone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
+                      <FormLabel>Phone Number <span style={{color: 'red'}}>*</span></FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="(XXX) XXX-XXXX" 
