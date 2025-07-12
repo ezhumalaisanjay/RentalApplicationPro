@@ -5,10 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://hook.us1.make.com; worker-src 'none'; child-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
+    <!-- IMMEDIATE WEBSOCKET BLOCKING - RUNS BEFORE ANYTHING ELSE -->
+    <script>
+      // Block WebSocket immediately before any other scripts
+      (function() {
+        'use strict';
+        
+        // Store original WebSocket
+        const OriginalWebSocket = window.WebSocket;
+        
+        // Override WebSocket constructor
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          
+          // Block ALL localhost:8098 connections
+          if (urlStr.includes('localhost:8098') || 
+              urlStr.includes('ws://localhost:8098') ||
+              urlStr.includes('localhost:8098/') ||
+              urlStr.includes('ws://localhost:8098/')) {
+            
+            // Return a dummy WebSocket that does nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            
+            return dummySocket;
+          }
+          
+          // Allow all other WebSocket connections
+          return new OriginalWebSocket(url, protocols);
+        };
+        
+        // Also block console errors for WebSocket failures
+        const originalError = console.error;
+        console.error = function(...args) {
+          const message = args.join(' ');
+          if (message.includes('WebSocket connection to ws://localhost:8098/') ||
+              message.includes('inject.bundle.js') ||
+              message.includes('localhost:8098')) {
+            return; // Suppress these errors
+          }
+          originalError.apply(console, args);
+        };
+        
+      })();
+    </script>
+    
     <!-- ULTRA-EARLY ERROR SUPPRESSION - RUNS BEFORE ANYTHING ELSE -->
     <script>
       (function() {
         'use strict';
+        
+        // NUCLEAR: Block WebSocket at the earliest possible moment
+        const EarlyWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+          const urlStr = String(url || '');
+          // Block ALL problematic WebSocket connections immediately
+          if (urlStr.includes('localhost:8098') || 
+              urlStr.includes('ws://localhost:8098') ||
+              urlStr.includes('localhost:8098/') ||
+              urlStr.includes('ws://localhost:8098/')) {
+            // Return a completely inert WebSocket that does absolutely nothing
+            const dummySocket = {
+              readyState: 3, // CLOSED
+              url: urlStr,
+              protocol: protocols || '',
+              extensions: '',
+              bufferedAmount: 0,
+              onopen: null,
+              onclose: null,
+              onmessage: null,
+              onerror: null,
+              send: function() { /* DO NOTHING */ },
+              close: function() { /* DO NOTHING */ },
+              addEventListener: function() { /* DO NOTHING */ },
+              removeEventListener: function() { /* DO NOTHING */ },
+              dispatchEvent: function() { return false; }
+            };
+            
+            // Prevent any error events
+            setTimeout(() => {
+              if (dummySocket.onerror) {
+                try {
+                  dummySocket.onerror(new Event('error'));
+                } catch (e) {
+                  // Ignore everything
+                }
+              }
+            }, 0);
+            
+            return dummySocket;
+          }
+          // Allow all other WebSocket connections (including Vite HMR)
+          return new EarlyWebSocket(url, protocols);
+        };
         
         // Store original console methods immediately
         const originalConsole = {
@@ -98,6 +201,27 @@
           }
           originalConsole.log.apply(console, args);
         };
+        
+        // NUCLEAR: Block inject.bundle.js specifically
+        if (window.inject || window.bundle || window.injectBundle) {
+          try {
+            delete window.inject;
+            delete window.bundle;
+            delete window.injectBundle;
+          } catch (e) {
+            // Ignore
+          }
+        }
+        
+        // NUCLEAR: Block any script tags with inject.bundle.js
+        const scripts = document.querySelectorAll('script[src*="inject.bundle.js"]');
+        scripts.forEach(script => {
+          try {
+            script.remove();
+          } catch (e) {
+            // Ignore
+          }
+        });
         
         // Block WebSocket immediately
         const OriginalWebSocket = window.WebSocket;
