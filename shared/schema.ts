@@ -133,11 +133,34 @@ const baseSchema = createInsertSchema(rentalApplications).omit({
 });
 
 export const insertRentalApplicationSchema = baseSchema.extend({
+  // Required fields (from database schema)
+  buildingAddress: z.string().min(1, "Building address is required"),
+  apartmentNumber: z.string().min(1, "Apartment number is required"),
   moveInDate: dateStringToDate,
+  monthlyRent: z.number().positive("Monthly rent must be positive"),
+  apartmentType: z.string().min(1, "Apartment type is required"),
+  applicantName: z.string().min(1, "Applicant name is required"),
   applicantDob: dateStringToDate,
+  applicantSsn: z.string().min(1, "SSN is required"),
+  applicantPhone: z.string().min(1, "Phone number is required"),
+  applicantEmail: z.string().email("Valid email is required"),
+  applicantAddress: z.string().min(1, "Address is required"),
+  applicantCity: z.string().min(1, "City is required"),
+  applicantState: z.string().min(1, "State is required"),
+  applicantZip: z.string().min(1, "ZIP code is required"),
+  
+  // Optional fields
+  howDidYouHear: z.string().optional(),
+  applicantLicense: z.string().optional(),
+  applicantLicenseState: z.string().optional(),
+  applicantLengthAtAddress: z.string().optional(),
+  applicantLandlordName: z.string().optional(),
+  applicantCurrentRent: z.number().optional(),
+  applicantReasonForMoving: z.string().optional(),
   applicantEmploymentStart: dateStringToDate.optional(),
   coApplicantDob: dateStringToDate.optional(),
   coApplicantEmploymentStart: dateStringToDate.optional(),
+  
   // Make co-applicant fields optional and nullable
   coApplicantName: z.string().optional().nullable(),
   coApplicantRelationship: z.string().optional().nullable(),
@@ -156,6 +179,7 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   coApplicantBankName: z.string().optional().nullable(),
   coApplicantAccountType: z.string().optional().nullable(),
   coApplicantSignature: z.string().optional().nullable(),
+  
   // Make guarantor fields optional and nullable
   guarantorName: z.string().optional().nullable(),
   guarantorRelationship: z.string().optional().nullable(),
@@ -176,6 +200,7 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   guarantorBankName: z.string().optional().nullable(),
   guarantorAccountType: z.string().optional().nullable(),
   guarantorSignature: z.string().optional().nullable(),
+  
   // Make applicant financial fields optional
   applicantEmployer: z.string().optional().nullable(),
   applicantPosition: z.string().optional().nullable(),
@@ -185,6 +210,24 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   applicantBankName: z.string().optional().nullable(),
   applicantAccountType: z.string().optional().nullable(),
   applicantSignature: z.string().optional().nullable(),
+  
+  // Legal questions
+  hasBankruptcy: z.boolean().default(false),
+  bankruptcyDetails: z.string().optional(),
+  hasEviction: z.boolean().default(false),
+  evictionDetails: z.string().optional(),
+  hasCriminalHistory: z.boolean().default(false),
+  criminalHistoryDetails: z.string().optional(),
+  hasPets: z.boolean().default(false),
+  petDetails: z.string().optional(),
+  smokingStatus: z.string().optional(),
+  
+  // Documents and encrypted data
+  documents: z.string().optional(),
+  encryptedData: z.string().optional(),
+  
+  // Status
+  status: z.string().default("draft"),
 });
 
 export type InsertRentalApplication = z.infer<typeof insertRentalApplicationSchema>;
