@@ -432,6 +432,73 @@ app.post("/api/upload", async (req, res) => {
   }
 });
 
+// Upload encrypted files endpoint
+app.post("/api/upload-files", async (req, res) => {
+  try {
+    const { files, applicationId } = req.body;
+    
+    if (!files || !Array.isArray(files)) {
+      return res.status(400).json({ error: "No files provided" });
+    }
+
+    const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const uploadedFiles = [];
+
+    for (const encryptedFile of files) {
+      try {
+        // Decrypt the file
+        const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
+        const base64Str = bytes.toString(CryptoJS.enc.Utf8);
+        const fileBuffer = Buffer.from(base64Str, 'base64');
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const safeFilename = encryptedFile.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filename = `${timestamp}_${safeFilename}`;
+        const filePath = path.join(uploadDir, filename);
+
+        // Save the decrypted file
+        fs.writeFileSync(filePath, fileBuffer);
+
+        uploadedFiles.push({
+          originalName: encryptedFile.filename,
+          savedName: filename,
+          size: encryptedFile.originalSize,
+          mimeType: encryptedFile.mimeType,
+          uploadDate: encryptedFile.uploadDate,
+          path: filePath
+        });
+
+      } catch (decryptError) {
+        console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
+        return res.status(400).json({ 
+          error: `Failed to decrypt file ${encryptedFile.filename}` 
+        });
+      }
+    }
+
+    // Store file metadata in database (you can extend your schema to include this)
+    // await storage.saveFileMetadata(applicationId, uploadedFiles);
+
+    res.json({ 
+      message: "Files uploaded successfully", 
+      files: uploadedFiles,
+      count: uploadedFiles.length
+    });
+
+  } catch (error) {
+    console.error("File upload error:", error);
+    res.status(500).json({ error: "Failed to upload files" });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
