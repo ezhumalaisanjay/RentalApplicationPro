@@ -19,8 +19,8 @@ Create a `.env` file in the root directory with the following variables:
 # Encryption key for file uploads (change this in production!)
 ENCRYPTION_KEY=your-secret-key-change-in-production
 
-# React app encryption key (for frontend)
-REACT_APP_ENCRYPTION_KEY=your-secret-key-change-in-production
+# Vite app encryption key (for frontend)
+VITE_ENCRYPTION_KEY=your-secret-key-change-in-production
 ```
 
 ### 2. Uploads Directory

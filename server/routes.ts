@@ -387,7 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // Decrypt the file
           const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
-          const base64Str = bytes.toString(CryptoJS.enc.Utf8);
+          // Get the raw bytes directly instead of converting to UTF-8 string
+          const base64Str = bytes.toString(CryptoJS.enc.Base64);
           const fileBuffer = Buffer.from(base64Str, 'base64');
 
           // Generate unique filename

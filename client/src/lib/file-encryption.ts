@@ -1,7 +1,7 @@
 import CryptoJS from 'crypto-js';
 
 // Secret key for encryption - in production, this should be stored securely
-const SECRET_KEY = import.meta.env.VITE_REACT_APP_ENCRYPTION_KEY || 'your-secret-key-change-in-production';
+const SECRET_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'your-secret-key-change-in-production';
 
 export interface EncryptedFile {
   encryptedData: string;
@@ -75,7 +75,8 @@ export function decryptFile(encryptedFile: EncryptedFile): Buffer {
   try {
     // Decrypt the data
     const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, SECRET_KEY);
-    const base64Str = bytes.toString(CryptoJS.enc.Utf8);
+    // Get the raw bytes directly instead of converting to UTF-8 string
+    const base64Str = bytes.toString(CryptoJS.enc.Base64);
     
     // Convert Base64 back to buffer
     return Buffer.from(base64Str, 'base64');
