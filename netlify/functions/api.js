@@ -200,6 +200,8 @@ app.post("/api/submit-application", async (req, res) => {
         });
       } catch (error) {
         console.error('Error parsing encrypted data field:', error);
+        // Don't fail the submission if encrypted data parsing fails
+        parsedEncryptedData = null;
       }
     } else {
       console.log('No encryptedData field found in validated data');
@@ -251,7 +253,12 @@ app.post("/api/submit-application", async (req, res) => {
         submittedAt: application.submittedAt
       },
       files: parsedFiles,
+      documentsFiles: parsedEncryptedData ? parsedEncryptedData.allEncryptedFiles || [] : [],
       signatures: signatures || {},
+      encryptedData: {
+        raw: parsedEncryptedData || {},
+        parsed: parsedEncryptedData
+      },
       metadata: {
         source: "rental-application-system",
         version: "1.0.0",
@@ -296,6 +303,8 @@ app.post("/api/submit-application", async (req, res) => {
   } catch (error) {
     console.error('Error in submit-application:', error);
     console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     
     if (error instanceof z.ZodError) {
       console.error('Validation errors:', error.errors);
@@ -303,6 +312,25 @@ app.post("/api/submit-application", async (req, res) => {
         error: "Validation failed", 
         details: error.errors,
         message: "Please check your form data and try again."
+      });
+    }
+    
+    // Check for specific error types
+    if (error.name === 'SyntaxError' && error.message.includes('JSON')) {
+      console.error('JSON parsing error detected');
+      return res.status(400).json({ 
+        error: "Invalid data format",
+        message: "The submitted data contains invalid JSON format.",
+        details: error.message
+      });
+    }
+    
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      console.error('Webhook fetch error detected');
+      return res.status(500).json({ 
+        error: "Webhook delivery failed",
+        message: "Application was saved but webhook delivery failed.",
+        details: error.message
       });
     }
     
