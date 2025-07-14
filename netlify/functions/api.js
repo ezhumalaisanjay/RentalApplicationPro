@@ -174,10 +174,82 @@ app.post("/api/submit-application", async (req, res) => {
       return res.status(400).json({ error: "No application data provided" });
     }
     
+    // Pre-process dates to ensure they're in the correct format
+    const processedData = { ...applicationData };
+    
+    // Convert Date objects to ISO strings for date fields
+    const dateFields = ['moveInDate', 'applicantDob', 'applicantEmploymentStart', 'coApplicantDob', 'coApplicantEmploymentStart', 'guarantorDob', 'guarantorEmploymentStart'];
+    
+    dateFields.forEach(field => {
+      if (processedData[field]) {
+        console.log(`Processing ${field}:`, processedData[field], 'Type:', typeof processedData[field]);
+        
+        if (processedData[field] instanceof Date) {
+          processedData[field] = processedData[field].toISOString();
+          console.log(`Converted ${field} from Date to ISO string:`, processedData[field]);
+        } else if (typeof processedData[field] === 'string' && processedData[field].includes('GMT')) {
+          // Handle date strings that look like Date.toString() output
+          try {
+            const date = new Date(processedData[field]);
+            if (!isNaN(date.getTime())) {
+              processedData[field] = date.toISOString();
+              console.log(`Converted ${field} from date string to ISO string:`, processedData[field]);
+            } else {
+              console.warn(`Invalid date for ${field}:`, processedData[field]);
+            }
+          } catch (error) {
+            console.warn(`Failed to convert ${field}:`, processedData[field], error);
+          }
+        } else if (typeof processedData[field] === 'string' && processedData[field].includes('T')) {
+          // Already an ISO string, validate it
+          try {
+            const date = new Date(processedData[field]);
+            if (isNaN(date.getTime())) {
+              console.warn(`Invalid ISO string for ${field}:`, processedData[field]);
+            } else {
+              console.log(`${field} is already a valid ISO string:`, processedData[field]);
+            }
+          } catch (error) {
+            console.warn(`Failed to validate ISO string for ${field}:`, processedData[field], error);
+          }
+        }
+      } else {
+        console.log(`${field} is null/undefined`);
+      }
+    });
+    
+    console.log('Processed data sample:', {
+      moveInDate: processedData.moveInDate,
+      applicantDob: processedData.applicantDob,
+      type: typeof processedData.moveInDate
+    });
+    
+    // Log a few more fields for debugging
+    console.log('Additional data sample:', {
+      applicantName: processedData.applicantName,
+      applicantEmail: processedData.applicantEmail,
+      monthlyRent: processedData.monthlyRent,
+      hasCoApplicant: processedData.hasCoApplicant,
+      hasGuarantor: processedData.hasGuarantor
+    });
+    
     // Validate application data
     console.log('Validating application data...');
-    const validatedData = insertRentalApplicationSchema.parse(applicationData);
-    console.log('Validation successful');
+    let validatedData;
+    try {
+      validatedData = insertRentalApplicationSchema.parse(processedData);
+      console.log('Validation successful');
+    } catch (validationError) {
+      console.error('Validation failed:', validationError);
+      console.error('Validation error details:', validationError.errors);
+      console.error('Failed data sample:', {
+        moveInDate: processedData.moveInDate,
+        applicantDob: processedData.applicantDob,
+        applicantName: processedData.applicantName,
+        applicantEmail: processedData.applicantEmail
+      });
+      throw validationError;
+    }
     
     // Parse documents field if it exists
     let parsedFiles = [];
