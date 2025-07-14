@@ -295,17 +295,21 @@ app.post("/api/submit-application", async (req, res) => {
     
   } catch (error) {
     console.error('Error in submit-application:', error);
+    console.error('Error stack:', error.stack);
     
     if (error instanceof z.ZodError) {
+      console.error('Validation errors:', error.errors);
       return res.status(400).json({ 
         error: "Validation failed", 
-        details: error.errors 
+        details: error.errors,
+        message: "Please check your form data and try again."
       });
     }
     
     res.status(500).json({ 
       error: "Failed to submit application",
-      message: error.message 
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

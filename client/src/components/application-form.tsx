@@ -326,14 +326,14 @@ export function ApplicationForm() {
         // Application Info
         buildingAddress: data.buildingAddress,
         apartmentNumber: data.apartmentNumber,
-        moveInDate: data.moveInDate ? new Date(data.moveInDate) : null,
+        moveInDate: data.moveInDate ? new Date(data.moveInDate).toISOString() : null,
         monthlyRent: data.monthlyRent,
         apartmentType: data.apartmentType,
         howDidYouHear: data.howDidYouHear,
         
         // Primary Applicant
         applicantName: data.applicantName,
-        applicantDob: data.applicantDob ? new Date(data.applicantDob) : null,
+        applicantDob: data.applicantDob ? new Date(data.applicantDob).toISOString() : null,
         applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
         applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
         applicantEmail: data.applicantEmail,
@@ -351,7 +351,7 @@ export function ApplicationForm() {
         // Primary Applicant Financial (from formData)
         applicantEmployer: formData.applicant?.employer || null,
         applicantPosition: formData.applicant?.position || null,
-        applicantEmploymentStart: formData.applicant?.employmentStart ? new Date(formData.applicant.employmentStart) : null,
+        applicantEmploymentStart: formData.applicant?.employmentStart ? new Date(formData.applicant.employmentStart).toISOString() : null,
         applicantIncome: formData.applicant?.income ? parseFloat(formData.applicant.income) : null,
         applicantOtherIncome: formData.applicant?.otherIncome ? parseFloat(formData.applicant.otherIncome) : null,
         applicantOtherIncomeSource: formData.applicant?.otherIncomeSource || null,
@@ -362,7 +362,7 @@ export function ApplicationForm() {
         hasCoApplicant: hasCoApplicant,
         coApplicantName: formData.coApplicant?.name || null,
         coApplicantRelationship: formData.coApplicant?.relationship || null,
-        coApplicantDob: formData.coApplicant?.dob ? new Date(formData.coApplicant.dob) : null,
+        coApplicantDob: formData.coApplicant?.dob ? new Date(formData.coApplicant.dob).toISOString() : null,
         coApplicantSsn: formData.coApplicant?.ssn || null,
         coApplicantPhone: formData.coApplicant?.phone || null,
         coApplicantEmail: formData.coApplicant?.email || null,
@@ -376,7 +376,7 @@ export function ApplicationForm() {
         // Co-Applicant Financial
         coApplicantEmployer: formData.coApplicant?.employer || null,
         coApplicantPosition: formData.coApplicant?.position || null,
-        coApplicantEmploymentStart: formData.coApplicant?.employmentStart ? new Date(formData.coApplicant.employmentStart) : null,
+        coApplicantEmploymentStart: formData.coApplicant?.employmentStart ? new Date(formData.coApplicant.employmentStart).toISOString() : null,
         coApplicantIncome: formData.coApplicant?.income ? parseFloat(formData.coApplicant.income) : null,
         coApplicantOtherIncome: formData.coApplicant?.otherIncome ? parseFloat(formData.coApplicant.otherIncome) : null,
         coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
@@ -392,7 +392,7 @@ export function ApplicationForm() {
         console.log('Adding guarantor fields...');
         transformedData.guarantorName = formData.guarantor?.name || null;
         transformedData.guarantorRelationship = formData.guarantor?.relationship || null;
-        transformedData.guarantorDob = formData.guarantor?.dob ? new Date(formData.guarantor.dob) : null;
+        transformedData.guarantorDob = formData.guarantor?.dob ? new Date(formData.guarantor.dob).toISOString() : null;
         transformedData.guarantorSsn = formData.guarantor?.ssn || null;
         transformedData.guarantorPhone = formData.guarantor?.phone || null;
         transformedData.guarantorEmail = formData.guarantor?.email || null;
@@ -405,7 +405,7 @@ export function ApplicationForm() {
         // Guarantor Financial
         transformedData.guarantorEmployer = formData.guarantor?.employer || null;
         transformedData.guarantorPosition = formData.guarantor?.position || null;
-        transformedData.guarantorEmploymentStart = formData.guarantor?.employmentStart ? new Date(formData.guarantor.employmentStart) : null;
+        transformedData.guarantorEmploymentStart = formData.guarantor?.employmentStart ? new Date(formData.guarantor.employmentStart).toISOString() : null;
         transformedData.guarantorIncome = formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null;
         transformedData.guarantorOtherIncome = formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null;
         transformedData.guarantorBankName = formData.guarantor?.bankRecords?.[0]?.bankName || null;

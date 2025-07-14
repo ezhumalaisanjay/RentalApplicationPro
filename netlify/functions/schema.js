@@ -2,14 +2,18 @@
 const { z } = require('zod');
 
 // Helper function to convert string dates to Date objects
-const dateStringToDate = z.string().or(z.date()).or(z.null()).transform((val) => {
+const dateStringToDate = z.string().or(z.date()).or(z.null()).or(z.undefined()).transform((val) => {
   if (val === null || val === undefined) {
     return null;
   }
   if (typeof val === 'string') {
-    return new Date(val);
+    const date = new Date(val);
+    return isNaN(date.getTime()) ? null : date;
   }
-  return val;
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  return null;
 });
 
 // Base schema for rental applications
