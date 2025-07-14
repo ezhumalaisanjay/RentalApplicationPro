@@ -158,6 +158,11 @@ app.post("/api/submit-application", async (req, res) => {
     
     const { applicationData, files, signatures, encryptedData } = req.body;
     
+    // Log payload size for debugging
+    const payloadSize = JSON.stringify(req.body).length;
+    const payloadSizeMB = (payloadSize / (1024 * 1024)).toFixed(2);
+    console.log(`Payload size: ${payloadSizeMB}MB`);
+    
     console.log('Request summary:', {
       hasApplicationData: !!applicationData,
       hasFiles: !!files,
@@ -166,12 +171,24 @@ app.post("/api/submit-application", async (req, res) => {
       applicationDataKeys: applicationData ? Object.keys(applicationData) : [],
       filesCount: files ? files.length : 0,
       signaturesCount: signatures ? Object.keys(signatures).length : 0,
-      encryptedDataKeys: encryptedData ? Object.keys(encryptedData) : []
+      encryptedDataKeys: encryptedData ? Object.keys(encryptedData) : [],
+      payloadSizeMB: payloadSizeMB
     });
     
     if (!applicationData) {
       console.error('No applicationData provided');
       return res.status(400).json({ error: "No application data provided" });
+    }
+    
+    // Check payload size limit (Netlify has ~6MB limit for serverless functions)
+    if (payloadSize > 5 * 1024 * 1024) { // 5MB limit
+      console.error(`Payload too large: ${payloadSizeMB}MB`);
+      return res.status(413).json({ 
+        error: "Payload too large", 
+        message: "Please reduce file sizes or submit files separately",
+        payloadSizeMB: payloadSizeMB,
+        limit: "5MB"
+      });
     }
     
     // Simplified approach: Create a minimal application object
@@ -293,6 +310,7 @@ app.post("/api/submit-application", async (req, res) => {
     // Send webhook with complete application data organized by sections
     let webhookSent = false;
     try {
+      // Create a simplified webhook payload for large requests
       const webhookPayload = {
         // Application ID and metadata
         applicationId: application.id,
@@ -419,23 +437,14 @@ app.post("/api/submit-application", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS
+        // SECTION 6: DOCUMENTS (simplified for large payloads)
         documents: {
-          files: files || [],
-          totalFiles: files ? files.length : 0
+          totalFiles: files ? files.length : 0,
+          hasFiles: !!files && files.length > 0
         },
         
-        // SECTION 7: SIGNATURES
+        // SECTION 7: SIGNATURES (simplified for large payloads)
         signatures: {
-          // Raw signature data from frontend
-          rawSignatures: signatures || {},
-          
-          // Processed signatures from database
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature,
-          
-          // Signature metadata
           hasApplicantSignature: !!application.applicantSignature,
           hasCoApplicantSignature: !!application.coApplicantSignature,
           hasGuarantorSignature: !!application.guarantorSignature,
@@ -444,8 +453,12 @@ app.post("/api/submit-application", async (req, res) => {
                           (!!application.guarantorSignature ? 1 : 0)
         },
         
-        // SECTION 8: ENCRYPTED DATA
-        encryptedData: encryptedData || {},
+        // SECTION 8: ENCRYPTED DATA (simplified for large payloads)
+        encryptedData: {
+          hasEncryptedData: !!encryptedData,
+          documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
+          totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0
+        },
         
         // SECTION 9: APPLICATION STATUS
         status: {
@@ -463,19 +476,27 @@ app.post("/api/submit-application", async (req, res) => {
           version: '1.0.0',
           timestamp: new Date().toISOString(),
           applicationId: application.id,
-          webhookType: 'application-submission'
+          webhookType: 'application-submission',
+          payloadSizeMB: payloadSizeMB
         }
       };
 
-      console.log('Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
+      console.log('Sending webhook payload (size optimized)');
+      
+      // Add timeout to webhook request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
       const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(webhookPayload)
+        body: JSON.stringify(webhookPayload),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!webhookResponse.ok) {
         console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
@@ -489,6 +510,9 @@ app.post("/api/submit-application", async (req, res) => {
       }
     } catch (webhookError) {
       console.error('Webhook error:', webhookError);
+      if (webhookError.name === 'AbortError') {
+        console.error('Webhook request timed out after 10 seconds');
+      }
     }
 
     // Return success response
