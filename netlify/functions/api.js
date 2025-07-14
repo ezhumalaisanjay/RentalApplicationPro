@@ -259,34 +259,38 @@ app.post("/api/submit-application", async (req, res) => {
       }
     };
 
-    // Send webhook if configured
-    const webhookUrl = process.env.WEBHOOK_URL;
-    if (webhookUrl) {
-      try {
-        console.log('Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
-        const webhookResponse = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(webhookPayload),
-        });
-        
+    // Send to Make.com webhook for rental applications
+    try {
+      console.log('Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
+      
+      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      if (!webhookResponse.ok) {
+        console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error('Webhook error response:', errorText);
+        // Continue with submission even if webhook fails
+      } else {
         console.log('Webhook sent successfully');
-        console.log('Webhook response:', webhookResponse.statusText);
-        
-        if (!webhookResponse.ok) {
-          console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
-        }
-      } catch (webhookError) {
-        console.error('Webhook error:', webhookError);
+        const responseText = await webhookResponse.text();
+        console.log('Webhook response:', responseText);
       }
+    } catch (webhookError) {
+      console.error('Webhook error:', webhookError);
+      // Continue with submission even if webhook fails
     }
 
     res.status(201).json({ 
       message: "Application submitted successfully", 
       applicationId: application.id,
-      encryptedDataReceived: !!parsedEncryptedData
+      encryptedDataReceived: !!parsedEncryptedData,
+      webhookSent: true
     });
     
   } catch (error) {
