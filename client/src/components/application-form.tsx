@@ -235,7 +235,11 @@ export function ApplicationForm() {
 
   const uploadEncryptedFiles = async (encryptedFiles: EncryptedFile[]) => {
     try {
-
+      console.log(`Starting upload of ${encryptedFiles.length} files...`);
+      
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
       const response = await fetch('/api/upload-files', {
         method: 'POST',
@@ -246,13 +250,24 @@ export function ApplicationForm() {
           files: encryptedFiles,
           applicationId: Date.now(), // You can use actual application ID when available
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Upload response error:', response.status, response.statusText);
         console.error('Error response body:', errorText);
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        
+        // Handle specific error cases
+        if (response.status === 413) {
+          throw new Error('Files are too large. Please reduce file sizes and try again.');
+        } else if (response.status === 504) {
+          throw new Error('Upload timed out. Please try again with smaller files or fewer files at once.');
+        } else {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
       }
 
       const result = await response.json();
@@ -260,6 +275,12 @@ export function ApplicationForm() {
       return result;
     } catch (error) {
       console.error('Failed to upload files:', error);
+      
+      // Handle timeout errors specifically
+      if (error.name === 'AbortError') {
+        throw new Error('Upload timed out. Please try again with smaller files or fewer files at once.');
+      }
+      
       throw error;
     }
   };
@@ -491,19 +512,34 @@ export function ApplicationForm() {
       console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
       console.log('Request body encryptedData:', requestBody.encryptedData);
       
+      // Create AbortController for submission timeout
+      const submissionController = new AbortController();
+      const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
+      
       const submissionResponse = await fetch('/api/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
+        signal: submissionController.signal
       });
+
+      clearTimeout(submissionTimeoutId);
 
       if (!submissionResponse.ok) {
         const errorText = await submissionResponse.text();
         console.error('Submission response error:', submissionResponse.status, submissionResponse.statusText);
         console.error('Error response body:', errorText);
-        throw new Error(`Submission failed: ${submissionResponse.status} ${submissionResponse.statusText}`);
+        
+        // Handle specific error cases
+        if (submissionResponse.status === 413) {
+          throw new Error('Application data is too large. Please reduce file sizes and try again.');
+        } else if (submissionResponse.status === 504) {
+          throw new Error('Submission timed out. Please try again with smaller files or fewer files at once.');
+        } else {
+          throw new Error(`Submission failed: ${submissionResponse.status} ${submissionResponse.statusText}`);
+        }
       }
 
       const submissionResult = await submissionResponse.json();
@@ -514,6 +550,10 @@ export function ApplicationForm() {
         try {
           console.log('Processing encrypted data for application:', submissionResult.applicationId);
           
+          // Create AbortController for processing timeout
+          const processController = new AbortController();
+          const processTimeoutId = setTimeout(() => processController.abort(), 30000); // 30 second timeout
+          
           const processResponse = await fetch(`/api/process-application/${submissionResult.applicationId}`, {
             method: 'POST',
             headers: {
@@ -523,7 +563,10 @@ export function ApplicationForm() {
               encryptedData: requestBody.encryptedData,
               signatures: signatures
             }),
+            signal: processController.signal
           });
+          
+          clearTimeout(processTimeoutId);
 
           if (processResponse.ok) {
             const processResult = await processResponse.json();
@@ -544,9 +587,25 @@ export function ApplicationForm() {
       generatePDF();
     } catch (error) {
       console.error('Failed to submit application:', error);
+      
+      let errorMessage = "Failed to submit application. Please try again.";
+      
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Submission timed out. Please try again with smaller files or fewer files at once.";
+        } else if (error.message.includes('413')) {
+          errorMessage = "Application data is too large. Please reduce file sizes and try again.";
+        } else if (error.message.includes('504')) {
+          errorMessage = "Submission timed out. Please try again with smaller files or fewer files at once.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Submission Failed",
-        description: "Failed to submit application. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

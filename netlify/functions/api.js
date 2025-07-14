@@ -10,6 +10,16 @@ const app = express();
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100mb' }));
 
+// Add timeout handling for long-running requests
+app.use((req, res, next) => {
+  // Set a longer timeout for file uploads
+  if (req.path.includes('/upload') || req.path.includes('/submit-application')) {
+    req.setTimeout(25000); // 25 seconds for uploads
+    res.setTimeout(25000);
+  }
+  next();
+});
+
 // Basic logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -725,9 +735,11 @@ app.post("/api/upload", async (req, res) => {
   }
 });
 
-// Upload encrypted files endpoint
+// Upload encrypted files endpoint with improved timeout handling
 app.post("/api/upload-files", async (req, res) => {
   try {
+    console.log('=== Starting file upload ===');
+    
     const { files, applicationId } = req.body;
     
     console.log('Upload files request received:', {
@@ -739,16 +751,31 @@ app.post("/api/upload-files", async (req, res) => {
       return res.status(400).json({ error: "No files provided" });
     }
 
+    // Check total payload size
+    const payloadSize = JSON.stringify(req.body).length;
+    const payloadSizeMB = (payloadSize / (1024 * 1024)).toFixed(2);
+    console.log(`Upload payload size: ${payloadSizeMB}MB`);
+    
+    if (payloadSize > 4 * 1024 * 1024) { // 4MB limit for uploads
+      console.error(`Upload payload too large: ${payloadSizeMB}MB`);
+      return res.status(413).json({ 
+        error: "Upload payload too large", 
+        message: "Please reduce file sizes or upload fewer files at once",
+        payloadSizeMB: payloadSizeMB,
+        limit: "4MB"
+      });
+    }
+
     const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
     const uploadedFiles = [];
 
-    for (const encryptedFile of files) {
+    for (let i = 0; i < files.length; i++) {
+      const encryptedFile = files[i];
       try {
-        console.log(`Processing file: ${encryptedFile.filename}`);
+        console.log(`Processing file ${i + 1}/${files.length}: ${encryptedFile.filename}`);
         
         // Decrypt the file
         const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
-        // Get the raw bytes directly instead of converting to UTF-8 string
         const base64Str = bytes.toString(CryptoJS.enc.Base64);
         const fileBuffer = Buffer.from(base64Str, 'base64');
 
@@ -757,23 +784,17 @@ app.post("/api/upload-files", async (req, res) => {
         const safeFilename = encryptedFile.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filename = `${timestamp}_${safeFilename}`;
 
-        // In serverless environment, we can't write to filesystem
-        // Instead, we'll store the file data in memory and return metadata
-        // In production, you'd want to upload to a cloud storage service like AWS S3
-
         uploadedFiles.push({
           originalName: encryptedFile.filename,
           savedName: filename,
           size: encryptedFile.originalSize,
           mimeType: encryptedFile.mimeType,
           uploadDate: encryptedFile.uploadDate,
-          // Store the decrypted data as base64 for now
-          // In production, upload to cloud storage and store the URL
           data: base64Str,
           status: 'processed'
         });
 
-        console.log(`File processed successfully: ${encryptedFile.filename}`);
+        console.log(`File ${i + 1} processed successfully: ${encryptedFile.filename}`);
 
       } catch (decryptError) {
         console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
@@ -797,6 +818,37 @@ app.post("/api/upload-files", async (req, res) => {
     console.error("File upload error:", error);
     res.status(500).json({ 
       error: "Failed to upload files",
+      details: error.message 
+    });
+  }
+});
+
+// Chunked upload endpoint for large files
+app.post("/api/upload-chunk", async (req, res) => {
+  try {
+    const { chunk, chunkIndex, totalChunks, filename, applicationId } = req.body;
+    
+    console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} for ${filename}`);
+    
+    if (!chunk || chunkIndex === undefined || !totalChunks || !filename) {
+      return res.status(400).json({ error: "Missing required chunk data" });
+    }
+
+    // Store chunk in memory (in production, use Redis or similar)
+    // For now, we'll just acknowledge receipt
+    console.log(`Chunk ${chunkIndex + 1} received for ${filename}`);
+    
+    res.json({ 
+      message: "Chunk received successfully",
+      chunkIndex: chunkIndex,
+      filename: filename,
+      isComplete: chunkIndex === totalChunks - 1
+    });
+
+  } catch (error) {
+    console.error("Chunk upload error:", error);
+    res.status(500).json({ 
+      error: "Failed to process chunk",
       details: error.message 
     });
   }
