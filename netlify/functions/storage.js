@@ -20,6 +20,8 @@ class MemStorage {
       // Ensure required fields are not null
       moveInDate: insertApplication.moveInDate || new Date(),
       applicantDob: insertApplication.applicantDob || new Date(),
+      applicantSsn: insertApplication.applicantSsn ?? null,
+      applicantPhone: insertApplication.applicantPhone ?? null,
       howDidYouHear: insertApplication.howDidYouHear || null,
       applicantLicense: insertApplication.applicantLicense || null,
       applicantLicenseState: insertApplication.applicantLicenseState || null,

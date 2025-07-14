@@ -25,8 +25,8 @@ const baseSchema = z.object({
   // Primary Applicant
   applicantName: z.string().min(1, "Full name is required"),
   applicantDob: dateStringToDate,
-  applicantSsn: z.string().min(1, "SSN is required"),
-  applicantPhone: z.string().min(1, "Phone number is required"),
+  applicantSsn: z.string().optional().nullable(),
+  applicantPhone: z.string().optional().nullable(),
   applicantEmail: z.string().email("Valid email is required"),
   applicantLicense: z.string().optional(),
   applicantLicenseState: z.string().optional(),
