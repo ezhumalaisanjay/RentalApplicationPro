@@ -419,19 +419,35 @@ app.post("/api/submit-application", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS AND SIGNATURES
+        // SECTION 6: DOCUMENTS
         documents: {
           files: files || [],
-          signatures: signatures || {},
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature
+          totalFiles: files ? files.length : 0
         },
         
-        // SECTION 7: ENCRYPTED DATA
+        // SECTION 7: SIGNATURES
+        signatures: {
+          // Raw signature data from frontend
+          rawSignatures: signatures || {},
+          
+          // Processed signatures from database
+          applicantSignature: application.applicantSignature,
+          coApplicantSignature: application.coApplicantSignature,
+          guarantorSignature: application.guarantorSignature,
+          
+          // Signature metadata
+          hasApplicantSignature: !!application.applicantSignature,
+          hasCoApplicantSignature: !!application.coApplicantSignature,
+          hasGuarantorSignature: !!application.guarantorSignature,
+          totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
+                          (!!application.coApplicantSignature ? 1 : 0) + 
+                          (!!application.guarantorSignature ? 1 : 0)
+        },
+        
+        // SECTION 8: ENCRYPTED DATA
         encryptedData: encryptedData || {},
         
-        // SECTION 8: APPLICATION STATUS
+        // SECTION 9: APPLICATION STATUS
         status: {
           applicationStatus: application.status,
           hasCoApplicant: application.hasCoApplicant,
@@ -441,7 +457,7 @@ app.post("/api/submit-application", async (req, res) => {
           hasSignatures: !!signatures
         },
         
-        // SECTION 9: METADATA
+        // SECTION 10: METADATA
         metadata: {
           source: 'rental-application-system',
           version: '1.0.0',
@@ -656,25 +672,40 @@ app.post("/api/process-application/:id", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS AND SIGNATURES
+        // SECTION 6: DOCUMENTS
         documents: {
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature
+          totalFiles: 0
         },
         
-        // SECTION 7: ENCRYPTED DATA (Processing)
+        // SECTION 7: SIGNATURES
+        signatures: {
+          // Raw signature data from frontend
+          rawSignatures: signatures || {},
+          
+          // Processed signatures from database
+          applicantSignature: application.applicantSignature,
+          coApplicantSignature: application.coApplicantSignature,
+          guarantorSignature: application.guarantorSignature,
+          
+          // Signature metadata
+          hasApplicantSignature: !!application.applicantSignature,
+          hasCoApplicantSignature: !!application.coApplicantSignature,
+          hasGuarantorSignature: !!application.guarantorSignature,
+          totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
+                          (!!application.coApplicantSignature ? 1 : 0) + 
+                          (!!application.guarantorSignature ? 1 : 0)
+        },
+        
+        // SECTION 8: ENCRYPTED DATA (Processing)
         encryptedData: {
           data: encryptedData || {},
-          signatures: signatures || {},
           processingTimestamp: new Date().toISOString(),
           hasEncryptedData: !!encryptedData,
-          hasSignatures: !!signatures,
           documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
           totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0
         },
         
-        // SECTION 8: APPLICATION STATUS
+        // SECTION 9: APPLICATION STATUS
         status: {
           applicationStatus: application.status,
           hasCoApplicant: application.hasCoApplicant,
@@ -683,7 +714,7 @@ app.post("/api/process-application/:id", async (req, res) => {
           hasSignatures: !!signatures
         },
         
-        // SECTION 9: METADATA
+        // SECTION 10: METADATA
         metadata: {
           source: 'rental-application-processing',
           version: '1.0.0',
