@@ -36,8 +36,8 @@ const applicationSchema = z.object({
   // Primary Applicant
   applicantName: z.string().optional(),
   applicantDob: z.date().optional(),
-  applicantSsn: z.string().min(9, 'SSN is required').regex(/^\d{3}-\d{2}-\d{4}$/, 'Invalid SSN format (XXX-XX-XXXX)'),
-  applicantPhone: z.string().min(10, 'Phone is required').regex(/^\(\d{3}\) \d{3}-\d{4}$/, 'Invalid phone format ((XXX) XXX-XXXX)'),
+  applicantSsn: z.string().optional(),
+  applicantPhone: z.string().optional(),
   applicantEmail: z.string().optional(),
   applicantLicense: z.string().optional(),
   applicantLicenseState: z.string().optional(),
@@ -272,8 +272,6 @@ export function ApplicationForm() {
       'monthlyRent',
       'apartmentType',
       'applicantName',
-      'applicantSsn', // now required
-      'applicantPhone', // now required
       'applicantEmail',
       'applicantAddress',
       'applicantCity',
@@ -764,7 +762,7 @@ export function ApplicationForm() {
                   name="applicantSsn"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Social Security Number <span style={{color: 'red'}}>*</span></FormLabel>
+                      <FormLabel>Social Security Number</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="XXX-XX-XXXX" 
@@ -786,7 +784,7 @@ export function ApplicationForm() {
                   name="applicantPhone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number <span style={{color: 'red'}}>*</span></FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="(XXX) XXX-XXXX" 
