@@ -148,7 +148,16 @@ app.post("/api/applications/:id/submit", async (req, res) => {
 // Main application submission endpoint
 app.post("/api/submit-application", async (req, res) => {
   try {
-    console.log('Received submission request - payload size:', JSON.stringify(req.body).length, 'characters');
+    console.log('=== Starting application submission ===');
+    
+    // Check if request body exists
+    if (!req.body) {
+      console.error('No request body received');
+      return res.status(400).json({ error: "No request body received" });
+    }
+    
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Payload size:', JSON.stringify(req.body).length, 'characters');
     console.log('Request headers:', req.headers);
     
     // Log a summary of the request body instead of the full JSON
