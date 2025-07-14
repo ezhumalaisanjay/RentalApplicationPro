@@ -159,6 +159,14 @@ app.post("/api/submit-application", async (req, res) => {
       return res.status(400).json({ error: "No request body received" });
     }
     
+    console.log('Request body received:', {
+      hasApplicationData: !!req.body.applicationData,
+      hasFiles: !!req.body.files,
+      hasSignatures: !!req.body.signatures,
+      hasEncryptedData: !!req.body.encryptedData,
+      applicationDataKeys: req.body.applicationData ? Object.keys(req.body.applicationData) : []
+    });
+    
     const { applicationData, files, signatures, encryptedData } = req.body;
     
     // Log payload size for debugging
@@ -305,11 +313,33 @@ app.post("/api/submit-application", async (req, res) => {
       hasGuarantor: minimalApplication.hasGuarantor
     });
     
+    // Validate the minimal application data
+    try {
+      console.log('Validating minimal application data...');
+      const validatedData = insertRentalApplicationSchema.parse(minimalApplication);
+      console.log('Validation successful');
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+      console.error('Validation error details:', validationError.errors);
+      return res.status(400).json({ 
+        error: "Validation failed", 
+        details: validationError.errors,
+        message: "Application data validation failed"
+      });
+    }
+    
     // Create application in database with timeout protection
     console.log('Creating application in database...');
+    console.log('Minimal application data to be stored:', JSON.stringify(minimalApplication, null, 2));
     
     const createApplication = async () => {
-      return await storage.createApplication(minimalApplication);
+      try {
+        return await storage.createApplication(minimalApplication);
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        console.error('Database error stack:', dbError.stack);
+        throw dbError;
+      }
     };
     
     const timeoutPromise = new Promise((_, reject) => {
