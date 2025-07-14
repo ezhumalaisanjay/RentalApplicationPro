@@ -280,6 +280,39 @@ export function ApplicationForm() {
 
       const result = await response.json();
       console.log(`Files uploaded successfully for ${personType}:`, result);
+      
+      // Send encrypted data as FormData to webhook
+      if (result.files && result.files.length > 0) {
+        try {
+          console.log(`Sending encrypted data webhook for ${personType}...`);
+          
+          const webhookResponse = await fetch('/api/send-encrypted-data-webhook', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              encryptedData: {
+                files: encryptedFiles,
+                totalSize: encryptedFiles.reduce((sum, file) => sum + file.originalSize, 0),
+                encryptionTimestamp: new Date().toISOString()
+              },
+              personType: personType,
+              applicationId: Date.now().toString()
+            }),
+          });
+          
+          if (webhookResponse.ok) {
+            const webhookResult = await webhookResponse.json();
+            console.log(`Encrypted data webhook sent successfully for ${personType}:`, webhookResult);
+          } else {
+            console.warn(`Failed to send encrypted data webhook for ${personType}:`, webhookResponse.status);
+          }
+        } catch (webhookError) {
+          console.warn(`Error sending encrypted data webhook for ${personType}:`, webhookError);
+        }
+      }
+      
       return result;
     } catch (error) {
       console.error(`Failed to upload files for ${personType}:`, error);

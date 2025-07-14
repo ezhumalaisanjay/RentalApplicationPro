@@ -885,7 +885,7 @@ app.post("/api/upload-files", async (req, res) => {
     const result = await Promise.race([processFiles(), timeoutPromise]);
     console.log(`Successfully processed ${result.length} files for ${personType}`);
 
-    // Send person-specific webhook
+    // Send person-specific webhook with encrypted data
     let webhookSent = false;
     try {
       const webhookPayload = {
@@ -904,6 +904,22 @@ app.post("/api/upload-files", async (req, res) => {
           status: file.status
         })),
         
+        // Encrypted data (FormData format)
+        encryptedData: {
+          personType: personType,
+          applicationId: applicationId,
+          files: files.map(file => ({
+            filename: file.filename,
+            encryptedData: file.encryptedData,
+            originalSize: file.originalSize,
+            mimeType: file.mimeType,
+            uploadDate: file.uploadDate
+          })),
+          totalFiles: files.length,
+          totalSize: files.reduce((sum, file) => sum + file.originalSize, 0),
+          encryptionTimestamp: new Date().toISOString()
+        },
+        
         // Summary
         totalFiles: result.length,
         totalSize: result.reduce((sum, file) => sum + file.size, 0),
@@ -915,7 +931,7 @@ app.post("/api/upload-files", async (req, res) => {
           timestamp: new Date().toISOString(),
           personType: personType,
           applicationId: applicationId,
-          webhookType: 'person-specific-file-upload'
+          webhookType: 'person-specific-file-upload-with-encrypted-data'
         }
       };
 
@@ -1008,6 +1024,92 @@ app.post("/api/upload-chunk", async (req, res) => {
       error: "Failed to process chunk",
       details: error.message 
     });
+  }
+});
+
+// Send encrypted data as FormData to webhook
+app.post("/api/send-encrypted-data-webhook", async (req, res) => {
+  try {
+    console.log('=== Sending encrypted data webhook ===');
+    
+    const { encryptedData, personType, applicationId } = req.body;
+    
+    if (!encryptedData || !personType || !applicationId) {
+      return res.status(400).json({ error: "Missing required data" });
+    }
+    
+    console.log(`Sending encrypted data webhook for ${personType}, application ${applicationId}`);
+    
+    // Create FormData for webhook
+    const formData = new FormData();
+    formData.append('personType', personType);
+    formData.append('applicationId', applicationId);
+    formData.append('timestamp', new Date().toISOString());
+    
+    // Add encrypted files to FormData
+    if (encryptedData.files && Array.isArray(encryptedData.files)) {
+      encryptedData.files.forEach((file, index) => {
+        formData.append(`files[${index}][filename]`, file.filename);
+        formData.append(`files[${index}][encryptedData]`, file.encryptedData);
+        formData.append(`files[${index}][originalSize]`, file.originalSize.toString());
+        formData.append(`files[${index}][mimeType]`, file.mimeType);
+        formData.append(`files[${index}][uploadDate]`, file.uploadDate);
+      });
+    }
+    
+    // Add metadata
+    formData.append('totalFiles', encryptedData.files ? encryptedData.files.length.toString() : '0');
+    formData.append('totalSize', encryptedData.totalSize ? encryptedData.totalSize.toString() : '0');
+    formData.append('encryptionTimestamp', encryptedData.encryptionTimestamp || new Date().toISOString());
+    
+    // Send FormData to webhook
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+      method: 'POST',
+      body: formData, // Send as FormData
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!webhookResponse.ok) {
+      console.error('Encrypted data webhook failed:', webhookResponse.status, webhookResponse.statusText);
+      const errorText = await webhookResponse.text();
+      console.error('Webhook error response:', errorText);
+      return res.status(500).json({ 
+        error: "Failed to send encrypted data webhook",
+        details: errorText
+      });
+    }
+    
+    console.log('Encrypted data webhook sent successfully');
+    const responseText = await webhookResponse.text();
+    console.log('Webhook response:', responseText);
+    
+    res.json({ 
+      message: "Encrypted data webhook sent successfully",
+      personType: personType,
+      applicationId: applicationId,
+      totalFiles: encryptedData.files ? encryptedData.files.length : 0,
+      webhookResponse: responseText
+    });
+    
+  } catch (error) {
+    console.error('Encrypted data webhook error:', error);
+    
+    if (error.name === 'AbortError') {
+      res.status(504).json({ 
+        error: "Webhook request timed out",
+        message: "The webhook request took too long to complete."
+      });
+    } else {
+      res.status(500).json({ 
+        error: "Failed to send encrypted data webhook",
+        details: error.message 
+      });
+    }
   }
 });
 
