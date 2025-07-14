@@ -509,9 +509,36 @@ export function ApplicationForm() {
       const submissionResult = await submissionResponse.json();
       console.log('Application submitted successfully:', submissionResult);
 
+      // If we have encrypted data, process it separately
+      if (requestBody.encryptedData && submissionResult.applicationId) {
+        try {
+          console.log('Processing encrypted data for application:', submissionResult.applicationId);
+          
+          const processResponse = await fetch(`/api/process-application/${submissionResult.applicationId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              encryptedData: requestBody.encryptedData,
+              signatures: signatures
+            }),
+          });
+
+          if (processResponse.ok) {
+            const processResult = await processResponse.json();
+            console.log('Application processed successfully:', processResult);
+          } else {
+            console.warn('Failed to process application data:', processResponse.status);
+          }
+        } catch (processError) {
+          console.warn('Error processing application data:', processError);
+        }
+      }
+
       toast({
         title: "Application Submitted",
-        description: "Your rental application has been submitted successfully and sent to our processing system.",
+        description: `Your rental application has been submitted successfully${submissionResult.webhookSent ? ' and sent to our processing system' : ''}.`,
       });
 
       generatePDF();

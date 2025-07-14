@@ -290,11 +290,87 @@ app.post("/api/submit-application", async (req, res) => {
     const application = await storage.createApplication(minimalApplication);
     console.log('Application created successfully with ID:', application.id);
 
+    // Send webhook with application data
+    let webhookSent = false;
+    try {
+      const webhookPayload = {
+        application: {
+          id: application.id,
+          buildingAddress: application.buildingAddress,
+          apartmentNumber: application.apartmentNumber,
+          moveInDate: application.moveInDate,
+          monthlyRent: application.monthlyRent,
+          apartmentType: application.apartmentType,
+          howDidYouHear: application.howDidYouHear,
+          
+          // Primary Applicant
+          applicantName: application.applicantName,
+          applicantDob: application.applicantDob,
+          applicantPhone: application.applicantPhone,
+          applicantEmail: application.applicantEmail,
+          applicantAddress: application.applicantAddress,
+          applicantCity: application.applicantCity,
+          applicantState: application.applicantState,
+          applicantZip: application.applicantZip,
+          
+          // Co-Applicant
+          hasCoApplicant: application.hasCoApplicant,
+          coApplicantName: application.coApplicantName,
+          coApplicantPhone: application.coApplicantPhone,
+          coApplicantEmail: application.coApplicantEmail,
+          
+          // Guarantor
+          hasGuarantor: application.hasGuarantor,
+          guarantorName: application.guarantorName,
+          guarantorPhone: application.guarantorPhone,
+          guarantorEmail: application.guarantorEmail,
+          
+          status: application.status,
+          submittedAt: new Date().toISOString()
+        },
+        files: files || [],
+        signatures: signatures || {},
+        encryptedData: {
+          received: !!encryptedData,
+          timestamp: new Date().toISOString()
+        },
+        metadata: {
+          source: 'rental-application-system',
+          version: '1.0.0',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      console.log('Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
+      
+      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload)
+      });
+
+      if (!webhookResponse.ok) {
+        console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error('Webhook error response:', errorText);
+      } else {
+        console.log('Webhook sent successfully');
+        const responseText = await webhookResponse.text();
+        console.log('Webhook response:', responseText);
+        webhookSent = true;
+      }
+    } catch (webhookError) {
+      console.error('Webhook error:', webhookError);
+    }
+
     // Return success response
     console.log('Returning success response');
     res.status(201).json({ 
       message: "Application submitted successfully", 
       applicationId: application.id,
+      webhookSent: webhookSent,
       receivedData: {
         hasFiles: !!files,
         hasSignatures: !!signatures,
