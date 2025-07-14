@@ -10,15 +10,8 @@ const app = express();
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100mb' }));
 
-// Add timeout handling for long-running requests
-app.use((req, res, next) => {
-  // Set a longer timeout for file uploads
-  if (req.path.includes('/upload') || req.path.includes('/submit-application')) {
-    req.setTimeout(25000); // 25 seconds for uploads
-    res.setTimeout(25000);
-  }
-  next();
-});
+// Note: Timeout handling is now managed via Netlify configuration and AbortController
+// The 30-second timeout in netlify.toml handles serverless function timeouts
 
 // Basic logging middleware
 app.use((req, res, next) => {
@@ -312,9 +305,18 @@ app.post("/api/submit-application", async (req, res) => {
       hasGuarantor: minimalApplication.hasGuarantor
     });
     
-    // Create application in database
+    // Create application in database with timeout protection
     console.log('Creating application in database...');
-    const application = await storage.createApplication(minimalApplication);
+    
+    const createApplication = async () => {
+      return await storage.createApplication(minimalApplication);
+    };
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database operation timed out')), 20000); // 20 second timeout
+    });
+    
+    const application = await Promise.race([createApplication(), timeoutPromise]);
     console.log('Application created successfully with ID:', application.id);
 
     // Send webhook with complete application data organized by sections
@@ -544,11 +546,20 @@ app.post("/api/submit-application", async (req, res) => {
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     
-    res.status(500).json({ 
-      error: "Failed to submit application",
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    // Handle specific timeout errors
+    if (error.message.includes('timed out') || error.message.includes('timeout')) {
+      res.status(504).json({ 
+        error: "Request timed out",
+        message: "The operation took too long. Please try again with smaller files or fewer files at once.",
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: "Failed to submit application",
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
   }
 });
 
@@ -769,57 +780,73 @@ app.post("/api/upload-files", async (req, res) => {
     const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
     const uploadedFiles = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const encryptedFile = files[i];
-      try {
-        console.log(`Processing file ${i + 1}/${files.length}: ${encryptedFile.filename}`);
-        
-        // Decrypt the file
-        const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
-        const base64Str = bytes.toString(CryptoJS.enc.Base64);
-        const fileBuffer = Buffer.from(base64Str, 'base64');
+    // Process files with timeout protection
+    const processFiles = async () => {
+      for (let i = 0; i < files.length; i++) {
+        const encryptedFile = files[i];
+        try {
+          console.log(`Processing file ${i + 1}/${files.length}: ${encryptedFile.filename}`);
+          
+          // Decrypt the file
+          const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
+          const base64Str = bytes.toString(CryptoJS.enc.Base64);
+          const fileBuffer = Buffer.from(base64Str, 'base64');
 
-        // Generate unique filename
-        const timestamp = Date.now();
-        const safeFilename = encryptedFile.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const filename = `${timestamp}_${safeFilename}`;
+          // Generate unique filename
+          const timestamp = Date.now();
+          const safeFilename = encryptedFile.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const filename = `${timestamp}_${safeFilename}`;
 
-        uploadedFiles.push({
-          originalName: encryptedFile.filename,
-          savedName: filename,
-          size: encryptedFile.originalSize,
-          mimeType: encryptedFile.mimeType,
-          uploadDate: encryptedFile.uploadDate,
-          data: base64Str,
-          status: 'processed'
-        });
+          uploadedFiles.push({
+            originalName: encryptedFile.filename,
+            savedName: filename,
+            size: encryptedFile.originalSize,
+            mimeType: encryptedFile.mimeType,
+            uploadDate: encryptedFile.uploadDate,
+            data: base64Str,
+            status: 'processed'
+          });
 
-        console.log(`File ${i + 1} processed successfully: ${encryptedFile.filename}`);
+          console.log(`File ${i + 1} processed successfully: ${encryptedFile.filename}`);
 
-      } catch (decryptError) {
-        console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
-        return res.status(400).json({ 
-          error: `Failed to decrypt file ${encryptedFile.filename}`,
-          details: decryptError.message
-        });
+        } catch (decryptError) {
+          console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
+          throw new Error(`Failed to decrypt file ${encryptedFile.filename}: ${decryptError.message}`);
+        }
       }
-    }
+      return uploadedFiles;
+    };
 
-    console.log(`Successfully processed ${uploadedFiles.length} files`);
+    // Add timeout protection
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('File processing timed out')), 25000); // 25 second timeout
+    });
+
+    const result = await Promise.race([processFiles(), timeoutPromise]);
+    console.log(`Successfully processed ${result.length} files`);
 
     res.json({ 
       message: "Files uploaded successfully", 
-      files: uploadedFiles,
-      count: uploadedFiles.length,
+      files: result,
+      count: result.length,
       note: "Files are stored in memory. For production, implement cloud storage upload."
     });
 
   } catch (error) {
     console.error("File upload error:", error);
-    res.status(500).json({ 
-      error: "Failed to upload files",
-      details: error.message 
-    });
+    
+    if (error.message.includes('timed out')) {
+      res.status(504).json({ 
+        error: "Upload timed out",
+        message: "File processing took too long. Please try again with smaller files.",
+        details: error.message 
+      });
+    } else {
+      res.status(500).json({ 
+        error: "Failed to upload files",
+        details: error.message 
+      });
+    }
   }
 });
 
