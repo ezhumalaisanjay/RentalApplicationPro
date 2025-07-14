@@ -290,133 +290,164 @@ app.post("/api/submit-application", async (req, res) => {
     const application = await storage.createApplication(minimalApplication);
     console.log('Application created successfully with ID:', application.id);
 
-    // Send webhook with complete application data
+    // Send webhook with complete application data organized by sections
     let webhookSent = false;
     try {
       const webhookPayload = {
-        // Complete application data from frontend
-        applicationData: applicationData,
+        // Application ID and metadata
+        applicationId: application.id,
+        submittedAt: new Date().toISOString(),
         
-        // Database application record
-        application: {
-          id: application.id,
+        // SECTION 1: PROPERTY INFORMATION
+        propertyInfo: {
           buildingAddress: application.buildingAddress,
           apartmentNumber: application.apartmentNumber,
           moveInDate: application.moveInDate,
           monthlyRent: application.monthlyRent,
           apartmentType: application.apartmentType,
-          howDidYouHear: application.howDidYouHear,
-          
-          // Primary Applicant
-          applicantName: application.applicantName,
-          applicantDob: application.applicantDob,
-          applicantSsn: application.applicantSsn,
-          applicantPhone: application.applicantPhone,
-          applicantEmail: application.applicantEmail,
-          applicantLicense: application.applicantLicense,
-          applicantLicenseState: application.applicantLicenseState,
-          applicantAddress: application.applicantAddress,
-          applicantCity: application.applicantCity,
-          applicantState: application.applicantState,
-          applicantZip: application.applicantZip,
-          applicantLengthAtAddress: application.applicantLengthAtAddress,
-          applicantLandlordName: application.applicantLandlordName,
-          applicantCurrentRent: application.applicantCurrentRent,
-          applicantReasonForMoving: application.applicantReasonForMoving,
-          
-          // Primary Applicant Financial
-          applicantEmployer: application.applicantEmployer,
-          applicantPosition: application.applicantPosition,
-          applicantEmploymentStart: application.applicantEmploymentStart,
-          applicantIncome: application.applicantIncome,
-          applicantOtherIncome: application.applicantOtherIncome,
-          applicantOtherIncomeSource: application.applicantOtherIncomeSource,
-          applicantBankName: application.applicantBankName,
-          applicantAccountType: application.applicantAccountType,
-          
-          // Co-Applicant
-          hasCoApplicant: application.hasCoApplicant,
-          coApplicantName: application.coApplicantName,
-          coApplicantRelationship: application.coApplicantRelationship,
-          coApplicantDob: application.coApplicantDob,
-          coApplicantSsn: application.coApplicantSsn,
-          coApplicantPhone: application.coApplicantPhone,
-          coApplicantEmail: application.coApplicantEmail,
-          coApplicantSameAddress: application.coApplicantSameAddress,
-          coApplicantAddress: application.coApplicantAddress,
-          coApplicantCity: application.coApplicantCity,
-          coApplicantState: application.coApplicantState,
-          coApplicantZip: application.coApplicantZip,
-          coApplicantLengthAtAddress: application.coApplicantLengthAtAddress,
-          
-          // Co-Applicant Financial
-          coApplicantEmployer: application.coApplicantEmployer,
-          coApplicantPosition: application.coApplicantPosition,
-          coApplicantEmploymentStart: application.coApplicantEmploymentStart,
-          coApplicantIncome: application.coApplicantIncome,
-          coApplicantOtherIncome: application.coApplicantOtherIncome,
-          coApplicantBankName: application.coApplicantBankName,
-          coApplicantAccountType: application.coApplicantAccountType,
-          
-          // Guarantor
-          hasGuarantor: application.hasGuarantor,
-          guarantorName: application.guarantorName,
-          guarantorRelationship: application.guarantorRelationship,
-          guarantorDob: application.guarantorDob,
-          guarantorSsn: application.guarantorSsn,
-          guarantorPhone: application.guarantorPhone,
-          guarantorEmail: application.guarantorEmail,
-          guarantorAddress: application.guarantorAddress,
-          guarantorCity: application.guarantorCity,
-          guarantorState: application.guarantorState,
-          guarantorZip: application.guarantorZip,
-          guarantorLengthAtAddress: application.guarantorLengthAtAddress,
-          
-          // Guarantor Financial
-          guarantorEmployer: application.guarantorEmployer,
-          guarantorPosition: application.guarantorPosition,
-          guarantorEmploymentStart: application.guarantorEmploymentStart,
-          guarantorIncome: application.guarantorIncome,
-          guarantorOtherIncome: application.guarantorOtherIncome,
-          guarantorBankName: application.guarantorBankName,
-          guarantorAccountType: application.guarantorAccountType,
-          
-          // Signatures
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature,
-          
-          // Legal Questions
-          hasBankruptcy: application.hasBankruptcy,
-          bankruptcyDetails: application.bankruptcyDetails,
-          hasEviction: application.hasEviction,
-          evictionDetails: application.evictionDetails,
-          hasCriminalHistory: application.hasCriminalHistory,
-          criminalHistoryDetails: application.criminalHistoryDetails,
-          hasPets: application.hasPets,
-          petDetails: application.petDetails,
-          smokingStatus: application.smokingStatus,
-          
-          status: application.status,
-          submittedAt: new Date().toISOString()
+          howDidYouHear: application.howDidYouHear
         },
         
-        // Files and documents
-        files: files || [],
-        signatures: signatures || {},
+        // SECTION 2: PRIMARY APPLICANT - PERSONAL INFORMATION
+        primaryApplicant: {
+          personalInfo: {
+            name: application.applicantName,
+            dateOfBirth: application.applicantDob,
+            ssn: application.applicantSsn,
+            phone: application.applicantPhone,
+            email: application.applicantEmail,
+            license: application.applicantLicense,
+            licenseState: application.applicantLicenseState
+          },
+          addressInfo: {
+            address: application.applicantAddress,
+            city: application.applicantCity,
+            state: application.applicantState,
+            zip: application.applicantZip,
+            lengthAtAddress: application.applicantLengthAtAddress,
+            landlordName: application.applicantLandlordName,
+            currentRent: application.applicantCurrentRent,
+            reasonForMoving: application.applicantReasonForMoving
+          },
+          financialInfo: {
+            employer: application.applicantEmployer,
+            position: application.applicantPosition,
+            employmentStart: application.applicantEmploymentStart,
+            income: application.applicantIncome,
+            otherIncome: application.applicantOtherIncome,
+            otherIncomeSource: application.applicantOtherIncomeSource,
+            bankName: application.applicantBankName,
+            accountType: application.applicantAccountType
+          }
+        },
         
-        // Encrypted data details
+        // SECTION 3: CO-APPLICANT (if applicable)
+        coApplicant: application.hasCoApplicant ? {
+          personalInfo: {
+            name: application.coApplicantName,
+            relationship: application.coApplicantRelationship,
+            dateOfBirth: application.coApplicantDob,
+            ssn: application.coApplicantSsn,
+            phone: application.coApplicantPhone,
+            email: application.coApplicantEmail
+          },
+          addressInfo: {
+            sameAddress: application.coApplicantSameAddress,
+            address: application.coApplicantAddress,
+            city: application.coApplicantCity,
+            state: application.coApplicantState,
+            zip: application.coApplicantZip,
+            lengthAtAddress: application.coApplicantLengthAtAddress
+          },
+          financialInfo: {
+            employer: application.coApplicantEmployer,
+            position: application.coApplicantPosition,
+            employmentStart: application.coApplicantEmploymentStart,
+            income: application.coApplicantIncome,
+            otherIncome: application.coApplicantOtherIncome,
+            bankName: application.coApplicantBankName,
+            accountType: application.coApplicantAccountType
+          }
+        } : null,
+        
+        // SECTION 4: GUARANTOR (if applicable)
+        guarantor: application.hasGuarantor ? {
+          personalInfo: {
+            name: application.guarantorName,
+            relationship: application.guarantorRelationship,
+            dateOfBirth: application.guarantorDob,
+            ssn: application.guarantorSsn,
+            phone: application.guarantorPhone,
+            email: application.guarantorEmail
+          },
+          addressInfo: {
+            address: application.guarantorAddress,
+            city: application.guarantorCity,
+            state: application.guarantorState,
+            zip: application.guarantorZip,
+            lengthAtAddress: application.guarantorLengthAtAddress
+          },
+          financialInfo: {
+            employer: application.guarantorEmployer,
+            position: application.guarantorPosition,
+            employmentStart: application.guarantorEmploymentStart,
+            income: application.guarantorIncome,
+            otherIncome: application.guarantorOtherIncome,
+            bankName: application.guarantorBankName,
+            accountType: application.guarantorAccountType
+          }
+        } : null,
+        
+        // SECTION 5: LEGAL QUESTIONS
+        legalQuestions: {
+          bankruptcy: {
+            hasBankruptcy: application.hasBankruptcy,
+            details: application.bankruptcyDetails
+          },
+          eviction: {
+            hasEviction: application.hasEviction,
+            details: application.evictionDetails
+          },
+          criminalHistory: {
+            hasCriminalHistory: application.hasCriminalHistory,
+            details: application.criminalHistoryDetails
+          },
+          pets: {
+            hasPets: application.hasPets,
+            details: application.petDetails
+          },
+          smokingStatus: application.smokingStatus
+        },
+        
+        // SECTION 6: DOCUMENTS AND SIGNATURES
+        documents: {
+          files: files || [],
+          signatures: signatures || {},
+          applicantSignature: application.applicantSignature,
+          coApplicantSignature: application.coApplicantSignature,
+          guarantorSignature: application.guarantorSignature
+        },
+        
+        // SECTION 7: ENCRYPTED DATA
         encryptedData: encryptedData || {},
         
-        // Metadata
+        // SECTION 8: APPLICATION STATUS
+        status: {
+          applicationStatus: application.status,
+          hasCoApplicant: application.hasCoApplicant,
+          hasGuarantor: application.hasGuarantor,
+          totalFiles: files ? files.length : 0,
+          hasEncryptedData: !!encryptedData,
+          hasSignatures: !!signatures
+        },
+        
+        // SECTION 9: METADATA
         metadata: {
           source: 'rental-application-system',
           version: '1.0.0',
           timestamp: new Date().toISOString(),
           applicationId: application.id,
-          totalFiles: files ? files.length : 0,
-          hasEncryptedData: !!encryptedData,
-          hasSignatures: !!signatures
+          webhookType: 'application-submission'
         }
       };
 
@@ -497,129 +528,168 @@ app.post("/api/process-application/:id", async (req, res) => {
       console.log('Encrypted data received for processing');
     }
     
-    // Send detailed webhook with complete application data
+    // Send detailed webhook with complete application data organized by sections
     try {
       const webhookPayload = {
-        // Complete application record
-        application: {
-          id: application.id,
+        // Application ID and metadata
+        applicationId: application.id,
+        processingTimestamp: new Date().toISOString(),
+        
+        // SECTION 1: PROPERTY INFORMATION
+        propertyInfo: {
           buildingAddress: application.buildingAddress,
           apartmentNumber: application.apartmentNumber,
           moveInDate: application.moveInDate,
           monthlyRent: application.monthlyRent,
           apartmentType: application.apartmentType,
-          howDidYouHear: application.howDidYouHear,
-          
-          // Primary Applicant
-          applicantName: application.applicantName,
-          applicantDob: application.applicantDob,
-          applicantSsn: application.applicantSsn,
-          applicantPhone: application.applicantPhone,
-          applicantEmail: application.applicantEmail,
-          applicantLicense: application.applicantLicense,
-          applicantLicenseState: application.applicantLicenseState,
-          applicantAddress: application.applicantAddress,
-          applicantCity: application.applicantCity,
-          applicantState: application.applicantState,
-          applicantZip: application.applicantZip,
-          applicantLengthAtAddress: application.applicantLengthAtAddress,
-          applicantLandlordName: application.applicantLandlordName,
-          applicantCurrentRent: application.applicantCurrentRent,
-          applicantReasonForMoving: application.applicantReasonForMoving,
-          
-          // Primary Applicant Financial
-          applicantEmployer: application.applicantEmployer,
-          applicantPosition: application.applicantPosition,
-          applicantEmploymentStart: application.applicantEmploymentStart,
-          applicantIncome: application.applicantIncome,
-          applicantOtherIncome: application.applicantOtherIncome,
-          applicantOtherIncomeSource: application.applicantOtherIncomeSource,
-          applicantBankName: application.applicantBankName,
-          applicantAccountType: application.applicantAccountType,
-          
-          // Co-Applicant
-          hasCoApplicant: application.hasCoApplicant,
-          coApplicantName: application.coApplicantName,
-          coApplicantRelationship: application.coApplicantRelationship,
-          coApplicantDob: application.coApplicantDob,
-          coApplicantSsn: application.coApplicantSsn,
-          coApplicantPhone: application.coApplicantPhone,
-          coApplicantEmail: application.coApplicantEmail,
-          coApplicantSameAddress: application.coApplicantSameAddress,
-          coApplicantAddress: application.coApplicantAddress,
-          coApplicantCity: application.coApplicantCity,
-          coApplicantState: application.coApplicantState,
-          coApplicantZip: application.coApplicantZip,
-          coApplicantLengthAtAddress: application.coApplicantLengthAtAddress,
-          
-          // Co-Applicant Financial
-          coApplicantEmployer: application.coApplicantEmployer,
-          coApplicantPosition: application.coApplicantPosition,
-          coApplicantEmploymentStart: application.coApplicantEmploymentStart,
-          coApplicantIncome: application.coApplicantIncome,
-          coApplicantOtherIncome: application.coApplicantOtherIncome,
-          coApplicantBankName: application.coApplicantBankName,
-          coApplicantAccountType: application.coApplicantAccountType,
-          
-          // Guarantor
-          hasGuarantor: application.hasGuarantor,
-          guarantorName: application.guarantorName,
-          guarantorRelationship: application.guarantorRelationship,
-          guarantorDob: application.guarantorDob,
-          guarantorSsn: application.guarantorSsn,
-          guarantorPhone: application.guarantorPhone,
-          guarantorEmail: application.guarantorEmail,
-          guarantorAddress: application.guarantorAddress,
-          guarantorCity: application.guarantorCity,
-          guarantorState: application.guarantorState,
-          guarantorZip: application.guarantorZip,
-          guarantorLengthAtAddress: application.guarantorLengthAtAddress,
-          
-          // Guarantor Financial
-          guarantorEmployer: application.guarantorEmployer,
-          guarantorPosition: application.guarantorPosition,
-          guarantorEmploymentStart: application.guarantorEmploymentStart,
-          guarantorIncome: application.guarantorIncome,
-          guarantorOtherIncome: application.guarantorOtherIncome,
-          guarantorBankName: application.guarantorBankName,
-          guarantorAccountType: application.guarantorAccountType,
-          
-          // Signatures
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature,
-          
-          // Legal Questions
-          hasBankruptcy: application.hasBankruptcy,
-          bankruptcyDetails: application.bankruptcyDetails,
-          hasEviction: application.hasEviction,
-          evictionDetails: application.evictionDetails,
-          hasCriminalHistory: application.hasCriminalHistory,
-          criminalHistoryDetails: application.criminalHistoryDetails,
-          hasPets: application.hasPets,
-          petDetails: application.petDetails,
-          smokingStatus: application.smokingStatus,
-          
-          status: application.status,
-          submittedAt: application.submittedAt
+          howDidYouHear: application.howDidYouHear
         },
         
-        // Processing data
-        processingData: {
-          encryptedData: encryptedData || {},
+        // SECTION 2: PRIMARY APPLICANT - PERSONAL INFORMATION
+        primaryApplicant: {
+          personalInfo: {
+            name: application.applicantName,
+            dateOfBirth: application.applicantDob,
+            ssn: application.applicantSsn,
+            phone: application.applicantPhone,
+            email: application.applicantEmail,
+            license: application.applicantLicense,
+            licenseState: application.applicantLicenseState
+          },
+          addressInfo: {
+            address: application.applicantAddress,
+            city: application.applicantCity,
+            state: application.applicantState,
+            zip: application.applicantZip,
+            lengthAtAddress: application.applicantLengthAtAddress,
+            landlordName: application.applicantLandlordName,
+            currentRent: application.applicantCurrentRent,
+            reasonForMoving: application.applicantReasonForMoving
+          },
+          financialInfo: {
+            employer: application.applicantEmployer,
+            position: application.applicantPosition,
+            employmentStart: application.applicantEmploymentStart,
+            income: application.applicantIncome,
+            otherIncome: application.applicantOtherIncome,
+            otherIncomeSource: application.applicantOtherIncomeSource,
+            bankName: application.applicantBankName,
+            accountType: application.applicantAccountType
+          }
+        },
+        
+        // SECTION 3: CO-APPLICANT (if applicable)
+        coApplicant: application.hasCoApplicant ? {
+          personalInfo: {
+            name: application.coApplicantName,
+            relationship: application.coApplicantRelationship,
+            dateOfBirth: application.coApplicantDob,
+            ssn: application.coApplicantSsn,
+            phone: application.coApplicantPhone,
+            email: application.coApplicantEmail
+          },
+          addressInfo: {
+            sameAddress: application.coApplicantSameAddress,
+            address: application.coApplicantAddress,
+            city: application.coApplicantCity,
+            state: application.coApplicantState,
+            zip: application.coApplicantZip,
+            lengthAtAddress: application.coApplicantLengthAtAddress
+          },
+          financialInfo: {
+            employer: application.coApplicantEmployer,
+            position: application.coApplicantPosition,
+            employmentStart: application.coApplicantEmploymentStart,
+            income: application.coApplicantIncome,
+            otherIncome: application.coApplicantOtherIncome,
+            bankName: application.coApplicantBankName,
+            accountType: application.coApplicantAccountType
+          }
+        } : null,
+        
+        // SECTION 4: GUARANTOR (if applicable)
+        guarantor: application.hasGuarantor ? {
+          personalInfo: {
+            name: application.guarantorName,
+            relationship: application.guarantorRelationship,
+            dateOfBirth: application.guarantorDob,
+            ssn: application.guarantorSsn,
+            phone: application.guarantorPhone,
+            email: application.guarantorEmail
+          },
+          addressInfo: {
+            address: application.guarantorAddress,
+            city: application.guarantorCity,
+            state: application.guarantorState,
+            zip: application.guarantorZip,
+            lengthAtAddress: application.guarantorLengthAtAddress
+          },
+          financialInfo: {
+            employer: application.guarantorEmployer,
+            position: application.guarantorPosition,
+            employmentStart: application.guarantorEmploymentStart,
+            income: application.guarantorIncome,
+            otherIncome: application.guarantorOtherIncome,
+            bankName: application.guarantorBankName,
+            accountType: application.guarantorAccountType
+          }
+        } : null,
+        
+        // SECTION 5: LEGAL QUESTIONS
+        legalQuestions: {
+          bankruptcy: {
+            hasBankruptcy: application.hasBankruptcy,
+            details: application.bankruptcyDetails
+          },
+          eviction: {
+            hasEviction: application.hasEviction,
+            details: application.evictionDetails
+          },
+          criminalHistory: {
+            hasCriminalHistory: application.hasCriminalHistory,
+            details: application.criminalHistoryDetails
+          },
+          pets: {
+            hasPets: application.hasPets,
+            details: application.petDetails
+          },
+          smokingStatus: application.smokingStatus
+        },
+        
+        // SECTION 6: DOCUMENTS AND SIGNATURES
+        documents: {
+          applicantSignature: application.applicantSignature,
+          coApplicantSignature: application.coApplicantSignature,
+          guarantorSignature: application.guarantorSignature
+        },
+        
+        // SECTION 7: ENCRYPTED DATA (Processing)
+        encryptedData: {
+          data: encryptedData || {},
           signatures: signatures || {},
           processingTimestamp: new Date().toISOString(),
+          hasEncryptedData: !!encryptedData,
+          hasSignatures: !!signatures,
+          documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
+          totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0
+        },
+        
+        // SECTION 8: APPLICATION STATUS
+        status: {
+          applicationStatus: application.status,
+          hasCoApplicant: application.hasCoApplicant,
+          hasGuarantor: application.hasGuarantor,
           hasEncryptedData: !!encryptedData,
           hasSignatures: !!signatures
         },
         
-        // Metadata
+        // SECTION 9: METADATA
         metadata: {
           source: 'rental-application-processing',
           version: '1.0.0',
           timestamp: new Date().toISOString(),
           applicationId: application.id,
-          processingType: 'encrypted-data-processing'
+          webhookType: 'encrypted-data-processing'
         }
       };
       
