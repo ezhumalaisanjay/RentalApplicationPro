@@ -24,7 +24,7 @@ const baseSchema = z.object({
   moveInDate: dateStringToDate,
   monthlyRent: z.number().positive("Monthly rent must be a positive number"),
   apartmentType: z.string().min(1, "Apartment type is required"),
-  howDidYouHear: z.string().optional(),
+  howDidYouHear: z.string().optional().nullable(),
   
   // Primary Applicant
   applicantName: z.string().min(1, "Full name is required"),
@@ -38,10 +38,10 @@ const baseSchema = z.object({
   applicantCity: z.string().min(1, "City is required"),
   applicantState: z.string().min(1, "State is required"),
   applicantZip: z.string().min(1, "ZIP code is required"),
-  applicantLengthAtAddress: z.string().optional(),
-  applicantLandlordName: z.string().optional(),
-  applicantCurrentRent: z.number().optional(),
-  applicantReasonForMoving: z.string().optional(),
+  applicantLengthAtAddress: z.string().optional().nullable(),
+  applicantLandlordName: z.string().optional().nullable(),
+  applicantCurrentRent: z.number().optional().nullable(),
+  applicantReasonForMoving: z.string().optional().nullable(),
   
   // Primary Applicant Financial - make optional
   applicantEmployer: z.string().optional().nullable(),
@@ -107,14 +107,14 @@ const baseSchema = z.object({
   
   // Legal Questions
   hasBankruptcy: z.boolean().default(false),
-  bankruptcyDetails: z.string().optional(),
+  bankruptcyDetails: z.string().optional().nullable(),
   hasEviction: z.boolean().default(false),
-  evictionDetails: z.string().optional(),
+  evictionDetails: z.string().optional().nullable(),
   hasCriminalHistory: z.boolean().default(false),
-  criminalHistoryDetails: z.string().optional(),
+  criminalHistoryDetails: z.string().optional().nullable(),
   hasPets: z.boolean().default(false),
-  petDetails: z.string().optional(),
-  smokingStatus: z.string().optional(),
+  petDetails: z.string().optional().nullable(),
+  smokingStatus: z.string().optional().nullable(),
   
   // Documents
   documents: z.string().optional(),

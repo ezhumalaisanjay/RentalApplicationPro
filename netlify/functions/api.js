@@ -219,15 +219,15 @@ app.post("/api/submit-application", async (req, res) => {
       applicantZip: String(applicationData.applicantZip || '00000'),
       
       // Optional fields with defaults
-      howDidYouHear: applicationData.howDidYouHear || null,
+      howDidYouHear: applicationData.howDidYouHear || undefined,
       applicantSsn: applicationData.applicantSsn || null,
       applicantPhone: applicationData.applicantPhone || null,
       applicantLicense: applicationData.applicantLicense || null,
       applicantLicenseState: applicationData.applicantLicenseState || null,
-      applicantLengthAtAddress: applicationData.applicantLengthAtAddress || null,
-      applicantLandlordName: applicationData.applicantLandlordName || null,
-      applicantCurrentRent: applicationData.applicantCurrentRent || null,
-      applicantReasonForMoving: applicationData.applicantReasonForMoving || null,
+      applicantLengthAtAddress: applicationData.applicantLengthAtAddress || undefined,
+      applicantLandlordName: applicationData.applicantLandlordName || undefined,
+      applicantCurrentRent: applicationData.applicantCurrentRent || undefined,
+      applicantReasonForMoving: applicationData.applicantReasonForMoving || undefined,
       
       // Financial fields with proper type conversion
       applicantEmployer: applicationData.applicantEmployer || null,
@@ -289,14 +289,14 @@ app.post("/api/submit-application", async (req, res) => {
       
       // Legal questions
       hasBankruptcy: Boolean(applicationData.hasBankruptcy || false),
-      bankruptcyDetails: applicationData.bankruptcyDetails || null,
+      bankruptcyDetails: applicationData.bankruptcyDetails || undefined,
       hasEviction: Boolean(applicationData.hasEviction || false),
-      evictionDetails: applicationData.evictionDetails || null,
+      evictionDetails: applicationData.evictionDetails || undefined,
       hasCriminalHistory: Boolean(applicationData.hasCriminalHistory || false),
-      criminalHistoryDetails: applicationData.criminalHistoryDetails || null,
+      criminalHistoryDetails: applicationData.criminalHistoryDetails || undefined,
       hasPets: Boolean(applicationData.hasPets || false),
-      petDetails: applicationData.petDetails || null,
-      smokingStatus: applicationData.smokingStatus || null,
+      petDetails: applicationData.petDetails || undefined,
+      smokingStatus: applicationData.smokingStatus || undefined,
       
       // Documents and encrypted data (simplified)
       documents: files ? JSON.stringify(files) : null,
