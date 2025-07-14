@@ -156,12 +156,8 @@ app.post("/api/submit-application", async (req, res) => {
       return res.status(400).json({ error: "No request body received" });
     }
     
-    console.log('Request body keys:', Object.keys(req.body));
-    console.log('Payload size:', JSON.stringify(req.body).length, 'characters');
-    console.log('Request headers:', req.headers);
-    
-    // Log a summary of the request body instead of the full JSON
     const { applicationData, files, signatures, encryptedData } = req.body;
+    
     console.log('Request summary:', {
       hasApplicationData: !!applicationData,
       hasFiles: !!files,
@@ -173,18 +169,6 @@ app.post("/api/submit-application", async (req, res) => {
       encryptedDataKeys: encryptedData ? Object.keys(encryptedData) : []
     });
     
-    console.log('Files received:', JSON.stringify(files, null, 2));
-    console.log('Files type:', typeof files);
-    console.log('Files is array:', Array.isArray(files));
-    console.log('Files length:', files ? files.length : 'null');
-    console.log('Encrypted data received:', encryptedData ? 'Yes' : 'No');
-    console.log('Raw encrypted data:', encryptedData);
-    if (encryptedData) {
-      console.log('Encrypted documents count:', Object.keys(encryptedData.documents || {}).length);
-      console.log('All encrypted files count:', encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0);
-      console.log('Document types:', Object.keys(encryptedData.documents || {}));
-    }
-    
     if (!applicationData) {
       console.error('No applicationData provided');
       return res.status(400).json({ error: "No application data provided" });
@@ -193,14 +177,14 @@ app.post("/api/submit-application", async (req, res) => {
     // Validate application data
     console.log('Validating application data...');
     const validatedData = insertRentalApplicationSchema.parse(applicationData);
-    console.log('Validation successful:', validatedData);
+    console.log('Validation successful');
     
     // Parse documents field if it exists
     let parsedFiles = [];
     if (validatedData.documents) {
       try {
         parsedFiles = JSON.parse(validatedData.documents);
-        console.log('Parsed files from documents field:', JSON.stringify(parsedFiles, null, 2));
+        console.log('Parsed files successfully');
       } catch (error) {
         console.error('Error parsing documents field:', error);
       }
@@ -208,182 +192,31 @@ app.post("/api/submit-application", async (req, res) => {
     
     // Parse encrypted data field if it exists
     let parsedEncryptedData = null;
-    console.log('Validated data encryptedData field:', validatedData.encryptedData);
     if (validatedData.encryptedData) {
       try {
         parsedEncryptedData = JSON.parse(validatedData.encryptedData);
-        console.log('Parsed encrypted data:', {
-          documentsCount: Object.keys(parsedEncryptedData.documents || {}).length,
-          allEncryptedFilesCount: parsedEncryptedData.allEncryptedFiles ? parsedEncryptedData.allEncryptedFiles.length : 0,
-          documentTypes: Object.keys(parsedEncryptedData.documents || {}),
-          encryptionTimestamp: parsedEncryptedData.encryptionTimestamp,
-          encryptionVersion: parsedEncryptedData.encryptionVersion
-        });
+        console.log('Parsed encrypted data successfully');
       } catch (error) {
         console.error('Error parsing encrypted data field:', error);
-        // Don't fail the submission if encrypted data parsing fails
         parsedEncryptedData = null;
       }
-    } else {
-      console.log('No encryptedData field found in validated data');
     }
     
     // Create application in database
-    console.log('Creating application with encrypted data:', !!validatedData.encryptedData);
+    console.log('Creating application in database...');
     const application = await storage.createApplication({
       ...validatedData,
       status: 'submitted'
     });
     console.log('Application created successfully with ID:', application.id);
-    console.log('Application encrypted data from DB:', application.encryptedData);
 
-    // Prepare webhook payload
-    const webhookPayload = {
-      application: {
-        id: application.id,
-        buildingAddress: application.buildingAddress,
-        apartmentNumber: application.apartmentNumber,
-        moveInDate: application.moveInDate,
-        monthlyRent: application.monthlyRent,
-        apartmentType: application.apartmentType,
-        howDidYouHear: application.howDidYouHear,
-        
-        // Primary Applicant
-        applicantName: application.applicantName,
-        applicantDob: application.applicantDob,
-        applicantPhone: application.applicantPhone,
-        applicantEmail: application.applicantEmail,
-        applicantAddress: application.applicantAddress,
-        applicantCity: application.applicantCity,
-        applicantState: application.applicantState,
-        applicantZip: application.applicantZip,
-        
-        // Co-Applicant
-        hasCoApplicant: application.hasCoApplicant,
-        coApplicantName: application.coApplicantName,
-        coApplicantPhone: application.coApplicantPhone,
-        coApplicantEmail: application.coApplicantEmail,
-        
-        // Guarantor
-        hasGuarantor: application.hasGuarantor,
-        guarantorName: application.guarantorName,
-        guarantorPhone: application.guarantorPhone,
-        guarantorEmail: application.guarantorEmail,
-        
-        status: application.status,
-        submittedAt: application.submittedAt
-      },
-      files: parsedFiles,
-      documentsFiles: parsedEncryptedData ? parsedEncryptedData.allEncryptedFiles || [] : [],
-      signatures: signatures || {},
-      encryptedData: {
-        raw: parsedEncryptedData || {},
-        parsed: parsedEncryptedData
-      },
-      metadata: {
-        source: "rental-application-system",
-        version: "1.0.0",
-        timestamp: new Date().toISOString()
-      }
-    };
-
-    // Send to Make.com webhook for rental applications
-    try {
-      // Create a simplified webhook payload without large signature data
-      const simplifiedWebhookPayload = {
-        application: {
-          id: application.id,
-          buildingAddress: application.buildingAddress,
-          apartmentNumber: application.apartmentNumber,
-          moveInDate: application.moveInDate,
-          monthlyRent: application.monthlyRent,
-          apartmentType: application.apartmentType,
-          howDidYouHear: application.howDidYouHear,
-          
-          // Primary Applicant
-          applicantName: application.applicantName,
-          applicantDob: application.applicantDob,
-          applicantPhone: application.applicantPhone,
-          applicantEmail: application.applicantEmail,
-          applicantAddress: application.applicantAddress,
-          applicantCity: application.applicantCity,
-          applicantState: application.applicantState,
-          applicantZip: application.applicantZip,
-          
-          // Co-Applicant
-          hasCoApplicant: application.hasCoApplicant,
-          coApplicantName: application.coApplicantName,
-          coApplicantPhone: application.coApplicantPhone,
-          coApplicantEmail: application.coApplicantEmail,
-          
-          // Guarantor
-          hasGuarantor: application.hasGuarantor,
-          guarantorName: application.guarantorName,
-          guarantorPhone: application.guarantorPhone,
-          guarantorEmail: application.guarantorEmail,
-          
-          status: application.status,
-          submittedAt: application.submittedAt
-        },
-        files: parsedFiles,
-        documentsFiles: parsedEncryptedData ? parsedEncryptedData.allEncryptedFiles || [] : [],
-        signatures: {
-          hasApplicantSignature: !!signatures?.applicant,
-          hasCoApplicantSignature: !!signatures?.coApplicant,
-          hasGuarantorSignature: !!signatures?.guarantor
-        },
-        encryptedData: {
-          hasEncryptedData: !!parsedEncryptedData,
-          documentTypes: parsedEncryptedData ? Object.keys(parsedEncryptedData.documents || {}) : [],
-          totalFiles: parsedEncryptedData ? parsedEncryptedData.allEncryptedFiles?.length || 0 : 0
-        },
-        metadata: {
-          source: "rental-application-system",
-          version: "1.0.0",
-          timestamp: new Date().toISOString()
-        }
-      };
-      
-      console.log('Sending simplified webhook payload');
-      
-      // Create an AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(simplifiedWebhookPayload),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
-      if (!webhookResponse.ok) {
-        console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
-        const errorText = await webhookResponse.text();
-        console.error('Webhook error response:', errorText);
-        // Continue with submission even if webhook fails
-      } else {
-        console.log('Webhook sent successfully');
-        const responseText = await webhookResponse.text();
-        console.log('Webhook response:', responseText);
-      }
-    } catch (webhookError) {
-      console.error('Webhook error:', webhookError);
-      if (webhookError.name === 'AbortError') {
-        console.error('Webhook request timed out after 10 seconds');
-      }
-      // Continue with submission even if webhook fails
-    }
-
+    // Return success response immediately (temporarily disable webhook)
+    console.log('Returning success response');
     res.status(201).json({ 
       message: "Application submitted successfully", 
       applicationId: application.id,
       encryptedDataReceived: !!parsedEncryptedData,
-      webhookSent: true
+      webhookSent: false
     });
     
   } catch (error) {
