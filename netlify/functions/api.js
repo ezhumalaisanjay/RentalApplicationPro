@@ -202,21 +202,21 @@ app.post("/api/submit-application", async (req, res) => {
       });
     }
     
-    // Simplified approach: Create a minimal application object
+    // Simplified approach: Create a minimal application object with proper data types
     const minimalApplication = {
-      // Required fields
-      buildingAddress: applicationData.buildingAddress || 'Unknown',
-      apartmentNumber: applicationData.apartmentNumber || 'Unknown',
+      // Required fields with proper type conversion
+      buildingAddress: String(applicationData.buildingAddress || 'Unknown'),
+      apartmentNumber: String(applicationData.apartmentNumber || 'Unknown'),
       moveInDate: applicationData.moveInDate || new Date().toISOString(),
-      monthlyRent: applicationData.monthlyRent || 0,
-      apartmentType: applicationData.apartmentType || 'Unknown',
-      applicantName: applicationData.applicantName || 'Unknown',
+      monthlyRent: Number(applicationData.monthlyRent || 0),
+      apartmentType: String(applicationData.apartmentType || 'Unknown'),
+      applicantName: String(applicationData.applicantName || 'Unknown'),
       applicantDob: applicationData.applicantDob || new Date().toISOString(),
-      applicantEmail: applicationData.applicantEmail || 'unknown@example.com',
-      applicantAddress: applicationData.applicantAddress || 'Unknown',
-      applicantCity: applicationData.applicantCity || 'Unknown',
-      applicantState: applicationData.applicantState || 'Unknown',
-      applicantZip: applicationData.applicantZip || '00000',
+      applicantEmail: String(applicationData.applicantEmail || 'unknown@example.com'),
+      applicantAddress: String(applicationData.applicantAddress || 'Unknown'),
+      applicantCity: String(applicationData.applicantCity || 'Unknown'),
+      applicantState: String(applicationData.applicantState || 'Unknown'),
+      applicantZip: String(applicationData.applicantZip || '00000'),
       
       // Optional fields with defaults
       howDidYouHear: applicationData.howDidYouHear || null,
@@ -229,25 +229,25 @@ app.post("/api/submit-application", async (req, res) => {
       applicantCurrentRent: applicationData.applicantCurrentRent || null,
       applicantReasonForMoving: applicationData.applicantReasonForMoving || null,
       
-      // Financial fields
+      // Financial fields with proper type conversion
       applicantEmployer: applicationData.applicantEmployer || null,
       applicantPosition: applicationData.applicantPosition || null,
       applicantEmploymentStart: applicationData.applicantEmploymentStart || null,
-      applicantIncome: applicationData.applicantIncome || null,
-      applicantOtherIncome: applicationData.applicantOtherIncome || null,
+      applicantIncome: applicationData.applicantIncome ? Number(applicationData.applicantIncome) : null,
+      applicantOtherIncome: applicationData.applicantOtherIncome ? Number(applicationData.applicantOtherIncome) : null,
       applicantOtherIncomeSource: applicationData.applicantOtherIncomeSource || null,
       applicantBankName: applicationData.applicantBankName || null,
       applicantAccountType: applicationData.applicantAccountType || null,
       
       // Co-applicant fields
-      hasCoApplicant: applicationData.hasCoApplicant || false,
+      hasCoApplicant: Boolean(applicationData.hasCoApplicant || false),
       coApplicantName: applicationData.coApplicantName || null,
       coApplicantRelationship: applicationData.coApplicantRelationship || null,
       coApplicantDob: applicationData.coApplicantDob || null,
       coApplicantSsn: applicationData.coApplicantSsn || null,
       coApplicantPhone: applicationData.coApplicantPhone || null,
       coApplicantEmail: applicationData.coApplicantEmail || null,
-      coApplicantSameAddress: applicationData.coApplicantSameAddress || false,
+      coApplicantSameAddress: Boolean(applicationData.coApplicantSameAddress || false),
       coApplicantAddress: applicationData.coApplicantAddress || null,
       coApplicantCity: applicationData.coApplicantCity || null,
       coApplicantState: applicationData.coApplicantState || null,
@@ -256,13 +256,13 @@ app.post("/api/submit-application", async (req, res) => {
       coApplicantEmployer: applicationData.coApplicantEmployer || null,
       coApplicantPosition: applicationData.coApplicantPosition || null,
       coApplicantEmploymentStart: applicationData.coApplicantEmploymentStart || null,
-      coApplicantIncome: applicationData.coApplicantIncome || null,
-      coApplicantOtherIncome: applicationData.coApplicantOtherIncome || null,
+      coApplicantIncome: applicationData.coApplicantIncome ? Number(applicationData.coApplicantIncome) : null,
+      coApplicantOtherIncome: applicationData.coApplicantOtherIncome ? Number(applicationData.coApplicantOtherIncome) : null,
       coApplicantBankName: applicationData.coApplicantBankName || null,
       coApplicantAccountType: applicationData.coApplicantAccountType || null,
       
       // Guarantor fields
-      hasGuarantor: applicationData.hasGuarantor || false,
+      hasGuarantor: Boolean(applicationData.hasGuarantor || false),
       guarantorName: applicationData.guarantorName || null,
       guarantorRelationship: applicationData.guarantorRelationship || null,
       guarantorDob: applicationData.guarantorDob || null,
@@ -277,8 +277,8 @@ app.post("/api/submit-application", async (req, res) => {
       guarantorEmployer: applicationData.guarantorEmployer || null,
       guarantorPosition: applicationData.guarantorPosition || null,
       guarantorEmploymentStart: applicationData.guarantorEmploymentStart || null,
-      guarantorIncome: applicationData.guarantorIncome || null,
-      guarantorOtherIncome: applicationData.guarantorOtherIncome || null,
+      guarantorIncome: applicationData.guarantorIncome ? Number(applicationData.guarantorIncome) : null,
+      guarantorOtherIncome: applicationData.guarantorOtherIncome ? Number(applicationData.guarantorOtherIncome) : null,
       guarantorBankName: applicationData.guarantorBankName || null,
       guarantorAccountType: applicationData.guarantorAccountType || null,
       
@@ -288,13 +288,13 @@ app.post("/api/submit-application", async (req, res) => {
       guarantorSignature: applicationData.guarantorSignature || null,
       
       // Legal questions
-      hasBankruptcy: applicationData.hasBankruptcy || false,
+      hasBankruptcy: Boolean(applicationData.hasBankruptcy || false),
       bankruptcyDetails: applicationData.bankruptcyDetails || null,
-      hasEviction: applicationData.hasEviction || false,
+      hasEviction: Boolean(applicationData.hasEviction || false),
       evictionDetails: applicationData.evictionDetails || null,
-      hasCriminalHistory: applicationData.hasCriminalHistory || false,
+      hasCriminalHistory: Boolean(applicationData.hasCriminalHistory || false),
       criminalHistoryDetails: applicationData.criminalHistoryDetails || null,
-      hasPets: applicationData.hasPets || false,
+      hasPets: Boolean(applicationData.hasPets || false),
       petDetails: applicationData.petDetails || null,
       smokingStatus: applicationData.smokingStatus || null,
       
@@ -316,15 +316,24 @@ app.post("/api/submit-application", async (req, res) => {
     // Validate the minimal application data
     try {
       console.log('Validating minimal application data...');
+      console.log('Data to validate:', JSON.stringify(minimalApplication, null, 2));
       const validatedData = insertRentalApplicationSchema.parse(minimalApplication);
       console.log('Validation successful');
     } catch (validationError) {
       console.error('Validation error:', validationError);
       console.error('Validation error details:', validationError.errors);
+      console.error('Validation error message:', validationError.message);
+      
+      // Return detailed validation error
       return res.status(400).json({ 
         error: "Validation failed", 
         details: validationError.errors,
-        message: "Application data validation failed"
+        message: validationError.message,
+        fieldErrors: validationError.errors.map(err => ({
+          field: err.path.join('.'),
+          message: err.message,
+          code: err.code
+        }))
       });
     }
     
