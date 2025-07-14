@@ -568,209 +568,26 @@ app.post("/api/process-application/:id", async (req, res) => {
       console.log('Encrypted data received for processing');
     }
     
-    // Send detailed webhook with complete application data organized by sections
-    try {
-      const webhookPayload = {
-        // Application ID and metadata
-        applicationId: application.id,
-        processingTimestamp: new Date().toISOString(),
-        
-        // SECTION 1: PROPERTY INFORMATION
-        propertyInfo: {
-          buildingAddress: application.buildingAddress,
-          apartmentNumber: application.apartmentNumber,
-          moveInDate: application.moveInDate,
-          monthlyRent: application.monthlyRent,
-          apartmentType: application.apartmentType,
-          howDidYouHear: application.howDidYouHear
-        },
-        
-        // SECTION 2: PRIMARY APPLICANT - PERSONAL INFORMATION
-        primaryApplicant: {
-          personalInfo: {
-            name: application.applicantName,
-            dateOfBirth: application.applicantDob,
-            ssn: application.applicantSsn,
-            phone: application.applicantPhone,
-            email: application.applicantEmail,
-            license: application.applicantLicense,
-            licenseState: application.applicantLicenseState
-          },
-          addressInfo: {
-            address: application.applicantAddress,
-            city: application.applicantCity,
-            state: application.applicantState,
-            zip: application.applicantZip,
-            lengthAtAddress: application.applicantLengthAtAddress,
-            landlordName: application.applicantLandlordName,
-            currentRent: application.applicantCurrentRent,
-            reasonForMoving: application.applicantReasonForMoving
-          },
-          financialInfo: {
-            employer: application.applicantEmployer,
-            position: application.applicantPosition,
-            employmentStart: application.applicantEmploymentStart,
-            income: application.applicantIncome,
-            otherIncome: application.applicantOtherIncome,
-            otherIncomeSource: application.applicantOtherIncomeSource,
-            bankName: application.applicantBankName,
-            accountType: application.applicantAccountType
-          }
-        },
-        
-        // SECTION 3: CO-APPLICANT (if applicable)
-        coApplicant: application.hasCoApplicant ? {
-          personalInfo: {
-            name: application.coApplicantName,
-            relationship: application.coApplicantRelationship,
-            dateOfBirth: application.coApplicantDob,
-            ssn: application.coApplicantSsn,
-            phone: application.coApplicantPhone,
-            email: application.coApplicantEmail
-          },
-          addressInfo: {
-            sameAddress: application.coApplicantSameAddress,
-            address: application.coApplicantAddress,
-            city: application.coApplicantCity,
-            state: application.coApplicantState,
-            zip: application.coApplicantZip,
-            lengthAtAddress: application.coApplicantLengthAtAddress
-          },
-          financialInfo: {
-            employer: application.coApplicantEmployer,
-            position: application.coApplicantPosition,
-            employmentStart: application.coApplicantEmploymentStart,
-            income: application.coApplicantIncome,
-            otherIncome: application.coApplicantOtherIncome,
-            bankName: application.coApplicantBankName,
-            accountType: application.coApplicantAccountType
-          }
-        } : null,
-        
-        // SECTION 4: GUARANTOR (if applicable)
-        guarantor: application.hasGuarantor ? {
-          personalInfo: {
-            name: application.guarantorName,
-            relationship: application.guarantorRelationship,
-            dateOfBirth: application.guarantorDob,
-            ssn: application.guarantorSsn,
-            phone: application.guarantorPhone,
-            email: application.guarantorEmail
-          },
-          addressInfo: {
-            address: application.guarantorAddress,
-            city: application.guarantorCity,
-            state: application.guarantorState,
-            zip: application.guarantorZip,
-            lengthAtAddress: application.guarantorLengthAtAddress
-          },
-          financialInfo: {
-            employer: application.guarantorEmployer,
-            position: application.guarantorPosition,
-            employmentStart: application.guarantorEmploymentStart,
-            income: application.guarantorIncome,
-            otherIncome: application.guarantorOtherIncome,
-            bankName: application.guarantorBankName,
-            accountType: application.guarantorAccountType
-          }
-        } : null,
-        
-        // SECTION 5: LEGAL QUESTIONS
-        legalQuestions: {
-          bankruptcy: {
-            hasBankruptcy: application.hasBankruptcy,
-            details: application.bankruptcyDetails
-          },
-          eviction: {
-            hasEviction: application.hasEviction,
-            details: application.evictionDetails
-          },
-          criminalHistory: {
-            hasCriminalHistory: application.hasCriminalHistory,
-            details: application.criminalHistoryDetails
-          },
-          pets: {
-            hasPets: application.hasPets,
-            details: application.petDetails
-          },
-          smokingStatus: application.smokingStatus
-        },
-        
-        // SECTION 6: DOCUMENTS
-        documents: {
-          totalFiles: 0
-        },
-        
-        // SECTION 7: SIGNATURES
-        signatures: {
-          // Raw signature data from frontend
-          rawSignatures: signatures || {},
-          
-          // Processed signatures from database
-          applicantSignature: application.applicantSignature,
-          coApplicantSignature: application.coApplicantSignature,
-          guarantorSignature: application.guarantorSignature,
-          
-          // Signature metadata
-          hasApplicantSignature: !!application.applicantSignature,
-          hasCoApplicantSignature: !!application.coApplicantSignature,
-          hasGuarantorSignature: !!application.guarantorSignature,
-          totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
-                          (!!application.coApplicantSignature ? 1 : 0) + 
-                          (!!application.guarantorSignature ? 1 : 0)
-        },
-        
-        // SECTION 8: ENCRYPTED DATA (Processing)
-        encryptedData: {
-          data: encryptedData || {},
-          processingTimestamp: new Date().toISOString(),
-          hasEncryptedData: !!encryptedData,
-          documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
-          totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0
-        },
-        
-        // SECTION 9: APPLICATION STATUS
-        status: {
-          applicationStatus: application.status,
-          hasCoApplicant: application.hasCoApplicant,
-          hasGuarantor: application.hasGuarantor,
-          hasEncryptedData: !!encryptedData,
-          hasSignatures: !!signatures
-        },
-        
-        // SECTION 10: METADATA
-        metadata: {
-          source: 'rental-application-processing',
-          version: '1.0.0',
-          timestamp: new Date().toISOString(),
-          applicationId: application.id,
-          webhookType: 'encrypted-data-processing'
-        }
-      };
-      
-      console.log('Sending processing webhook payload:', webhookPayload);
-      
-      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookPayload)
-      });
-
-      if (!webhookResponse.ok) {
-        console.error('Processing webhook failed:', webhookResponse.status, webhookResponse.statusText);
-      } else {
-        console.log('Processing webhook sent successfully');
-      }
-    } catch (webhookError) {
-      console.error('Processing webhook error:', webhookError);
+    // Process encrypted data without sending webhook (webhook already sent by main submission)
+    console.log('Processing encrypted data for application:', applicationId);
+    
+    if (encryptedData) {
+      console.log('Processing encrypted data...');
+      console.log('Document types:', Object.keys(encryptedData.documents || {}));
+      console.log('Total encrypted files:', encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0);
+      console.log('Encrypted data received for processing');
+    }
+    
+    if (signatures) {
+      console.log('Processing signatures...');
+      console.log('Signature types:', Object.keys(signatures));
     }
 
     res.json({ 
       message: "Application processed successfully", 
       applicationId: application.id,
-      webhookSent: true
+      webhookSent: false,
+      note: "Webhook already sent by main submission endpoint"
     });
     
   } catch (error) {
