@@ -343,10 +343,15 @@ app.post("/api/submit-application", async (req, res) => {
     
     const createApplication = async () => {
       try {
-        return await storage.createApplication(minimalApplication);
+        console.log('Calling storage.createApplication...');
+        const result = await storage.createApplication(minimalApplication);
+        console.log('Storage.createApplication completed successfully');
+        return result;
       } catch (dbError) {
         console.error('Database error:', dbError);
         console.error('Database error stack:', dbError.stack);
+        console.error('Database error name:', dbError.name);
+        console.error('Database error message:', dbError.message);
         throw dbError;
       }
     };
@@ -355,12 +360,28 @@ app.post("/api/submit-application", async (req, res) => {
       setTimeout(() => reject(new Error('Database operation timed out')), 20000); // 20 second timeout
     });
     
-    const application = await Promise.race([createApplication(), timeoutPromise]);
-    console.log('Application created successfully with ID:', application.id);
+    try {
+      const application = await Promise.race([createApplication(), timeoutPromise]);
+      console.log('Application created successfully with ID:', application.id);
+    } catch (error) {
+      console.error('Error in application creation:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      throw error;
+    }
 
     // Send webhook with complete application data organized by sections
     let webhookSent = false;
     try {
+      console.log('Preparing webhook payload...');
+      console.log('Application data for webhook:', {
+        id: application.id,
+        applicantName: application.applicantName,
+        hasCoApplicant: application.hasCoApplicant,
+        hasGuarantor: application.hasGuarantor
+      });
+      
       // Create a simplified webhook payload for large requests
       const webhookPayload = {
         // Application ID and metadata
@@ -533,21 +554,22 @@ app.post("/api/submit-application", async (req, res) => {
       };
 
       console.log('Sending webhook payload (size optimized)');
+      console.log('Webhook payload size:', JSON.stringify(webhookPayload).length);
       
       // Add timeout to webhook request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(webhookPayload),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+        const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(webhookPayload),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
 
       if (!webhookResponse.ok) {
         console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
@@ -568,16 +590,26 @@ app.post("/api/submit-application", async (req, res) => {
 
     // Return success response
     console.log('Returning success response');
-    res.status(201).json({ 
-      message: "Application submitted successfully", 
-      applicationId: application.id,
-      webhookSent: webhookSent,
-      receivedData: {
-        hasFiles: !!files,
-        hasSignatures: !!signatures,
-        hasEncryptedData: !!encryptedData
-      }
-    });
+    try {
+      res.status(201).json({ 
+        message: "Application submitted successfully", 
+        applicationId: application.id,
+        webhookSent: webhookSent,
+        receivedData: {
+          hasFiles: !!files,
+          hasSignatures: !!signatures,
+          hasEncryptedData: !!encryptedData
+        }
+      });
+    } catch (responseError) {
+      console.error('Error sending response:', responseError);
+      console.error('Response error stack:', responseError.stack);
+      // Try to send a simple error response
+      res.status(500).json({ 
+        error: "Failed to send response",
+        message: responseError.message
+      });
+    }
     
   } catch (error) {
     console.error('Error in submit-application:', error);
