@@ -776,35 +776,56 @@ app.post("/api/upload", async (req, res) => {
   }
 });
 
-// Upload encrypted files endpoint with improved timeout handling
+// Upload encrypted files endpoint with FormData support and person-specific webhooks
 app.post("/api/upload-files", async (req, res) => {
   try {
     console.log('=== Starting file upload ===');
     
-    const { files, applicationId } = req.body;
+    // Handle both JSON and FormData
+    let files = [];
+    let applicationId = null;
+    let personType = 'unknown';
+    
+    if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+      // Handle FormData
+      console.log('Processing FormData upload');
+      
+      // Parse FormData (simplified - in production you'd use multer or similar)
+      const formData = req.body;
+      personType = formData.personType || 'unknown';
+      applicationId = formData.applicationId || Date.now();
+      
+      // Extract files from FormData
+      const fileKeys = Object.keys(formData).filter(key => key.startsWith('files['));
+      const fileCount = fileKeys.length / 5; // Each file has 5 fields
+      
+      for (let i = 0; i < fileCount; i++) {
+        const file = {
+          filename: formData[`files[${i}][filename]`],
+          encryptedData: formData[`files[${i}][encryptedData]`],
+          originalSize: parseInt(formData[`files[${i}][originalSize]`]),
+          mimeType: formData[`files[${i}][mimeType]`],
+          uploadDate: formData[`files[${i}][uploadDate]`]
+        };
+        files.push(file);
+      }
+    } else {
+      // Handle JSON
+      console.log('Processing JSON upload');
+      const { files: jsonFiles, applicationId: jsonApplicationId, personType: jsonPersonType } = req.body;
+      files = jsonFiles || [];
+      applicationId = jsonApplicationId || Date.now();
+      personType = jsonPersonType || 'unknown';
+    }
     
     console.log('Upload files request received:', {
       filesCount: files ? files.length : 0,
-      applicationId: applicationId
+      applicationId: applicationId,
+      personType: personType
     });
     
     if (!files || !Array.isArray(files)) {
       return res.status(400).json({ error: "No files provided" });
-    }
-
-    // Check total payload size
-    const payloadSize = JSON.stringify(req.body).length;
-    const payloadSizeMB = (payloadSize / (1024 * 1024)).toFixed(2);
-    console.log(`Upload payload size: ${payloadSizeMB}MB`);
-    
-    if (payloadSize > 4 * 1024 * 1024) { // 4MB limit for uploads
-      console.error(`Upload payload too large: ${payloadSizeMB}MB`);
-      return res.status(413).json({ 
-        error: "Upload payload too large", 
-        message: "Please reduce file sizes or upload fewer files at once",
-        payloadSizeMB: payloadSizeMB,
-        limit: "4MB"
-      });
     }
 
     const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
@@ -853,12 +874,82 @@ app.post("/api/upload-files", async (req, res) => {
     });
 
     const result = await Promise.race([processFiles(), timeoutPromise]);
-    console.log(`Successfully processed ${result.length} files`);
+    console.log(`Successfully processed ${result.length} files for ${personType}`);
+
+    // Send person-specific webhook
+    let webhookSent = false;
+    try {
+      const webhookPayload = {
+        // Person-specific metadata
+        personType: personType,
+        applicationId: applicationId,
+        uploadTimestamp: new Date().toISOString(),
+        
+        // File information
+        files: result.map(file => ({
+          originalName: file.originalName,
+          savedName: file.savedName,
+          size: file.size,
+          mimeType: file.mimeType,
+          uploadDate: file.uploadDate,
+          status: file.status
+        })),
+        
+        // Summary
+        totalFiles: result.length,
+        totalSize: result.reduce((sum, file) => sum + file.size, 0),
+        
+        // Metadata
+        metadata: {
+          source: 'file-upload-system',
+          version: '1.0.0',
+          timestamp: new Date().toISOString(),
+          personType: personType,
+          applicationId: applicationId,
+          webhookType: 'person-specific-file-upload'
+        }
+      };
+
+      console.log(`Sending ${personType} webhook payload:`, webhookPayload);
+      
+      // Add timeout to webhook request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!webhookResponse.ok) {
+        console.error(`${personType} webhook failed:`, webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error(`${personType} webhook error response:`, errorText);
+      } else {
+        console.log(`${personType} webhook sent successfully`);
+        const responseText = await webhookResponse.text();
+        console.log(`${personType} webhook response:`, responseText);
+        webhookSent = true;
+      }
+    } catch (webhookError) {
+      console.error(`${personType} webhook error:`, webhookError);
+      if (webhookError.name === 'AbortError') {
+        console.error(`${personType} webhook request timed out after 10 seconds`);
+      }
+    }
 
     res.json({ 
-      message: "Files uploaded successfully", 
+      message: `Files uploaded successfully for ${personType}`, 
       files: result,
       count: result.length,
+      personType: personType,
+      webhookSent: webhookSent,
       note: "Files are stored in memory. For production, implement cloud storage upload."
     });
 

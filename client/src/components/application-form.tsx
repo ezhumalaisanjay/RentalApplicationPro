@@ -233,9 +233,23 @@ export function ApplicationForm() {
     setCurrentStep(step);
   };
 
-  const uploadEncryptedFiles = async (encryptedFiles: EncryptedFile[]) => {
+  const uploadEncryptedFiles = async (encryptedFiles: EncryptedFile[], personType: string) => {
     try {
-      console.log(`Starting upload of ${encryptedFiles.length} files...`);
+      console.log(`Starting upload of ${encryptedFiles.length} files for ${personType}...`);
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('personType', personType);
+      formData.append('applicationId', Date.now().toString());
+      
+      // Add each file to FormData
+      encryptedFiles.forEach((file, index) => {
+        formData.append(`files[${index}][filename]`, file.filename);
+        formData.append(`files[${index}][encryptedData]`, file.encryptedData);
+        formData.append(`files[${index}][originalSize]`, file.originalSize.toString());
+        formData.append(`files[${index}][mimeType]`, file.mimeType);
+        formData.append(`files[${index}][uploadDate]`, file.uploadDate);
+      });
       
       // Create AbortController for timeout handling
       const controller = new AbortController();
@@ -243,13 +257,7 @@ export function ApplicationForm() {
       
       const response = await fetch('/api/upload-files', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          files: encryptedFiles,
-          applicationId: Date.now(), // You can use actual application ID when available
-        }),
+        body: formData, // Use FormData instead of JSON
         signal: controller.signal
       });
 
@@ -271,10 +279,10 @@ export function ApplicationForm() {
       }
 
       const result = await response.json();
-      console.log('Files uploaded successfully:', result);
+      console.log(`Files uploaded successfully for ${personType}:`, result);
       return result;
     } catch (error) {
-      console.error('Failed to upload files:', error);
+      console.error(`Failed to upload files for ${personType}:`, error);
       
       // Handle timeout errors specifically
       if (error.name === 'AbortError') {
@@ -328,19 +336,38 @@ export function ApplicationForm() {
       console.log("Encrypted documents state:", encryptedDocuments);
       console.log("Encrypted documents keys:", Object.keys(encryptedDocuments));
 
-      // Upload all encrypted documents first
-      const allEncryptedFiles: EncryptedFile[] = [];
-      Object.values(encryptedDocuments).forEach((docFiles: any) => {
-        if (Array.isArray(docFiles)) {
-          allEncryptedFiles.push(...docFiles);
+      // Upload encrypted documents by person type
+      const uploadedFilesByPerson: { [key: string]: any[] } = {};
+      
+      // Upload applicant files
+      if (encryptedDocuments.applicant) {
+        const applicantFiles = Object.values(encryptedDocuments.applicant).flat() as EncryptedFile[];
+        if (applicantFiles.length > 0) {
+          const uploadResult = await uploadEncryptedFiles(applicantFiles, 'applicant');
+          uploadedFilesByPerson.applicant = uploadResult.files || [];
         }
-      });
-
-      let uploadedFiles = [];
-      if (allEncryptedFiles.length > 0) {
-        const uploadResult = await uploadEncryptedFiles(allEncryptedFiles);
-        uploadedFiles = uploadResult.files || [];
       }
+      
+      // Upload co-applicant files
+      if (hasCoApplicant && encryptedDocuments.coApplicant) {
+        const coApplicantFiles = Object.values(encryptedDocuments.coApplicant).flat() as EncryptedFile[];
+        if (coApplicantFiles.length > 0) {
+          const uploadResult = await uploadEncryptedFiles(coApplicantFiles, 'coApplicant');
+          uploadedFilesByPerson.coApplicant = uploadResult.files || [];
+        }
+      }
+      
+      // Upload guarantor files
+      if (hasGuarantor && encryptedDocuments.guarantor) {
+        const guarantorFiles = Object.values(encryptedDocuments.guarantor).flat() as EncryptedFile[];
+        if (guarantorFiles.length > 0) {
+          const uploadResult = await uploadEncryptedFiles(guarantorFiles, 'guarantor');
+          uploadedFilesByPerson.guarantor = uploadResult.files || [];
+        }
+      }
+      
+      // Combine all uploaded files
+      const allUploadedFiles = Object.values(uploadedFilesByPerson).flat();
 
       // Helper function to safely convert date to ISO string
       const safeDateToISO = (dateValue: any): string | null => {
@@ -468,22 +495,24 @@ export function ApplicationForm() {
       transformedData.smokingStatus = data.smokingStatus;
       
       // Documents
-      transformedData.documents = JSON.stringify(uploadedFiles);
+      transformedData.documents = JSON.stringify(allUploadedFiles);
       
       // Encrypted Data
       const encryptedDataPayload = {
         documents: encryptedDocuments,
-        allEncryptedFiles: allEncryptedFiles,
+        uploadedFilesByPerson: uploadedFilesByPerson,
+        allEncryptedFiles: Object.values(encryptedDocuments).flat().filter(Array.isArray).flat(),
         encryptionTimestamp: new Date().toISOString(),
         encryptionVersion: '1.0.0',
-        totalEncryptedFiles: allEncryptedFiles.length,
+        totalEncryptedFiles: Object.values(encryptedDocuments).flat().filter(Array.isArray).flat().length,
         documentTypes: Object.keys(encryptedDocuments)
       };
       
       console.log('Encrypted data payload before validation:', encryptedDataPayload);
       
       // Validate encrypted data before submission (only if there are encrypted files)
-      if (allEncryptedFiles.length > 0 && !validateEncryptedData(encryptedDataPayload)) {
+      const totalEncryptedFiles = Object.values(encryptedDocuments).flat().filter(Array.isArray).flat().length;
+      if (totalEncryptedFiles > 0 && !validateEncryptedData(encryptedDataPayload)) {
         throw new Error('Invalid encrypted data structure');
       }
       
@@ -501,11 +530,11 @@ export function ApplicationForm() {
       
       const requestBody = {
         applicationData: transformedData,
-        files: uploadedFiles,
+        files: allUploadedFiles,
         signatures: signatures,
         encryptedData: {
           documents: encryptedDocuments,
-          allEncryptedFiles: allEncryptedFiles
+          uploadedFilesByPerson: uploadedFilesByPerson
         }
       };
       
