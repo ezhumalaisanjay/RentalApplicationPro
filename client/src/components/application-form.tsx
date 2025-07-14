@@ -334,8 +334,8 @@ export function ApplicationForm() {
         // Primary Applicant
         applicantName: data.applicantName,
         applicantDob: data.applicantDob ? new Date(data.applicantDob) : null,
-        applicantSsn: data.applicantSsn || '',
-        applicantPhone: data.applicantPhone || '',
+        applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
+        applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
         applicantEmail: data.applicantEmail,
         applicantLicense: data.applicantLicense,
         applicantLicenseState: data.applicantLicenseState,
