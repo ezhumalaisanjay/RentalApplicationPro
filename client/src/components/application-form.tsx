@@ -25,6 +25,7 @@ import { useRef } from "react";
 import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
 import { WebhookService } from "@/lib/webhook-service";
 
+
 const applicationSchema = z.object({
   // Application Info
   buildingAddress: z.string().optional(),
@@ -82,8 +83,9 @@ const STEPS = [
   { id: 3, title: "Financial Info", icon: CalendarDays },
   { id: 4, title: "Supporting Documents", icon: FolderOpen },
   { id: 5, title: "Other Occupants", icon: Users },
-  { id: 6, title: "Legal Questions", icon: Shield },
-  { id: 7, title: "Digital Signatures", icon: Check },
+  { id: 6, title: "Guarantor Documents", icon: Shield },
+  { id: 7, title: "Legal Questions", icon: Shield },
+  { id: 8, title: "Digital Signatures", icon: Check },
 ];
 
 export function ApplicationForm() {
@@ -182,6 +184,16 @@ export function ApplicationForm() {
   const handleEncryptedDocumentChange = (person: string, documentType: string, encryptedFiles: EncryptedFile[]) => {
     console.log('handleEncryptedDocumentChange called:', { person, documentType, encryptedFilesCount: encryptedFiles.length });
     
+    // Special debugging for guarantor documents
+    if (person === 'guarantor') {
+      console.log('🚀 GUARANTOR ENCRYPTED DOCUMENT CHANGE:', {
+        person,
+        documentType,
+        encryptedFilesCount: encryptedFiles.length,
+        encryptedFiles: encryptedFiles.map(f => ({ filename: f.filename, size: f.encryptedData.length }))
+      });
+    }
+    
     setEncryptedDocuments((prev: any) => ({
       ...prev,
       [person]: {
@@ -227,6 +239,7 @@ export function ApplicationForm() {
   const generatePDF = async () => {
     try {
       const pdfGenerator = new PDFGenerator();
+
       const pdfData = pdfGenerator.generatePDF({
         application: formData.application,
         applicant: formData.applicant,
@@ -234,18 +247,29 @@ export function ApplicationForm() {
         guarantor: hasGuarantor ? formData.guarantor : undefined,
         signatures,
       });
-      
+
       // Extract base64 from data URL
       const base64 = pdfData.split(',')[1];
-      
+
+      // Prepare filename
+      const filename = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
+
       // Send PDF to webhook
+      console.log('Sending PDF to webhook:', {
+        filename,
+        referenceId,
+        applicationId,
+        base64Length: base64.length
+      });
+      
       const webhookResult = await WebhookService.sendPDFToWebhook(
         base64,
         referenceId,
         applicationId,
-        `rental-application-${new Date().toISOString().split('T')[0]}.pdf`
+        filename
       );
-      
+
+      // Notify user of result
       if (webhookResult.success) {
         toast({
           title: "PDF Generated & Sent",
@@ -258,13 +282,13 @@ export function ApplicationForm() {
           variant: "destructive",
         });
       }
-      
-      // Download the PDF
+
+      // Trigger browser download
       const link = document.createElement('a');
       link.href = pdfData;
-      link.download = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = filename;
       link.click();
-      
+
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
@@ -479,6 +503,7 @@ export function ApplicationForm() {
         applicantOtherIncomeSource: formData.applicant?.otherIncomeSource || null,
         applicantBankName: formData.applicant?.bankRecords?.[0]?.bankName || null,
         applicantAccountType: formData.applicant?.bankRecords?.[0]?.accountType || null,
+        applicantBankRecords: formData.applicant?.bankRecords || [],
         
         // Co-Applicant
         hasCoApplicant: hasCoApplicant,
@@ -503,6 +528,7 @@ export function ApplicationForm() {
         coApplicantOtherIncome: formData.coApplicant?.otherIncome ? parseFloat(formData.coApplicant.otherIncome) : null,
         coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
         coApplicantAccountType: formData.coApplicant?.bankRecords?.[0]?.accountType || null,
+        coApplicantBankRecords: formData.coApplicant?.bankRecords || [],
         
         // Guarantor - only include if hasGuarantor is true
         hasGuarantor: hasGuarantor,
@@ -532,6 +558,7 @@ export function ApplicationForm() {
         transformedData.guarantorOtherIncome = formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null;
         transformedData.guarantorBankName = formData.guarantor?.bankRecords?.[0]?.bankName || null;
         transformedData.guarantorAccountType = formData.guarantor?.bankRecords?.[0]?.accountType || null;
+        transformedData.guarantorBankRecords = formData.guarantor?.bankRecords || [];
         transformedData.guarantorSignature = signatures.guarantor || null;
       } else {
         console.log('Skipping guarantor fields - hasGuarantor is false');
@@ -540,6 +567,9 @@ export function ApplicationForm() {
       // Add signatures for applicant and co-applicant
       transformedData.applicantSignature = signatures.applicant || null;
       transformedData.coApplicantSignature = signatures.coApplicant || null;
+      
+      // Other Occupants - send as a list
+      transformedData.otherOccupants = formData.occupants || [];
       
       // Legal Questions
       transformedData.hasBankruptcy = data.hasBankruptcy;
@@ -638,6 +668,14 @@ export function ApplicationForm() {
           }))
         };
 
+        console.log('=== WEBHOOK PAYLOAD DEBUG ===');
+        console.log('Other Occupants:', transformedData.otherOccupants);
+        console.log('Bank Records - Applicant:', transformedData.applicantBankRecords);
+        console.log('Bank Records - Co-Applicant:', transformedData.coApplicantBankRecords);
+        console.log('Bank Records - Guarantor:', transformedData.guarantorBankRecords);
+        console.log('Uploaded Documents Count:', uploadedDocuments.length);
+        console.log('=== END WEBHOOK PAYLOAD DEBUG ===');
+
         console.log('Form submission webhook payload:', JSON.stringify(webhookPayload, null, 2));
         console.log('Uploaded documents array:', JSON.stringify(uploadedDocuments, null, 2));
         const webhookResult = await WebhookService.sendFormDataToWebhook(
@@ -718,6 +756,8 @@ export function ApplicationForm() {
       updateFormData('guarantor', 'lengthAtAddress', applicantAddress.lengthAtAddress);
     }
   };
+
+
 
 
 
@@ -1256,7 +1296,7 @@ export function ApplicationForm() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Users className="w-5 h-5 mr-2" />
-                  Additional People
+                  Co-Applicant
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1274,19 +1314,7 @@ export function ApplicationForm() {
                   </Label>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                  <Checkbox 
-                    id="hasGuarantor"
-                    checked={hasGuarantor}
-                    onCheckedChange={(checked) => {
-                      setHasGuarantor(checked as boolean);
-                      form.setValue('hasGuarantor', checked as boolean);
-                    }}
-                  />
-                  <Label htmlFor="hasGuarantor" className="text-base font-medium">
-                    Add Guarantor
-                  </Label>
-                </div>
+
               </CardContent>
             </Card>
 
@@ -1451,12 +1479,129 @@ export function ApplicationForm() {
               </Card>
             )}
 
-            {hasGuarantor && (
+
+
+            {stepIdx === 5 && (
+              <Card className="form-section border-l-4 border-l-blue-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-700 dark:text-blue-400">
+                    <Users className="w-5 h-5 mr-2" />
+                    Other Occupants (Not Applicants)
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">List any other people who will be living in the apartment</p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {formData.occupants && formData.occupants.length > 0 && formData.occupants.map((occ: any, idx: number) => (
+                    <div key={idx} className="border rounded p-4 mb-2 bg-gray-50">
+                      <div className="font-semibold mb-2">Occupant {idx + 1}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label>Name</Label>
+                          <Input
+                            value={occ.name || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].name = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Full name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Relationship</Label>
+                          <Input
+                            value={occ.relationship || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].relationship = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Relationship"
+                          />
+                        </div>
+                        <div>
+                          <Label>Date of Birth</Label>
+                          <DatePicker
+                            value={occ.dob || undefined}
+                            onChange={date => {
+                              const updated = [...formData.occupants];
+                              updated[idx].dob = date;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="dd-mm-yyyy"
+                          />
+                        </div>
+                        <div>
+                          <Label>Social Security #</Label>
+                          <Input
+                            value={occ.ssn || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].ssn = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="XXX-XX-XXXX"
+                          />
+                        </div>
+                        <div>
+                          <Label>Age</Label>
+                          <Input
+                            type="number"
+                            value={occ.age || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].age = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="Age"
+                          />
+                        </div>
+                        <div>
+                          <Label>Sex</Label>
+                          <Select
+                            onValueChange={value => {
+                              const updated = [...formData.occupants];
+                              updated[idx].sex = value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            value={occ.sex || ''}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Button type="button" variant="destructive" onClick={() => {
+                          const updated = formData.occupants.filter((_: any, i: number) => i !== idx);
+                          setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                        }}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" onClick={() => {
+                    setFormData((prev: any) => ({ ...prev, occupants: [...(prev.occupants || []), { name: '', relationship: '', dob: undefined, ssn: '', age: '', sex: '' }] }));
+                  }}>Add Another Occupant</Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+
+
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            {/* Guarantor Information Section */}
+            {hasGuarantor ? (
               <Card className="form-section border-l-4 border-l-purple-500">
-                {/* Debug info */}
-                <div className="bg-yellow-100 p-2 text-xs text-yellow-800 mb-2">
-                  Debug: hasGuarantor = {String(hasGuarantor)}, referenceId = {referenceId}, applicationId = {applicationId}
-                </div>
                 <CardHeader>
                   <CardTitle className="flex items-center text-purple-700 dark:text-purple-400">
                     <UserCheck className="w-5 h-5 mr-2" />
@@ -1579,7 +1724,44 @@ export function ApplicationForm() {
                     formData={formData}
                     updateFormData={updateFormData}
                   />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="form-section border-l-4 border-l-gray-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-gray-600">
+                    <UserCheck className="w-5 h-5 mr-2" />
+                    Guarantor Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No guarantor has been added to this application.</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setHasGuarantor(true);
+                        form.setValue('hasGuarantor', true);
+                      }}
+                    >
+                      Add Guarantor
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
+            {/* Guarantor Documents Section */}
+            {hasGuarantor && (
+              <Card className="form-section border-l-4 border-l-purple-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-purple-700 dark:text-purple-400">
+                    <Shield className="w-5 h-5 mr-2" />
+                    Guarantor Documents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <DocumentSection 
                     title="Guarantor Documents"
                     person="guarantor"
@@ -1592,127 +1774,20 @@ export function ApplicationForm() {
                   {/* Debug info for Guarantor Documents */}
                   <div className="bg-blue-100 p-2 text-xs text-blue-800 mt-2">
                     Debug: Guarantor DocumentSection rendered with referenceId = {referenceId}, applicationId = {applicationId}
+                    <br />
+                    Has Guarantor: {hasGuarantor ? 'Yes' : 'No'}
+                    <br />
+                    Encrypted Documents Count: {encryptedDocuments?.guarantor ? Object.keys(encryptedDocuments.guarantor).length : 0}
+                    <br />
+                    Documents Count: {documents?.guarantor ? Object.keys(documents.guarantor).length : 0}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {stepIdx === 5 && (
-              <Card className="form-section border-l-4 border-l-blue-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-blue-700 dark:text-blue-400">
-                    <Users className="w-5 h-5 mr-2" />
-                    Other Occupants (Not Applicants)
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-2">List any other people who will be living in the apartment</p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {formData.occupants && formData.occupants.length > 0 && formData.occupants.map((occ: any, idx: number) => (
-                    <div key={idx} className="border rounded p-4 mb-2 bg-gray-50">
-                      <div className="font-semibold mb-2">Occupant {idx + 1}</div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <Label>Name</Label>
-                          <Input
-                            value={occ.name || ''}
-                            onChange={e => {
-                              const updated = [...formData.occupants];
-                              updated[idx].name = e.target.value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="Full name"
-                          />
-                        </div>
-                        <div>
-                          <Label>Relationship</Label>
-                          <Input
-                            value={occ.relationship || ''}
-                            onChange={e => {
-                              const updated = [...formData.occupants];
-                              updated[idx].relationship = e.target.value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="Relationship"
-                          />
-                        </div>
-                        <div>
-                          <Label>Date of Birth</Label>
-                          <DatePicker
-                            value={occ.dob || undefined}
-                            onChange={date => {
-                              const updated = [...formData.occupants];
-                              updated[idx].dob = date;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="dd-mm-yyyy"
-                          />
-                        </div>
-                        <div>
-                          <Label>Social Security #</Label>
-                          <Input
-                            value={occ.ssn || ''}
-                            onChange={e => {
-                              const updated = [...formData.occupants];
-                              updated[idx].ssn = e.target.value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="XXX-XX-XXXX"
-                          />
-                        </div>
-                        <div>
-                          <Label>Age</Label>
-                          <Input
-                            type="number"
-                            value={occ.age || ''}
-                            onChange={e => {
-                              const updated = [...formData.occupants];
-                              updated[idx].age = e.target.value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="Age"
-                          />
-                        </div>
-                        <div>
-                          <Label>Sex</Label>
-                          <Select
-                            onValueChange={value => {
-                              const updated = [...formData.occupants];
-                              updated[idx].sex = value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            value={occ.sex || ''}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <Button type="button" variant="destructive" onClick={() => {
-                          const updated = formData.occupants.filter((_: any, i: number) => i !== idx);
-                          setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                        }}>Remove</Button>
-                      </div>
-                    </div>
-                  ))}
-                  <Button type="button" variant="outline" onClick={() => {
-                    setFormData((prev: any) => ({ ...prev, occupants: [...(prev.occupants || []), { name: '', relationship: '', dob: undefined, ssn: '', age: '', sex: '' }] }));
-                  }}>Add Another Occupant</Button>
                 </CardContent>
               </Card>
             )}
           </div>
         );
 
-
-
-      case 6:
+      case 7:
         return (
           <Card className="form-section">
             <CardHeader>
@@ -1730,7 +1805,7 @@ export function ApplicationForm() {
           </Card>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-8">
             <Card className="form-section">
@@ -1833,6 +1908,8 @@ export function ApplicationForm() {
           </div>
           {/* Step title and progress indicator removed */}
         </div>
+
+
 
         {/* Action Buttons - Removed */}
 

@@ -66,6 +66,14 @@ export function FileUpload({
   };
 
   const handleFiles = useCallback(async (newFiles: FileList | File[]) => {
+    console.log('FileUpload handleFiles called:', {
+      filesCount: newFiles.length,
+      sectionName,
+      enableWebhook,
+      referenceId,
+      enableEncryption
+    });
+    
     setError("");
     setIsEncrypting(true);
     
@@ -110,6 +118,19 @@ export function FileUpload({
 
       // Send files to webhook immediately if enabled
       console.log('FileUpload webhook check:', { enableWebhook, referenceId, sectionName, applicationId });
+      
+      // Special debugging for guarantor documents
+      if (sectionName && sectionName.startsWith('guarantor_')) {
+        console.log('🎯 GUARANTOR FileUpload processing:', {
+          enableWebhook,
+          referenceId,
+          sectionName,
+          applicationId,
+          filesCount: validFiles.length,
+          fileNames: validFiles.map(f => f.name)
+        });
+      }
+      
       if (enableWebhook && referenceId && sectionName) {
         for (const file of validFiles) {
           const fileKey = `${file.name}-${file.size}`;
@@ -170,6 +191,13 @@ export function FileUpload({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('FileUpload handleInputChange called:', {
+      filesCount: e.target.files?.length,
+      sectionName,
+      enableWebhook,
+      referenceId
+    });
+    
     if (e.target.files && e.target.files.length > 0) {
       handleFiles(e.target.files);
     }
@@ -187,7 +215,18 @@ export function FileUpload({
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        onClick={() => document.getElementById(`file-input-${label}`)?.click()}
+        onClick={() => {
+          console.log('FileUpload area clicked:', {
+            label,
+            sectionName,
+            enableWebhook,
+            referenceId,
+            fileInputId: `file-input-${label}`
+          });
+          const fileInput = document.getElementById(`file-input-${label}`);
+          console.log('File input element found:', !!fileInput);
+          fileInput?.click();
+        }}
       >
         {isEncrypting ? (
           <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
@@ -216,6 +255,14 @@ export function FileUpload({
           onChange={handleInputChange}
           aria-label={label}
           title={label}
+          onClick={(e) => {
+            console.log('File input clicked:', {
+              label,
+              sectionName,
+              enableWebhook,
+              referenceId
+            });
+          }}
         />
       </div>
       

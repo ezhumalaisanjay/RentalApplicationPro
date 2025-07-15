@@ -16,6 +16,18 @@ export function DocumentSection({ title, person, onDocumentChange, onEncryptedDo
   // Debug logging
   console.log('DocumentSection props:', { title, person, referenceId, enableWebhook, applicationId });
   
+  // Special debugging for guarantor
+  if (person === 'guarantor') {
+    console.log('🔍 GUARANTOR DocumentSection rendered:', {
+      title,
+      person,
+      referenceId,
+      enableWebhook,
+      applicationId,
+      hasOnEncryptedDocumentChange: !!onEncryptedDocumentChange
+    });
+  }
+  
   const documentTypes = [
     {
       key: "id",

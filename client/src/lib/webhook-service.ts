@@ -3,6 +3,7 @@ export interface FileUploadWebhookData {
   file_name: string;
   section_name: string;
   file_base64: string;
+  application_id: string;
 }
 
 export interface FormDataWebhookData {
@@ -49,15 +50,24 @@ export class WebhookService {
         reference_id: referenceId,
         file_name: file.name,
         section_name: sectionName,
-        file_base64: base64
+        file_base64: base64,
+        application_id: applicationId || 'unknown'
       };
 
-      // Add application_id if provided
-      if (applicationId) {
-        (webhookData as any).application_id = applicationId;
-      }
-
       console.log(`Sending file ${file.name} to webhook for section ${sectionName}`);
+      console.log('Webhook payload:', JSON.stringify(webhookData, null, 2));
+      
+      // Special logging for Guarantor documents
+      if (sectionName.startsWith('guarantor_')) {
+        console.log('🚀 GUARANTOR DOCUMENT UPLOAD:', {
+          file_name: file.name,
+          section_name: sectionName,
+          reference_id: referenceId,
+          application_id: applicationId,
+          file_size: file.size,
+          mime_type: file.type
+        });
+      }
 
       const response = await fetch(this.FILE_WEBHOOK_URL, {
         method: 'POST',
