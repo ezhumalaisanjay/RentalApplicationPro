@@ -570,12 +570,26 @@ app.post("/api/submit-application", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS (include actual file data)
+        // SECTION 6: DOCUMENTS (include actual base64 file data)
         documents: {
           totalFiles: files ? files.length : 0,
           hasFiles: !!files && files.length > 0,
-          // Include actual file data
-          files: files || [],
+          // Include actual file data with base64 content
+          files: files ? files.map((file, index) => ({
+            index: index,
+            name: file.name || `file_${index}`,
+            type: file.type || 'unknown',
+            size: file.size || 0,
+            // Include the actual base64 data
+            data: file.data || null,
+            // Include metadata
+            hasData: !!file.data,
+            dataType: typeof file.data,
+            isBase64: typeof file.data === 'string' && (file.data.startsWith('data:') || file.data.length > 100),
+            // Additional file info
+            lastModified: file.lastModified || null,
+            uploadDate: new Date().toISOString()
+          })) : [],
           // Include metadata about files
           fileMetadata: files ? files.map((file, index) => ({
             index: index,
@@ -584,7 +598,7 @@ app.post("/api/submit-application", async (req, res) => {
             size: file.size || 0,
             hasData: !!file.data,
             dataType: typeof file.data,
-            isBase64: typeof file.data === 'string' && file.data.startsWith('data:')
+            isBase64: typeof file.data === 'string' && (file.data.startsWith('data:') || file.data.length > 100)
           })) : []
         },
         
@@ -604,14 +618,49 @@ app.post("/api/submit-application", async (req, res) => {
           frontendSignatures: signatures || {}
         },
         
-        // SECTION 8: ENCRYPTED DATA (include actual data when available)
+        // SECTION 8: ENCRYPTED DATA (include actual base64 encrypted data)
         encryptedData: encryptedData ? {
           hasEncryptedData: true,
           documentTypes: Object.keys(encryptedData.documents || {}),
           totalEncryptedFiles: encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0,
-          // Include actual encrypted data
+          // Include actual encrypted data with base64 content
           documents: encryptedData.documents || {},
           allEncryptedFiles: encryptedData.allEncryptedFiles || [],
+          // Include decrypted base64 data for each encrypted file
+          decryptedFiles: encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.map((encryptedFile, index) => {
+            try {
+              // Decrypt the file to get base64 data
+              const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
+              const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
+              const base64Data = bytes.toString(CryptoJS.enc.Base64);
+              
+              return {
+                index: index,
+                originalName: encryptedFile.filename,
+                mimeType: encryptedFile.mimeType,
+                originalSize: encryptedFile.originalSize,
+                // Include the decrypted base64 data
+                base64Data: base64Data,
+                // Include the encrypted data as well
+                encryptedData: encryptedFile.encryptedData,
+                uploadDate: encryptedFile.uploadDate,
+                status: 'decrypted'
+              };
+            } catch (decryptError) {
+              console.error(`Failed to decrypt file ${encryptedFile.filename}:`, decryptError);
+              return {
+                index: index,
+                originalName: encryptedFile.filename,
+                mimeType: encryptedFile.mimeType,
+                originalSize: encryptedFile.originalSize,
+                // Keep encrypted data if decryption fails
+                encryptedData: encryptedFile.encryptedData,
+                uploadDate: encryptedFile.uploadDate,
+                status: 'encrypted_only',
+                error: decryptError.message
+              };
+            }
+          }) : [],
           // Include metadata about each document type
           documentMetadata: Object.keys(encryptedData.documents || {}).map(docType => ({
             type: docType,
@@ -1052,14 +1101,18 @@ app.post("/api/upload-files", async (req, res) => {
         applicationId: applicationId,
         uploadTimestamp: new Date().toISOString(),
         
-        // File information
+        // File information with base64 data
         files: result.map(file => ({
           originalName: file.originalName,
           savedName: file.savedName,
           size: file.size,
           mimeType: file.mimeType,
           uploadDate: file.uploadDate,
-          status: file.status
+          status: file.status,
+          // Include the actual base64 data
+          base64Data: file.data,
+          hasBase64Data: !!file.data,
+          dataLength: file.data ? file.data.length : 0
         })),
         
         // Encrypted data (FormData format)
