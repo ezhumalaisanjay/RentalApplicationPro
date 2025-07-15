@@ -51,6 +51,15 @@ test-*.js
 *.md
 !README.md
 
+# Keep essential files for build
+!client/
+!shared/
+!server/
+!vite.config.ts
+!tailwind.config.ts
+!postcss.config.js
+!tsconfig.json
+
 # Temporary files
 tmp/
 temp/
