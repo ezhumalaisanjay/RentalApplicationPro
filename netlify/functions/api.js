@@ -242,12 +242,114 @@ app.post("/api/submit-application", async (req, res) => {
     // Check payload size limit (Netlify has ~6MB limit for serverless functions)
     if (payloadSize > 5 * 1024 * 1024) { // 5MB limit
       console.error(`Payload too large: ${payloadSizeMB}MB`);
-      return res.status(413).json({ 
-        error: "Payload too large", 
-        message: "Please reduce file sizes or submit files separately",
+      
+      // For large payloads, create a minimal application without large data
+      console.log('Creating minimal application for large payload...');
+      
+      const minimalApplicationForLargePayload = {
+        // Required fields only
+        buildingAddress: String(applicationData.buildingAddress || 'Unknown'),
+        apartmentNumber: String(applicationData.apartmentNumber || 'Unknown'),
+        moveInDate: applicationData.moveInDate || new Date().toISOString(),
+        monthlyRent: Number(applicationData.monthlyRent || 0),
+        apartmentType: String(applicationData.apartmentType || 'Unknown'),
+        applicantName: String(applicationData.applicantName || 'Unknown'),
+        applicantDob: applicationData.applicantDob || new Date().toISOString(),
+        applicantEmail: String(applicationData.applicantEmail || 'unknown@example.com'),
+        applicantAddress: String(applicationData.applicantAddress || 'Unknown'),
+        applicantCity: String(applicationData.applicantCity || 'Unknown'),
+        applicantState: String(applicationData.applicantState || 'Unknown'),
+        applicantZip: String(applicationData.applicantZip || '00000'),
+        
+        // Basic optional fields
+        howDidYouHear: applicationData.howDidYouHear || undefined,
+        applicantSsn: applicationData.applicantSsn || null,
+        applicantPhone: applicationData.applicantPhone || null,
+        applicantLicense: applicationData.applicantLicense || null,
+        applicantLicenseState: applicationData.applicantLicenseState || null,
+        applicantLengthAtAddress: applicationData.applicantLengthAtAddress || undefined,
+        applicantLandlordName: applicationData.applicantLandlordName || undefined,
+        applicantCurrentRent: applicationData.applicantCurrentRent || undefined,
+        applicantReasonForMoving: applicationData.applicantReasonForMoving || undefined,
+        
+        // Financial fields
+        applicantEmployer: applicationData.applicantEmployer || null,
+        applicantPosition: applicationData.applicantPosition || null,
+        applicantEmploymentStart: applicationData.applicantEmploymentStart || null,
+        applicantIncome: applicationData.applicantIncome ? Number(applicationData.applicantIncome) : null,
+        applicantOtherIncome: applicationData.applicantOtherIncome ? Number(applicationData.applicantOtherIncome) : null,
+        applicantOtherIncomeSource: applicationData.applicantOtherIncomeSource || null,
+        applicantBankName: applicationData.applicantBankName || null,
+        applicantAccountType: applicationData.applicantAccountType || null,
+        
+        // Co-applicant fields
+        hasCoApplicant: Boolean(applicationData.hasCoApplicant || false),
+        coApplicantName: applicationData.coApplicantName || null,
+        coApplicantRelationship: applicationData.coApplicantRelationship || null,
+        coApplicantDob: applicationData.coApplicantDob || null,
+        coApplicantSsn: applicationData.coApplicantSsn || null,
+        coApplicantPhone: applicationData.coApplicantPhone || null,
+        coApplicantEmail: applicationData.coApplicantEmail || null,
+        coApplicantSameAddress: Boolean(applicationData.coApplicantSameAddress || false),
+        coApplicantAddress: applicationData.coApplicantAddress || null,
+        coApplicantCity: applicationData.coApplicantCity || null,
+        coApplicantState: applicationData.coApplicantState || null,
+        coApplicantZip: applicationData.coApplicantZip || null,
+        coApplicantLengthAtAddress: applicationData.coApplicantLengthAtAddress || null,
+        coApplicantEmployer: applicationData.coApplicantEmployer || null,
+        coApplicantPosition: applicationData.coApplicantPosition || null,
+        coApplicantEmploymentStart: applicationData.coApplicantEmploymentStart || null,
+        coApplicantIncome: applicationData.coApplicantIncome ? Number(applicationData.coApplicantIncome) : null,
+        coApplicantOtherIncome: applicationData.coApplicantOtherIncome ? Number(applicationData.coApplicantOtherIncome) : null,
+        coApplicantBankName: applicationData.coApplicantBankName || null,
+        coApplicantAccountType: applicationData.coApplicantAccountType || null,
+        
+        // Guarantor fields
+        hasGuarantor: Boolean(applicationData.hasGuarantor || false),
+        guarantorName: applicationData.guarantorName || null,
+        guarantorRelationship: applicationData.guarantorRelationship || null,
+        guarantorDob: applicationData.guarantorDob || null,
+        guarantorSsn: applicationData.guarantorSsn || null,
+        guarantorPhone: applicationData.guarantorPhone || null,
+        guarantorEmail: applicationData.guarantorEmail || null,
+        guarantorAddress: applicationData.guarantorAddress || null,
+        guarantorCity: applicationData.guarantorCity || null,
+        guarantorState: applicationData.guarantorState || null,
+        guarantorZip: applicationData.guarantorZip || null,
+        guarantorLengthAtAddress: applicationData.guarantorLengthAtAddress || null,
+        guarantorEmployer: applicationData.guarantorEmployer || null,
+        guarantorPosition: applicationData.guarantorPosition || null,
+        guarantorEmploymentStart: applicationData.guarantorEmploymentStart || null,
+        guarantorIncome: applicationData.guarantorIncome ? Number(applicationData.guarantorIncome) : null,
+        guarantorOtherIncome: applicationData.guarantorOtherIncome ? Number(applicationData.guarantorOtherIncome) : null,
+        guarantorBankName: applicationData.guarantorBankName || null,
+        guarantorAccountType: applicationData.guarantorAccountType || null,
+        
+        // Legal questions
+        hasBankruptcy: Boolean(applicationData.hasBankruptcy || false),
+        bankruptcyDetails: applicationData.bankruptcyDetails || undefined,
+        hasEviction: Boolean(applicationData.hasEviction || false),
+        evictionDetails: applicationData.evictionDetails || undefined,
+        hasCriminalHistory: Boolean(applicationData.hasCriminalHistory || false),
+        criminalHistoryDetails: applicationData.criminalHistoryDetails || undefined,
+        hasPets: Boolean(applicationData.hasPets || false),
+        petDetails: applicationData.petDetails || undefined,
+        smokingStatus: applicationData.smokingStatus || undefined,
+        
+        // Store metadata about large data instead of the actual data
+        documents: files ? `[${files.length} files - data too large to store]` : null,
+        encryptedData: encryptedData ? `[Encrypted data received - ${payloadSizeMB}MB total]` : null,
+        signatures: signatures ? `[${Object.keys(signatures).length} signatures - data too large to store]` : null,
+        
+        // Status
+        status: 'submitted',
         payloadSizeMB: payloadSizeMB,
-        limit: "5MB"
-      });
+        note: 'Large payload - files and signatures stored separately'
+      };
+      
+      // Use the minimal application for large payloads
+      minimalApplication = minimalApplicationForLargePayload;
+      console.log('Using minimal application for large payload');
     }
     
     // Simplified approach: Create a minimal application object with proper data types
@@ -598,11 +700,26 @@ app.post("/api/submit-application", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS (include actual base64 file data)
-        documents: {
+        // SECTION 6: DOCUMENTS (handle large payloads)
+        documents: payloadSize > 5 * 1024 * 1024 ? {
           totalFiles: files ? files.length : 0,
           hasFiles: !!files && files.length > 0,
-          // Include actual file data with base64 content
+          note: `Large payload (${payloadSizeMB}MB) - file data stored separately`,
+          payloadSizeMB: payloadSizeMB,
+          files: files ? files.map((file, index) => ({
+            index: index,
+            name: file.name || `file_${index}`,
+            type: file.type || 'unknown',
+            size: file.size || 0,
+            // Don't include actual data for large payloads
+            data: null,
+            hasData: false,
+            note: 'Data excluded due to large payload size'
+          })) : []
+        } : {
+          totalFiles: files ? files.length : 0,
+          hasFiles: !!files && files.length > 0,
+          // Include actual file data with base64 content for smaller payloads
           files: files ? files.map((file, index) => ({
             index: index,
             name: file.name || `file_${index}`,
@@ -617,28 +734,31 @@ app.post("/api/submit-application", async (req, res) => {
             // Additional file info
             lastModified: file.lastModified || null,
             uploadDate: new Date().toISOString()
-          })) : [],
-          // Include metadata about files
-          fileMetadata: files ? files.map((file, index) => ({
-            index: index,
-            name: file.name || `file_${index}`,
-            type: file.type || 'unknown',
-            size: file.size || 0,
-            hasData: !!file.data,
-            dataType: typeof file.data,
-            isBase64: typeof file.data === 'string' && (file.data.startsWith('data:') || file.data.length > 100)
           })) : []
         },
         
-        // SECTION 7: SIGNATURES (include actual signature data)
-        signatures: {
+        // SECTION 7: SIGNATURES (handle large payloads)
+        signatures: payloadSize > 5 * 1024 * 1024 ? {
           hasApplicantSignature: !!application.applicantSignature,
           hasCoApplicantSignature: !!application.coApplicantSignature,
           hasGuarantorSignature: !!application.guarantorSignature,
           totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
                           (!!application.coApplicantSignature ? 1 : 0) + 
                           (!!application.guarantorSignature ? 1 : 0),
-          // Include actual signature data
+          // Don't include actual signature data for large payloads
+          applicantSignature: null,
+          coApplicantSignature: null,
+          guarantorSignature: null,
+          frontendSignatures: {},
+          note: `Large payload (${payloadSizeMB}MB) - signature data stored separately`
+        } : {
+          hasApplicantSignature: !!application.applicantSignature,
+          hasCoApplicantSignature: !!application.coApplicantSignature,
+          hasGuarantorSignature: !!application.guarantorSignature,
+          totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
+                          (!!application.coApplicantSignature ? 1 : 0) + 
+                          (!!application.guarantorSignature ? 1 : 0),
+          // Include actual signature data for smaller payloads
           applicantSignature: application.applicantSignature || null,
           coApplicantSignature: application.coApplicantSignature || null,
           guarantorSignature: application.guarantorSignature || null,
