@@ -1150,7 +1150,7 @@ app.post("/api/process-application/:id", async (req, res) => {
   }
 });
 
-// Direct webhook submission endpoint (bypasses database)
+// Robust direct webhook submission endpoint (bypasses database)
 app.post("/api/submit-webhook-only", async (req, res) => {
   try {
     console.log('=== DIRECT WEBHOOK SUBMISSION ===');
@@ -1162,11 +1162,21 @@ app.post("/api/submit-webhook-only", async (req, res) => {
     console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
     
     // Check if request body exists
-    if (!req.body) {
-      console.error('No request body received');
-      return res.status(400).json({ 
+    if (!req.body || Object.keys(req.body).length === 0) {
+      const contentLength = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
+      console.error('No request body received or body is empty');
+      if (contentLength > 5 * 1024 * 1024) {
+        // Netlify dropped the body due to size
+        return res.status(413).json({
+          error: "Payload too large for Netlify serverless function (~6MB limit)",
+          details: "Try uploading fewer or smaller files.",
+          contentLength: contentLength
+        });
+      }
+      return res.status(400).json({
         error: "No request body received",
-        details: "Request body is missing or empty"
+        details: "Request body is missing or empty",
+        contentLength: contentLength
       });
     }
     
@@ -2088,3 +2098,15 @@ app.use((err, req, res, next) => {
 
 // Export the serverless handler
 module.exports.handler = serverless(app);
+
+// Test endpoint for debugging
+app.post("/api/test-webhook-only", async (req, res) => {
+  res.json({
+    message: "Echo from test-webhook-only endpoint",
+    headers: req.headers,
+    bodyType: typeof req.body,
+    body: req.body,
+    bodyKeys: req.body ? Object.keys(req.body) : 'null',
+    contentLength: req.headers['content-length']
+  });
+});
