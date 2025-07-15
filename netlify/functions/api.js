@@ -1162,15 +1162,19 @@ app.post("/api/submit-webhook-only", async (req, res) => {
     console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
     
     // Check if request body exists
+    const contentLength = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
+    console.log('Content-Length header:', contentLength);
+    
     if (!req.body || Object.keys(req.body).length === 0) {
-      const contentLength = req.headers['content-length'] ? parseInt(req.headers['content-length']) : 0;
       console.error('No request body received or body is empty');
       if (contentLength > 5 * 1024 * 1024) {
         // Netlify dropped the body due to size
+        console.error(`Payload too large: ${contentLength} bytes (${(contentLength / (1024 * 1024)).toFixed(2)}MB)`);
         return res.status(413).json({
           error: "Payload too large for Netlify serverless function (~6MB limit)",
           details: "Try uploading fewer or smaller files.",
-          contentLength: contentLength
+          contentLength: contentLength,
+          contentLengthMB: (contentLength / (1024 * 1024)).toFixed(2)
         });
       }
       return res.status(400).json({
@@ -1184,6 +1188,19 @@ app.post("/api/submit-webhook-only", async (req, res) => {
     const payloadSize = JSON.stringify(req.body).length;
     const payloadSizeMB = (payloadSize / (1024 * 1024)).toFixed(2);
     console.log(`Payload size: ${payloadSizeMB}MB`);
+    
+    // Check if payload was truncated by comparing with content-length
+    if (contentLength > 0 && payloadSize < contentLength * 0.5) {
+      console.error(`Payload appears to be truncated: content-length=${contentLength}, actual=${payloadSize}`);
+      return res.status(413).json({
+        error: "Payload appears to be truncated (likely too large for Netlify)",
+        details: "Try uploading fewer or smaller files.",
+        contentLength: contentLength,
+        actualSize: payloadSize,
+        contentLengthMB: (contentLength / (1024 * 1024)).toFixed(2),
+        actualSizeMB: payloadSizeMB
+      });
+    }
     
     // For very large payloads (>15MB), use ultra-simplified approach
     if (payloadSize > 15 * 1024 * 1024) {
