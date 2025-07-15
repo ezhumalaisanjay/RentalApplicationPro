@@ -150,7 +150,9 @@ app.post("/api/applications/:id/submit", async (req, res) => {
 
 // Main application submission endpoint
 app.post("/api/submit-application", async (req, res) => {
-  try {
+  // Global error handler wrapper
+  const handleRequest = async () => {
+    try {
     console.log('=== Starting application submission ===');
     console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     console.log('Request method:', req.method);
@@ -208,6 +210,17 @@ app.post("/api/submit-application", async (req, res) => {
     }
     
     // Simplified approach: Create a minimal application object with proper data types
+    console.log('Creating minimal application object...');
+    console.log('Application data keys:', Object.keys(applicationData));
+    console.log('Sample application data values:', {
+      buildingAddress: applicationData.buildingAddress,
+      apartmentNumber: applicationData.apartmentNumber,
+      moveInDate: applicationData.moveInDate,
+      monthlyRent: applicationData.monthlyRent,
+      applicantName: applicationData.applicantName,
+      applicantEmail: applicationData.applicantEmail
+    });
+    
     const minimalApplication = {
       // Required fields with proper type conversion
       buildingAddress: String(applicationData.buildingAddress || 'Unknown'),
@@ -322,12 +335,20 @@ app.post("/api/submit-application", async (req, res) => {
     try {
       console.log('Validating minimal application data...');
       console.log('Data to validate:', JSON.stringify(minimalApplication, null, 2));
+      console.log('Schema type:', typeof insertRentalApplicationSchema);
+      console.log('Schema parse method exists:', typeof insertRentalApplicationSchema.parse);
+      
       const validatedData = insertRentalApplicationSchema.parse(minimalApplication);
       console.log('Validation successful');
+      console.log('Validated data keys:', Object.keys(validatedData));
     } catch (validationError) {
-      console.error('Validation error:', validationError);
-      console.error('Validation error details:', validationError.errors);
+      console.error('=== VALIDATION ERROR ===');
+      console.error('Validation error type:', typeof validationError);
+      console.error('Validation error constructor:', validationError.constructor.name);
+      console.error('Validation error name:', validationError.name);
       console.error('Validation error message:', validationError.message);
+      console.error('Validation error details:', validationError.errors);
+      console.error('Validation error stack:', validationError.stack);
       
       // Return detailed validation error
       return res.status(400).json({ 
@@ -671,30 +692,49 @@ app.post("/api/submit-application", async (req, res) => {
       });
     }
     
-  } catch (error) {
-    console.error('=== CRITICAL ERROR in submit-application ===');
-    console.error('Error type:', typeof error);
-    console.error('Error constructor:', error.constructor.name);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Error code:', error.code);
-    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    
-    // Handle specific timeout errors
-    if (error.message.includes('timed out') || error.message.includes('timeout')) {
-      res.status(504).json({ 
-        error: "Request timed out",
-        message: "The operation took too long. Please try again with smaller files or fewer files at once.",
-        details: error.message
-      });
-    } else {
-      res.status(500).json({ 
-        error: "Failed to submit application",
-        message: error.message,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      } catch (error) {
+      console.error('=== CRITICAL ERROR in submit-application ===');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error.constructor.name);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      console.error('Error code:', error.code);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      
+      // Handle specific timeout errors
+      if (error.message.includes('timed out') || error.message.includes('timeout')) {
+        res.status(504).json({ 
+          error: "Request timed out",
+          message: "The operation took too long. Please try again with smaller files or fewer files at once.",
+          details: error.message
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to submit application",
+          message: error.message,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      }
     }
+  };
+
+  // Execute the request handler with global error catching
+  try {
+    await handleRequest();
+  } catch (globalError) {
+    console.error('=== GLOBAL ERROR HANDLER ===');
+    console.error('Global error type:', typeof globalError);
+    console.error('Global error constructor:', globalError.constructor.name);
+    console.error('Global error name:', globalError.name);
+    console.error('Global error message:', globalError.message);
+    console.error('Global error stack:', globalError.stack);
+    
+    res.status(500).json({ 
+      error: "Internal server error",
+      message: globalError.message,
+      details: process.env.NODE_ENV === 'development' ? globalError.stack : undefined
+    });
   }
 });
 
