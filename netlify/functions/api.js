@@ -10,6 +10,18 @@ const app = express();
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100mb' }));
 
+// Add debugging middleware for body parsing
+app.use((req, res, next) => {
+  if (req.path === '/api/submit-application') {
+    console.log('=== BODY PARSING DEBUG ===');
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Content-Length:', req.headers['content-length']);
+    console.log('Body type after parsing:', typeof req.body);
+    console.log('Body keys after parsing:', req.body ? Object.keys(req.body) : 'null');
+  }
+  next();
+});
+
 // Note: Timeout handling is now managed via Netlify configuration and AbortController
 // The 30-second timeout in netlify.toml handles serverless function timeouts
 
@@ -150,6 +162,11 @@ app.post("/api/applications/:id/submit", async (req, res) => {
 
 // Main application submission endpoint
 app.post("/api/submit-application", async (req, res) => {
+  console.log('=== SUBMIT-APPLICATION ENDPOINT CALLED ===');
+  console.log('Request URL:', req.url);
+  console.log('Request method:', req.method);
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  
   // Global error handler wrapper
   const handleRequest = async () => {
     try {
@@ -163,6 +180,11 @@ app.post("/api/submit-application", async (req, res) => {
       console.error('No request body received');
       return res.status(400).json({ error: "No request body received" });
     }
+    
+    console.log('Request body exists, type:', typeof req.body);
+    console.log('Request body is null:', req.body === null);
+    console.log('Request body is undefined:', req.body === undefined);
+    console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
     
     console.log('Request body type:', typeof req.body);
     console.log('Request body keys:', Object.keys(req.body));
