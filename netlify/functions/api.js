@@ -2,6 +2,7 @@ const express = require('express');
 const serverless = require('serverless-http');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 // Create Express app
 const app = express();
@@ -9,6 +10,15 @@ const app = express();
 // Increase payload limits for file uploads
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100mb' }));
+
+// Configure multer for FormData parsing
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+    fieldSize: 100 * 1024 * 1024 // 100MB field size limit
+  }
+});
 
 // Add debugging middleware for body parsing
 app.use((req, res, next) => {
@@ -993,7 +1003,7 @@ app.post("/api/upload", async (req, res) => {
 });
 
 // Upload encrypted files endpoint with FormData support and person-specific webhooks
-app.post("/api/upload-files", async (req, res) => {
+app.post("/api/upload-files", upload.any(), async (req, res) => {
   try {
     console.log('=== Starting file upload ===');
     console.log('Request URL:', req.url);
@@ -1002,6 +1012,7 @@ app.post("/api/upload-files", async (req, res) => {
     console.log('Content-Length:', req.headers['content-length']);
     console.log('Request body type:', typeof req.body);
     console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
+    console.log('Files received:', req.files ? req.files.length : 0);
     
     // Handle both JSON and FormData
     let files = [];
@@ -1011,9 +1022,10 @@ app.post("/api/upload-files", async (req, res) => {
     if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
       // Handle FormData
       console.log('Processing FormData upload');
-      console.log('FormData keys:', Object.keys(req.body));
+      console.log('FormData body keys:', Object.keys(req.body));
+      console.log('FormData files:', req.files ? req.files.map(f => f.fieldname) : 'none');
       
-      // Parse FormData (simplified - in production you'd use multer or similar)
+      // Parse FormData using multer
       const formData = req.body;
       personType = formData.personType || 'unknown';
       applicationId = formData.applicationId || Date.now();
@@ -1304,7 +1316,7 @@ app.post("/api/upload-chunk", async (req, res) => {
 });
 
 // Send encrypted data as FormData to webhook
-app.post("/api/send-encrypted-data-webhook", async (req, res) => {
+app.post("/api/send-encrypted-data-webhook", upload.any(), async (req, res) => {
   try {
     console.log('=== Sending encrypted data webhook ===');
     
