@@ -1150,6 +1150,274 @@ app.post("/api/process-application/:id", async (req, res) => {
   }
 });
 
+// Direct webhook submission endpoint (bypasses database)
+app.post("/api/submit-webhook-only", async (req, res) => {
+  try {
+    console.log('=== DIRECT WEBHOOK SUBMISSION ===');
+    console.log('Request body keys:', Object.keys(req.body));
+    
+    const { applicationData, files, signatures, encryptedData } = req.body;
+    
+    if (!applicationData) {
+      console.error('No applicationData provided');
+      return res.status(400).json({ error: "No application data provided" });
+    }
+    
+    // Create application ID
+    const applicationId = Date.now();
+    
+    // Prepare webhook payload with all data
+    const webhookPayload = {
+      // Application ID and metadata
+      applicationId: applicationId,
+      submittedAt: new Date().toISOString(),
+      
+      // SECTION 1: PROPERTY INFORMATION
+      propertyInfo: {
+        buildingAddress: applicationData.buildingAddress || 'Unknown',
+        apartmentNumber: applicationData.apartmentNumber || 'Unknown',
+        moveInDate: applicationData.moveInDate || new Date().toISOString(),
+        monthlyRent: Number(applicationData.monthlyRent || 0),
+        apartmentType: applicationData.apartmentType || 'Unknown',
+        howDidYouHear: applicationData.howDidYouHear || undefined
+      },
+      
+      // SECTION 2: PRIMARY APPLICANT
+      primaryApplicant: {
+        personalInfo: {
+          name: applicationData.applicantName || 'Unknown',
+          dateOfBirth: applicationData.applicantDob || new Date().toISOString(),
+          ssn: applicationData.applicantSsn || null,
+          phone: applicationData.applicantPhone || null,
+          email: applicationData.applicantEmail || 'unknown@example.com',
+          license: applicationData.applicantLicense || null,
+          licenseState: applicationData.applicantLicenseState || null
+        },
+        addressInfo: {
+          address: applicationData.applicantAddress || 'Unknown',
+          city: applicationData.applicantCity || 'Unknown',
+          state: applicationData.applicantState || 'Unknown',
+          zip: applicationData.applicantZip || '00000',
+          lengthAtAddress: applicationData.applicantLengthAtAddress || undefined,
+          landlordName: applicationData.applicantLandlordName || undefined,
+          currentRent: applicationData.applicantCurrentRent || undefined,
+          reasonForMoving: applicationData.applicantReasonForMoving || undefined
+        },
+        financialInfo: {
+          employer: applicationData.applicantEmployer || null,
+          position: applicationData.applicantPosition || null,
+          employmentStart: applicationData.applicantEmploymentStart || null,
+          income: applicationData.applicantIncome ? Number(applicationData.applicantIncome) : null,
+          otherIncome: applicationData.applicantOtherIncome ? Number(applicationData.applicantOtherIncome) : null,
+          otherIncomeSource: applicationData.applicantOtherIncomeSource || null,
+          bankName: applicationData.applicantBankName || null,
+          accountType: applicationData.applicantAccountType || null
+        }
+      },
+      
+      // SECTION 3: CO-APPLICANT (if applicable)
+      coApplicant: applicationData.hasCoApplicant ? {
+        personalInfo: {
+          name: applicationData.coApplicantName || null,
+          relationship: applicationData.coApplicantRelationship || null,
+          dateOfBirth: applicationData.coApplicantDob || null,
+          ssn: applicationData.coApplicantSsn || null,
+          phone: applicationData.coApplicantPhone || null,
+          email: applicationData.coApplicantEmail || null
+        },
+        addressInfo: {
+          sameAddress: Boolean(applicationData.coApplicantSameAddress || false),
+          address: applicationData.coApplicantAddress || null,
+          city: applicationData.coApplicantCity || null,
+          state: applicationData.coApplicantState || null,
+          zip: applicationData.coApplicantZip || null,
+          lengthAtAddress: applicationData.coApplicantLengthAtAddress || null
+        },
+        financialInfo: {
+          employer: applicationData.coApplicantEmployer || null,
+          position: applicationData.coApplicantPosition || null,
+          employmentStart: applicationData.coApplicantEmploymentStart || null,
+          income: applicationData.coApplicantIncome ? Number(applicationData.coApplicantIncome) : null,
+          otherIncome: applicationData.coApplicantOtherIncome ? Number(applicationData.coApplicantOtherIncome) : null,
+          bankName: applicationData.coApplicantBankName || null,
+          accountType: applicationData.coApplicantAccountType || null
+        }
+      } : null,
+      
+      // SECTION 4: GUARANTOR (if applicable)
+      guarantor: applicationData.hasGuarantor ? {
+        personalInfo: {
+          name: applicationData.guarantorName || null,
+          relationship: applicationData.guarantorRelationship || null,
+          dateOfBirth: applicationData.guarantorDob || null,
+          ssn: applicationData.guarantorSsn || null,
+          phone: applicationData.guarantorPhone || null,
+          email: applicationData.guarantorEmail || null
+        },
+        addressInfo: {
+          address: applicationData.guarantorAddress || null,
+          city: applicationData.guarantorCity || null,
+          state: applicationData.guarantorState || null,
+          zip: applicationData.guarantorZip || null,
+          lengthAtAddress: applicationData.guarantorLengthAtAddress || null
+        },
+        financialInfo: {
+          employer: applicationData.guarantorEmployer || null,
+          position: applicationData.guarantorPosition || null,
+          employmentStart: applicationData.guarantorEmploymentStart || null,
+          income: applicationData.guarantorIncome ? Number(applicationData.guarantorIncome) : null,
+          otherIncome: applicationData.guarantorOtherIncome ? Number(applicationData.guarantorOtherIncome) : null,
+          bankName: applicationData.guarantorBankName || null,
+          accountType: applicationData.guarantorAccountType || null
+        }
+      } : null,
+      
+      // SECTION 5: LEGAL QUESTIONS
+      legalQuestions: {
+        bankruptcy: {
+          hasBankruptcy: Boolean(applicationData.hasBankruptcy || false),
+          details: applicationData.bankruptcyDetails || undefined
+        },
+        eviction: {
+          hasEviction: Boolean(applicationData.hasEviction || false),
+          details: applicationData.evictionDetails || undefined
+        },
+        criminalHistory: {
+          hasCriminalHistory: Boolean(applicationData.hasCriminalHistory || false),
+          details: applicationData.criminalHistoryDetails || undefined
+        },
+        pets: {
+          hasPets: Boolean(applicationData.hasPets || false),
+          details: applicationData.petDetails || undefined
+        },
+        smokingStatus: applicationData.smokingStatus || undefined
+      },
+      
+      // SECTION 6: DOCUMENTS
+      documents: {
+        totalFiles: files ? files.length : 0,
+        hasFiles: !!files && files.length > 0,
+        files: files ? files.map((file, index) => ({
+          index: index,
+          name: file.name || `file_${index}`,
+          type: file.type || 'unknown',
+          size: file.size || 0,
+          data: file.data || null,
+          hasData: !!file.data,
+          lastModified: file.lastModified || null,
+          uploadDate: new Date().toISOString()
+        })) : []
+      },
+      
+      // SECTION 7: SIGNATURES
+      signatures: {
+        hasApplicantSignature: !!applicationData.applicantSignature,
+        hasCoApplicantSignature: !!applicationData.coApplicantSignature,
+        hasGuarantorSignature: !!applicationData.guarantorSignature,
+        totalSignatures: (!!applicationData.applicantSignature ? 1 : 0) + 
+                        (!!applicationData.coApplicantSignature ? 1 : 0) + 
+                        (!!applicationData.guarantorSignature ? 1 : 0),
+        applicantSignature: applicationData.applicantSignature || null,
+        coApplicantSignature: applicationData.coApplicantSignature || null,
+        guarantorSignature: applicationData.guarantorSignature || null,
+        frontendSignatures: signatures || {}
+      },
+      
+      // SECTION 8: ENCRYPTED DATA
+      encryptedData: {
+        hasEncryptedData: !!encryptedData,
+        documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
+        totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0,
+        encryptionTimestamp: encryptedData ? encryptedData.encryptionTimestamp : null,
+        encryptionVersion: encryptedData ? encryptedData.encryptionVersion : null
+      },
+      
+      // SECTION 9: SUMMARY
+      summary: {
+        totalFiles: files ? files.length : 0,
+        hasEncryptedData: !!encryptedData,
+        hasSignatures: !!signatures
+      },
+      
+      // SECTION 10: METADATA
+      metadata: {
+        source: 'rental-application-system',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        applicationId: applicationId,
+        webhookType: 'direct-webhook-submission',
+        processingMethod: 'webhook-only'
+      }
+    };
+
+    console.log('Sending direct webhook payload...');
+    console.log('Webhook payload size:', JSON.stringify(webhookPayload).length);
+    
+    // Send webhook with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    try {
+      const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(webhookPayload),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      console.log('Webhook response received:', webhookResponse.status, webhookResponse.statusText);
+
+      if (!webhookResponse.ok) {
+        console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
+        const errorText = await webhookResponse.text();
+        console.error('Webhook error response:', errorText);
+        return res.status(500).json({ 
+          error: "Webhook failed",
+          message: "Failed to send webhook",
+          details: errorText
+        });
+      } else {
+        console.log('Webhook sent successfully');
+        const responseText = await webhookResponse.text();
+        console.log('Webhook response:', responseText);
+        
+        res.status(201).json({ 
+          message: "Application submitted successfully (webhook only)", 
+          applicationId: applicationId,
+          webhookSent: true,
+          webhookResponse: responseText,
+          note: "Application sent directly to webhook - no database storage"
+        });
+      }
+    } catch (webhookError) {
+      console.error('Webhook error:', webhookError);
+      clearTimeout(timeoutId);
+      
+      if (webhookError.name === 'AbortError') {
+        res.status(504).json({ 
+          error: "Webhook request timed out",
+          message: "The webhook request took too long to complete."
+        });
+      } else {
+        res.status(500).json({ 
+          error: "Failed to send webhook",
+          details: webhookError.message 
+        });
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error in direct webhook submission:', error);
+    res.status(500).json({ 
+      error: "Failed to process webhook submission",
+      message: error.message 
+    });
+  }
+});
+
 // New loan application webhook endpoint
 app.post("/api/submit-loan-application", async (req, res) => {
   try {

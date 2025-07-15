@@ -562,7 +562,7 @@ export function ApplicationForm() {
       
       // Use the redirect rule from netlify.toml which maps /api/* to /.netlify/functions/api/:splat
       const apiEndpoint = '/api';
-      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
+      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-webhook-only');
       
       const requestBody = {
         applicationData: transformedData,
@@ -581,7 +581,7 @@ export function ApplicationForm() {
       const submissionController = new AbortController();
       const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
       
-      const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
+      const submissionResponse = await fetch(apiEndpoint + '/submit-webhook-only', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
