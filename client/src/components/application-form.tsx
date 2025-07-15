@@ -238,15 +238,15 @@ export function ApplicationForm() {
 
   const generatePDF = async () => {
     try {
-      const pdfGenerator = new PDFGenerator();
+    const pdfGenerator = new PDFGenerator();
 
-      const pdfData = pdfGenerator.generatePDF({
-        application: formData.application,
-        applicant: formData.applicant,
-        coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
-        guarantor: hasGuarantor ? formData.guarantor : undefined,
-        signatures,
-      });
+    const pdfData = pdfGenerator.generatePDF({
+      application: formData.application,
+      applicant: formData.applicant,
+      coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
+      guarantor: hasGuarantor ? formData.guarantor : undefined,
+      signatures,
+    });
 
       // Extract base64 from data URL
       const base64 = pdfData.split(',')[1];
@@ -284,18 +284,18 @@ export function ApplicationForm() {
       }
 
       // Trigger browser download
-      const link = document.createElement('a');
-      link.href = pdfData;
+    const link = document.createElement('a');
+    link.href = pdfData;
       link.download = filename;
-      link.click();
+    link.click();
 
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast({
+    toast({
         title: "PDF Generation Failed",
         description: "There was an error generating your PDF.",
         variant: "destructive",
-      });
+    });
     }
   };
 
@@ -396,342 +396,315 @@ export function ApplicationForm() {
   };
 
   const onSubmit = async (data: ApplicationFormData) => {
+    console.log("=== FORM SUBMISSION DEBUG ===");
+    console.log("Form data received:", data);
+    console.log("Form data applicantDob:", data.applicantDob);
+    console.log("Form data moveInDate:", data.moveInDate);
+    console.log("Form data applicantName:", data.applicantName);
+    console.log("Form validation errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
+    console.log("Form is dirty:", form.formState.isDirty);
+    console.log("=== END DEBUG ===");
+    
+    // Ensure all required fields are present and valid
+    const requiredFields: (keyof ApplicationFormData)[] = [
+      'buildingAddress',
+      'apartmentNumber',
+      'moveInDate',
+      'monthlyRent',
+      'apartmentType',
+      'applicantName',
+      'applicantDob',
+      'applicantEmail',
+      'applicantAddress',
+      'applicantCity',
+      'applicantState',
+      'applicantZip',
+    ];
+    let missingFields = [];
+    for (const field of requiredFields) {
+      if (
+        data[field] === undefined ||
+        data[field] === null ||
+        (typeof data[field] === 'string' && data[field].trim() === '') ||
+        (field === 'monthlyRent' && (!data[field] || isNaN(data[field] as any) || (data[field] as any) <= 0)) ||
+        (field === 'applicantDob' && !data[field]) ||
+        (field === 'moveInDate' && !data[field])
+      ) {
+        missingFields.push(field);
+      }
+    }
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.applicantEmail || '')) {
+      missingFields.push('applicantEmail');
+    }
+    if (missingFields.length > 0) {
+      toast({
+        title: 'Missing or invalid fields',
+        description: `Please fill out: ${missingFields.join(', ')}`,
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
-      console.log('=== FORM SUBMISSION STARTED ===');
-      console.log('Form data:', data);
-      console.log('FormData state:', formData);
-      console.log('Signatures:', signatures);
-      console.log('Uploaded documents:', uploadedDocuments);
+      console.log("Submitting application:", { ...data, formData, signatures });
+      console.log("Uploaded files metadata:", uploadedFilesMetadata);
 
-      // Configure API endpoint based on environment
-      const apiEndpoint = import.meta.env.VITE_API_URL || 
-                         (import.meta.env.DEV ? 'http://localhost:5001/api' : '/api');
-      
-      console.log('Making request to:', apiEndpoint + '/submit-application');
-      
-      // Ensure all required fields are present and valid
-      const requiredFields: (keyof ApplicationFormData)[] = [
-        'buildingAddress',
-        'apartmentNumber',
-        'moveInDate',
-        'monthlyRent',
-        'apartmentType',
-        'applicantName',
-        'applicantDob',
-        'applicantEmail',
-        'applicantAddress',
-        'applicantCity',
-        'applicantState',
-        'applicantZip',
-      ];
-      let missingFields = [];
-      for (const field of requiredFields) {
-        if (
-          data[field] === undefined ||
-          data[field] === null ||
-          (typeof data[field] === 'string' && data[field].trim() === '') ||
-          (field === 'monthlyRent' && (!data[field] || isNaN(data[field] as any) || (data[field] as any) <= 0)) ||
-          (field === 'applicantDob' && !data[field]) ||
-          (field === 'moveInDate' && !data[field])
-        ) {
-          missingFields.push(field);
-        }
-      }
-      // Email format check
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.applicantEmail || '')) {
-        missingFields.push('applicantEmail');
-      }
-      if (missingFields.length > 0) {
-        toast({
-          title: 'Missing or invalid fields',
-          description: `Please fill out: ${missingFields.join(', ')}`,
-          variant: 'destructive',
-        });
-        return;
-      }
-      try {
-        console.log("Submitting application:", { ...data, formData, signatures });
-        console.log("Uploaded files metadata:", uploadedFilesMetadata);
-
-        // Helper function to safely convert date to ISO string
-        const safeDateToISO = (dateValue: any): string | null => {
-          if (!dateValue) return null;
-          try {
-            const date = new Date(dateValue);
-            if (isNaN(date.getTime())) {
-              console.warn('Invalid date value:', dateValue);
-              return null;
-            }
-            return date.toISOString();
-          } catch (error) {
-            console.warn('Error converting date to ISO:', dateValue, error);
+      // Helper function to safely convert date to ISO string
+      const safeDateToISO = (dateValue: any): string | null => {
+        if (!dateValue) return null;
+        try {
+          const date = new Date(dateValue);
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateValue);
             return null;
           }
-        };
+          return date.toISOString();
+        } catch (error) {
+          console.warn('Error converting date to ISO:', dateValue, error);
+          return null;
+        }
+      };
 
-        // Transform form data to match database schema
-        const transformedData: any = {
-          // Application Info
-          buildingAddress: data.buildingAddress,
-          apartmentNumber: data.apartmentNumber,
-          moveInDate: safeDateToISO(data.moveInDate || formData.application?.moveInDate),
-          monthlyRent: data.monthlyRent,
-          apartmentType: data.apartmentType,
-          howDidYouHear: data.howDidYouHear,
-          
-          // Primary Applicant
-          applicantName: data.applicantName,
-          applicantDob: safeDateToISO(data.applicantDob || formData.applicant?.dob),
-          applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
-          applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
-          applicantEmail: data.applicantEmail,
-          applicantLicense: data.applicantLicense,
-          applicantLicenseState: data.applicantLicenseState,
-          applicantAddress: data.applicantAddress,
-          applicantCity: data.applicantCity,
-          applicantState: data.applicantState,
-          applicantZip: data.applicantZip,
-          applicantLengthAtAddress: data.applicantLengthAtAddress,
-          applicantLandlordName: data.applicantLandlordName,
-          applicantCurrentRent: data.applicantCurrentRent,
-          applicantReasonForMoving: data.applicantReasonForMoving,
-          
-          // Primary Applicant Financial (from formData)
-          applicantEmployer: formData.applicant?.employer || null,
-          applicantPosition: formData.applicant?.position || null,
-          applicantEmploymentStart: safeDateToISO(formData.applicant?.employmentStart),
-          applicantIncome: formData.applicant?.income ? parseFloat(formData.applicant.income) : null,
-          applicantOtherIncome: formData.applicant?.otherIncome ? parseFloat(formData.applicant.otherIncome) : null,
-          applicantOtherIncomeSource: formData.applicant?.otherIncomeSource || null,
-          applicantBankName: formData.applicant?.bankRecords?.[0]?.bankName || null,
-          applicantAccountType: formData.applicant?.bankRecords?.[0]?.accountType || null,
-          applicantBankRecords: formData.applicant?.bankRecords || [],
-          
-          // Co-Applicant
-          hasCoApplicant: hasCoApplicant,
-          coApplicantName: formData.coApplicant?.name || null,
-          coApplicantRelationship: formData.coApplicant?.relationship || null,
-          coApplicantDob: safeDateToISO(formData.coApplicant?.dob),
-          coApplicantSsn: formData.coApplicant?.ssn || null,
-          coApplicantPhone: formData.coApplicant?.phone || null,
-          coApplicantEmail: formData.coApplicant?.email || null,
-          coApplicantSameAddress: sameAddressCoApplicant,
-          coApplicantAddress: formData.coApplicant?.address || null,
-          coApplicantCity: formData.coApplicant?.city || null,
-          coApplicantState: formData.coApplicant?.state || null,
-          coApplicantZip: formData.coApplicant?.zip || null,
-          coApplicantLengthAtAddress: formData.coApplicant?.lengthAtAddress || null,
-          
-          // Co-Applicant Financial
-          coApplicantEmployer: formData.coApplicant?.employer || null,
-          coApplicantPosition: formData.coApplicant?.position || null,
-          coApplicantEmploymentStart: safeDateToISO(formData.coApplicant?.employmentStart),
-          coApplicantIncome: formData.coApplicant?.income ? parseFloat(formData.coApplicant.income) : null,
-          coApplicantOtherIncome: formData.coApplicant?.otherIncome ? parseFloat(formData.coApplicant.otherIncome) : null,
-          coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
-          coApplicantAccountType: formData.coApplicant?.bankRecords?.[0]?.accountType || null,
-          coApplicantBankRecords: formData.coApplicant?.bankRecords || [],
-          
-          // Guarantor - only include if hasGuarantor is true
-          hasGuarantor: hasGuarantor,
-        };
+      // Transform form data to match database schema
+      const transformedData: any = {
+        // Application Info
+        buildingAddress: data.buildingAddress,
+        apartmentNumber: data.apartmentNumber,
+        moveInDate: safeDateToISO(data.moveInDate || formData.application?.moveInDate),
+        monthlyRent: data.monthlyRent,
+        apartmentType: data.apartmentType,
+        howDidYouHear: data.howDidYouHear,
+        
+        // Primary Applicant
+        applicantName: data.applicantName,
+        applicantDob: safeDateToISO(data.applicantDob || formData.applicant?.dob),
+        applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
+        applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
+        applicantEmail: data.applicantEmail,
+        applicantLicense: data.applicantLicense,
+        applicantLicenseState: data.applicantLicenseState,
+        applicantAddress: data.applicantAddress,
+        applicantCity: data.applicantCity,
+        applicantState: data.applicantState,
+        applicantZip: data.applicantZip,
+        applicantLengthAtAddress: data.applicantLengthAtAddress,
+        applicantLandlordName: data.applicantLandlordName,
+        applicantCurrentRent: data.applicantCurrentRent,
+        applicantReasonForMoving: data.applicantReasonForMoving,
+        
+        // Primary Applicant Financial (from formData)
+        applicantEmployer: formData.applicant?.employer || null,
+        applicantPosition: formData.applicant?.position || null,
+        applicantEmploymentStart: safeDateToISO(formData.applicant?.employmentStart),
+        applicantIncome: formData.applicant?.income ? parseFloat(formData.applicant.income) : null,
+        applicantOtherIncome: formData.applicant?.otherIncome ? parseFloat(formData.applicant.otherIncome) : null,
+        applicantOtherIncomeSource: formData.applicant?.otherIncomeSource || null,
+        applicantBankName: formData.applicant?.bankRecords?.[0]?.bankName || null,
+        applicantAccountType: formData.applicant?.bankRecords?.[0]?.accountType || null,
+        applicantBankRecords: formData.applicant?.bankRecords || [],
+        
+        // Co-Applicant
+        hasCoApplicant: hasCoApplicant,
+        coApplicantName: formData.coApplicant?.name || null,
+        coApplicantRelationship: formData.coApplicant?.relationship || null,
+        coApplicantDob: safeDateToISO(formData.coApplicant?.dob),
+        coApplicantSsn: formData.coApplicant?.ssn || null,
+        coApplicantPhone: formData.coApplicant?.phone || null,
+        coApplicantEmail: formData.coApplicant?.email || null,
+        coApplicantSameAddress: sameAddressCoApplicant,
+        coApplicantAddress: formData.coApplicant?.address || null,
+        coApplicantCity: formData.coApplicant?.city || null,
+        coApplicantState: formData.coApplicant?.state || null,
+        coApplicantZip: formData.coApplicant?.zip || null,
+        coApplicantLengthAtAddress: formData.coApplicant?.lengthAtAddress || null,
+        
+        // Co-Applicant Financial
+        coApplicantEmployer: formData.coApplicant?.employer || null,
+        coApplicantPosition: formData.coApplicant?.position || null,
+        coApplicantEmploymentStart: safeDateToISO(formData.coApplicant?.employmentStart),
+        coApplicantIncome: formData.coApplicant?.income ? parseFloat(formData.coApplicant.income) : null,
+        coApplicantOtherIncome: formData.coApplicant?.otherIncome ? parseFloat(formData.coApplicant.otherIncome) : null,
+        coApplicantBankName: formData.coApplicant?.bankRecords?.[0]?.bankName || null,
+        coApplicantAccountType: formData.coApplicant?.bankRecords?.[0]?.accountType || null,
+        coApplicantBankRecords: formData.coApplicant?.bankRecords || [],
+        
+        // Guarantor - only include if hasGuarantor is true
+        hasGuarantor: hasGuarantor,
+      };
 
-        // Only add guarantor fields if hasGuarantor is true
-        console.log('hasGuarantor value:', hasGuarantor);
-        if (hasGuarantor) {
-          console.log('Adding guarantor fields...');
-          transformedData.guarantorName = formData.guarantor?.name || null;
-          transformedData.guarantorRelationship = formData.guarantor?.relationship || null;
-          transformedData.guarantorDob = safeDateToISO(formData.guarantor?.dob);
-          transformedData.guarantorSsn = formData.guarantor?.ssn || null;
-          transformedData.guarantorPhone = formData.guarantor?.phone || null;
-          transformedData.guarantorEmail = formData.guarantor?.email || null;
-          transformedData.guarantorAddress = formData.guarantor?.address || null;
-          transformedData.guarantorCity = formData.guarantor?.city || null;
-          transformedData.guarantorState = formData.guarantor?.state || null;
-          transformedData.guarantorZip = formData.guarantor?.zip || null;
-          transformedData.guarantorLengthAtAddress = formData.guarantor?.lengthAtAddress || null;
-          
-          // Guarantor Financial
-          transformedData.guarantorEmployer = formData.guarantor?.employer || null;
-          transformedData.guarantorPosition = formData.guarantor?.position || null;
-          transformedData.guarantorEmploymentStart = safeDateToISO(formData.guarantor?.employmentStart);
-          transformedData.guarantorIncome = formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null;
-          transformedData.guarantorOtherIncome = formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null;
-          transformedData.guarantorBankName = formData.guarantor?.bankRecords?.[0]?.bankName || null;
-          transformedData.guarantorAccountType = formData.guarantor?.bankRecords?.[0]?.accountType || null;
-          transformedData.guarantorBankRecords = formData.guarantor?.bankRecords || [];
-          transformedData.guarantorSignature = signatures.guarantor || null;
+      // Only add guarantor fields if hasGuarantor is true
+      console.log('hasGuarantor value:', hasGuarantor);
+      if (hasGuarantor) {
+        console.log('Adding guarantor fields...');
+        transformedData.guarantorName = formData.guarantor?.name || null;
+        transformedData.guarantorRelationship = formData.guarantor?.relationship || null;
+        transformedData.guarantorDob = safeDateToISO(formData.guarantor?.dob);
+        transformedData.guarantorSsn = formData.guarantor?.ssn || null;
+        transformedData.guarantorPhone = formData.guarantor?.phone || null;
+        transformedData.guarantorEmail = formData.guarantor?.email || null;
+        transformedData.guarantorAddress = formData.guarantor?.address || null;
+        transformedData.guarantorCity = formData.guarantor?.city || null;
+        transformedData.guarantorState = formData.guarantor?.state || null;
+        transformedData.guarantorZip = formData.guarantor?.zip || null;
+        transformedData.guarantorLengthAtAddress = formData.guarantor?.lengthAtAddress || null;
+        
+        // Guarantor Financial
+        transformedData.guarantorEmployer = formData.guarantor?.employer || null;
+        transformedData.guarantorPosition = formData.guarantor?.position || null;
+        transformedData.guarantorEmploymentStart = safeDateToISO(formData.guarantor?.employmentStart);
+        transformedData.guarantorIncome = formData.guarantor?.income ? parseFloat(formData.guarantor.income) : null;
+        transformedData.guarantorOtherIncome = formData.guarantor?.otherIncome ? parseFloat(formData.guarantor.otherIncome) : null;
+        transformedData.guarantorBankName = formData.guarantor?.bankRecords?.[0]?.bankName || null;
+        transformedData.guarantorAccountType = formData.guarantor?.bankRecords?.[0]?.accountType || null;
+        transformedData.guarantorBankRecords = formData.guarantor?.bankRecords || [];
+        transformedData.guarantorSignature = signatures.guarantor || null;
+      } else {
+        console.log('Skipping guarantor fields - hasGuarantor is false');
+      }
+
+      // Add signatures for applicant and co-applicant
+      transformedData.applicantSignature = signatures.applicant || null;
+      transformedData.coApplicantSignature = signatures.coApplicant || null;
+      
+      // Other Occupants - send as a list
+      transformedData.otherOccupants = formData.occupants || [];
+      
+      // Legal Questions
+      transformedData.hasBankruptcy = data.hasBankruptcy;
+      transformedData.bankruptcyDetails = data.bankruptcyDetails;
+      transformedData.hasEviction = data.hasEviction;
+      transformedData.evictionDetails = data.evictionDetails;
+      transformedData.hasCriminalHistory = data.hasCriminalHistory;
+      transformedData.criminalHistoryDetails = data.criminalHistoryDetails;
+      transformedData.hasPets = data.hasPets;
+      transformedData.petDetails = data.petDetails;
+      transformedData.smokingStatus = data.smokingStatus;
+      
+      // Note: Documents and encrypted data are now sent via webhooks, not included in server submission
+      console.log('Documents and encrypted data will be sent via webhooks');
+      
+      console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
+      console.log('Date fields debug:');
+      console.log('  - applicantDob (raw):', data.applicantDob);
+      console.log('  - applicantDob (raw type):', typeof data.applicantDob);
+      console.log('  - applicantDob (raw instanceof Date):', data.applicantDob instanceof Date);
+      console.log('  - applicantDob (transformed):', transformedData.applicantDob);
+      console.log('  - moveInDate (raw):', data.moveInDate);
+      console.log('  - moveInDate (raw type):', typeof data.moveInDate);
+      console.log('  - moveInDate (raw instanceof Date):', data.moveInDate instanceof Date);
+      console.log('  - moveInDate (transformed):', transformedData.moveInDate);
+      console.log('Current window location:', window.location.href);
+      
+      // Use the regular API endpoint for local development
+      const apiEndpoint = '/api';
+      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
+      
+      const requestBody = {
+        applicationData: transformedData,
+        uploadedFilesMetadata: uploadedFilesMetadata
+      };
+      
+      console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
+      console.log('Request body uploadedFilesMetadata:', requestBody.uploadedFilesMetadata);
+      
+      // Validate required fields before submission
+      if (!transformedData.applicantDob) {
+        throw new Error('Date of birth is required. Please select your date of birth.');
+      }
+      if (!transformedData.moveInDate) {
+        throw new Error('Move-in date is required. Please select your move-in date.');
+      }
+      if (!transformedData.applicantName || transformedData.applicantName.trim() === '') {
+        throw new Error('Full name is required. Please enter your full name.');
+      }
+      
+      // Create AbortController for submission timeout
+      const submissionController = new AbortController();
+      const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
+      
+      const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: submissionController.signal
+      });
+
+      clearTimeout(submissionTimeoutId);
+
+      if (!submissionResponse.ok) {
+        const errorText = await submissionResponse.text();
+        console.error('Submission response error:', submissionResponse.status, submissionResponse.statusText);
+        console.error('Error response body:', errorText);
+        
+        // Handle specific error cases
+        if (submissionResponse.status === 413) {
+          throw new Error('Application data is too large. Please reduce file sizes and try again.');
+        } else if (submissionResponse.status === 504) {
+          throw new Error('Submission timed out. Please try again with smaller files or fewer files at once.');
         } else {
-          console.log('Skipping guarantor fields - hasGuarantor is false');
+          throw new Error(`Submission failed: ${submissionResponse.status} ${submissionResponse.statusText}`);
         }
+      }
 
-        // Add signatures for applicant and co-applicant
-        transformedData.applicantSignature = signatures.applicant || null;
-        transformedData.coApplicantSignature = signatures.coApplicant || null;
-        
-        // Other Occupants - send as a list
-        transformedData.otherOccupants = formData.occupants || [];
-        
-        // Legal Questions
-        transformedData.hasBankruptcy = data.hasBankruptcy;
-        transformedData.bankruptcyDetails = data.bankruptcyDetails;
-        transformedData.hasEviction = data.hasEviction;
-        transformedData.evictionDetails = data.evictionDetails;
-        transformedData.hasCriminalHistory = data.hasCriminalHistory;
-        transformedData.criminalHistoryDetails = data.criminalHistoryDetails;
-        transformedData.hasPets = data.hasPets;
-        transformedData.petDetails = data.petDetails;
-        transformedData.smokingStatus = data.smokingStatus;
-        
-        // Note: Documents and encrypted data are now sent via webhooks, not included in server submission
-        console.log('Documents and encrypted data will be sent via webhooks');
-        
-        console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
-        console.log('Date fields debug:');
-        console.log('  - applicantDob (raw):', data.applicantDob);
-        console.log('  - applicantDob (raw type):', typeof data.applicantDob);
-        console.log('  - applicantDob (raw instanceof Date):', data.applicantDob instanceof Date);
-        console.log('  - applicantDob (transformed):', transformedData.applicantDob);
-        console.log('  - moveInDate (raw):', data.moveInDate);
-        console.log('  - moveInDate (raw type):', typeof data.moveInDate);
-        console.log('  - moveInDate (raw instanceof Date):', data.moveInDate instanceof Date);
-        console.log('  - moveInDate (transformed):', transformedData.moveInDate);
-        console.log('Current window location:', window.location.href);
-        
-        // Use the regular API endpoint for local development
-        const apiEndpoint = '/api';
-        console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
-        
-        const requestBody = {
-          applicationData: transformedData,
-          uploadedFilesMetadata: uploadedFilesMetadata
+      const submissionResult = await submissionResponse.json();
+      console.log('Application submitted successfully:', submissionResult);
+
+      // Note: Encrypted data and files are now sent separately via webhooks
+      console.log('Application submitted successfully. Files and encrypted data sent via webhooks.');
+
+      // On form submit, send only form data, application_id, and uploadedDocuments to the webhook
+      try {
+        const webhookPayload = {
+          ...transformedData, // all form fields
+          application_id: applicationId,
+          uploaded_documents: uploadedDocuments.map(doc => ({
+            reference_id: doc.reference_id,
+            file_name: doc.file_name,
+            section_name: doc.section_name
+          }))
         };
-        
-        console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
-        console.log('Request body uploadedFilesMetadata:', requestBody.uploadedFilesMetadata);
-        
-        // Validate required fields before submission
-        if (!transformedData.applicantDob) {
-          throw new Error('Date of birth is required. Please select your date of birth.');
-        }
-        if (!transformedData.moveInDate) {
-          throw new Error('Move-in date is required. Please select your move-in date.');
-        }
-        if (!transformedData.applicantName || transformedData.applicantName.trim() === '') {
-          throw new Error('Full name is required. Please enter your full name.');
-        }
-        
-        // Create AbortController for submission timeout
-        const submissionController = new AbortController();
-        const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
-        
-        const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-          signal: submissionController.signal
-        });
 
-        clearTimeout(submissionTimeoutId);
+        console.log('=== WEBHOOK PAYLOAD DEBUG ===');
+        console.log('Other Occupants:', transformedData.otherOccupants);
+        console.log('Bank Records - Applicant:', transformedData.applicantBankRecords);
+        console.log('Bank Records - Co-Applicant:', transformedData.coApplicantBankRecords);
+        console.log('Bank Records - Guarantor:', transformedData.guarantorBankRecords);
+        console.log('Uploaded Documents Count:', uploadedDocuments.length);
+        console.log('=== END WEBHOOK PAYLOAD DEBUG ===');
 
-        if (!submissionResponse.ok) {
-          const errorText = await submissionResponse.text();
-          console.error('Submission response error:', submissionResponse.status, submissionResponse.statusText);
-          console.error('Error response body:', errorText);
-          
-          // Handle specific error cases
-          if (submissionResponse.status === 413) {
-            throw new Error('Application data is too large. Please reduce file sizes and try again.');
-          } else if (submissionResponse.status === 504) {
-            throw new Error('Submission timed out. Please try again with smaller files or fewer files at once.');
+        console.log('Form submission webhook payload:', JSON.stringify(webhookPayload, null, 2));
+        console.log('Uploaded documents array:', JSON.stringify(uploadedDocuments, null, 2));
+        const webhookResult = await WebhookService.sendFormDataToWebhook(
+          webhookPayload,
+          referenceId,
+          applicationId,
+          uploadedFilesMetadata
+        );
+        
+        if (webhookResult.success) {
+          toast({
+            title: "Application Submitted & Sent",
+            description: "Your rental application has been submitted and sent to the webhook successfully.",
+          });
           } else {
-            throw new Error(`Submission failed: ${submissionResponse.status} ${submissionResponse.statusText}`);
-          }
-        }
-
-        const submissionResult = await submissionResponse.json();
-        console.log('Application submitted successfully:', submissionResult);
-
-        // Note: Encrypted data and files are now sent separately via webhooks
-        console.log('Application submitted successfully. Files and encrypted data sent via webhooks.');
-
-        // On form submit, send only form data, application_id, and uploadedDocuments to the webhook
-        try {
-          const webhookPayload = {
-            ...transformedData, // all form fields
-            application_id: applicationId,
-            uploaded_documents: uploadedDocuments.map(doc => ({
-              reference_id: doc.reference_id,
-              file_name: doc.file_name,
-              section_name: doc.section_name
-            }))
-          };
-
-          console.log('=== WEBHOOK PAYLOAD DEBUG ===');
-          console.log('Other Occupants:', transformedData.otherOccupants);
-          console.log('Bank Records - Applicant:', transformedData.applicantBankRecords);
-          console.log('Bank Records - Co-Applicant:', transformedData.coApplicantBankRecords);
-          console.log('Bank Records - Guarantor:', transformedData.guarantorBankRecords);
-          console.log('Uploaded Documents Count:', uploadedDocuments.length);
-          console.log('=== END WEBHOOK PAYLOAD DEBUG ===');
-
-          console.log('Form submission webhook payload:', JSON.stringify(webhookPayload, null, 2));
-          console.log('Uploaded documents array:', JSON.stringify(uploadedDocuments, null, 2));
-          const webhookResult = await WebhookService.sendFormDataToWebhook(
-            webhookPayload,
-            referenceId,
-            applicationId,
-            uploadedFilesMetadata
-          );
-          
-          if (webhookResult.success) {
-            toast({
-              title: "Application Submitted & Sent",
-              description: "Your rental application has been submitted and sent to the webhook successfully.",
-            });
-          } else {
-            toast({
-              title: "Application Submitted",
-              description: "Your rental application has been submitted, but webhook delivery failed.",
-            });
-          }
-        } catch (webhookError) {
-          console.error('Webhook error:', webhookError);
           toast({
             title: "Application Submitted",
             description: "Your rental application has been submitted, but webhook delivery failed.",
           });
         }
-
-        generatePDF();
-      } catch (error) {
-        console.error('Failed to submit application:', error);
-        
-        let errorMessage = "Failed to submit application. Please try again.";
-        
-        // Handle specific error types
-        if (error instanceof Error) {
-          if (error.name === 'AbortError') {
-            errorMessage = "Submission timed out. Please try again with smaller files or fewer files at once.";
-          } else if (error.message.includes('413')) {
-            errorMessage = "Application data is too large. Please reduce file sizes and try again.";
-          } else if (error.message.includes('504')) {
-            errorMessage = "Submission timed out. Please try again with smaller files or fewer files at once.";
-          } else {
-            errorMessage = error.message;
-          }
-        }
-        
-        toast({
-          title: "Submission Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
+      } catch (webhookError) {
+        console.error('Webhook error:', webhookError);
+      toast({
+        title: "Application Submitted",
+          description: "Your rental application has been submitted, but webhook delivery failed.",
+      });
       }
+
+      generatePDF();
     } catch (error) {
       console.error('Failed to submit application:', error);
       
@@ -1807,7 +1780,7 @@ export function ApplicationForm() {
                     Encrypted Documents Count: {encryptedDocuments?.guarantor ? Object.keys(encryptedDocuments.guarantor).length : 0}
                     <br />
                     Documents Count: {documents?.guarantor ? Object.keys(documents.guarantor).length : 0}
-                  </div>
+                        </div>
                 </CardContent>
               </Card>
             )}

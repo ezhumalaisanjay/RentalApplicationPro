@@ -4,22 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { insertRentalApplicationSchema } from "../shared/schema";
 import crypto from "crypto";
-import cors from "cors";
 
 const app = express();
-
-// Configure CORS for production deployment
-app.use(cors({
-  origin: [
-    'https://jotform-v.netlify.app', // Your Netlify domain
-    'http://localhost:3000', // Local development
-    'http://localhost:5000', // Local development
-    'http://localhost:5001'  // Local development
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 // Increase payload limits for file uploads
 app.use(express.json({ limit: '100mb' }));
