@@ -1154,7 +1154,21 @@ app.post("/api/process-application/:id", async (req, res) => {
 app.post("/api/submit-webhook-only", async (req, res) => {
   try {
     console.log('=== DIRECT WEBHOOK SUBMISSION ===');
-    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
+    console.log('Request body exists:', !!req.body);
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
+    
+    // Check if request body exists
+    if (!req.body) {
+      console.error('No request body received');
+      return res.status(400).json({ 
+        error: "No request body received",
+        details: "Request body is missing or empty"
+      });
+    }
     
     // Check payload size immediately
     const payloadSize = JSON.stringify(req.body).length;
@@ -1165,7 +1179,11 @@ app.post("/api/submit-webhook-only", async (req, res) => {
     if (payloadSize > 15 * 1024 * 1024) {
       console.log('Very large payload detected - using ultra-simplified approach');
       
-      // Extract only essential data
+      // Extract only essential data with error handling
+      console.log('Extracting essential data from large payload...');
+      console.log('applicationData exists:', !!req.body.applicationData);
+      console.log('applicationData keys:', req.body.applicationData ? Object.keys(req.body.applicationData) : 'null');
+      
       const essentialData = {
         applicantName: req.body.applicationData?.applicantName || 'Unknown',
         applicantEmail: req.body.applicationData?.applicantEmail || 'unknown@example.com',
@@ -1179,6 +1197,8 @@ app.post("/api/submit-webhook-only", async (req, res) => {
         hasSignatures: !!req.body.signatures,
         hasEncryptedData: !!req.body.encryptedData
       };
+      
+      console.log('Essential data extracted:', essentialData);
       
       const basicWebhookPayload = {
         applicationId: Date.now(),
@@ -1230,9 +1250,22 @@ app.post("/api/submit-webhook-only", async (req, res) => {
     
     const { applicationData, files, signatures, encryptedData } = req.body;
     
+    console.log('Processing regular payload...');
+    console.log('applicationData exists:', !!applicationData);
+    console.log('applicationData keys:', applicationData ? Object.keys(applicationData) : 'null');
+    console.log('files count:', files ? files.length : 0);
+    console.log('signatures exists:', !!signatures);
+    console.log('encryptedData exists:', !!encryptedData);
+    
     if (!applicationData) {
       console.error('No applicationData provided');
-      return res.status(400).json({ error: "No application data provided" });
+      return res.status(400).json({ 
+        error: "No application data provided",
+        details: "applicationData field is missing from request body",
+        receivedKeys: req.body ? Object.keys(req.body) : 'null',
+        bodyType: typeof req.body,
+        bodyString: JSON.stringify(req.body).slice(0, 500) // show first 500 chars for debug
+      });
     }
     
     // Create application ID
