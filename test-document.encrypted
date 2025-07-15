@@ -1,0 +1,9 @@
+{
+  "salt": "dVxgPpKZPciCmYXyk+lyOLsHvV0U4nDoTmHagud/9WkMcBS8tTTM/NJZ5ISvj/2EV+G3gkvsErVMUwttQzhvOQ==",
+  "iv": "D5T2p6zu8qM2r9ohutjOMw==",
+  "encryptedData": "YEJpGDVhJm4e3Wm1aLGvtKr6GzvOz5OduuJ6oUrx4SFBWlltFod+kMNqmG2hSinTRfmY4k7fwSVuuiXWUQLdBjhxqwItpp1smf8puVnKZvOUWnHiLfgvxYJWjkdgOx5PsiDErRrSinC+Ln9xvBcAbSEEwZBmfdLJK4+LqeUIt27gX4KvJriCebST/BuMJNA0yRj6qEWXTKrAWZgHvLukCf2JkYga154nC7gB9G+WbdGqYsIf4/E9FcT6b1L17qEoEJzb68dqsxeLcSLT4Jv43bwzceaM/KPLXUaELhSx92fI+uMO+BFApXGHm0er0DnttQAY9k+h18ph4iIu9vuHMLrdPgsJeiHnkQ/pCpjqJ7W+K3Da5xKi8WvQ+61vw8MkmBMpt4+drVglYbWrePznWIpCPCk+FrjmCNviMN+Qn0LUHcJ1dNaKqPu7rFO77TiKYZN6YQtmu/9eJokJJgLrpmqy7hlGtIesoiUsH7NruyNTfW/ikFeRBeq9dD3EVp2bgMPsWLHXvQ6g77bQKXzvc/w4gyYcw0/0WGqgA+1mmbF5l+t+vgnED1/k6X/S8Xs2NsTUYb3cofzDrTwa4VGF3m+xMkMGVmnvnTiHWLiutDpTYaTGdjHH/hlmRHByhgHg",
+  "originalSize": 466,
+  "filename": "test-document.pdf",
+  "mimeType": "application/pdf",
+  "encryptedAt": "2025-07-15T13:38:19.604Z"
+}

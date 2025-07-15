@@ -7,9 +7,15 @@ interface DocumentSectionProps {
   person: "applicant" | "coApplicant" | "guarantor";
   onDocumentChange: (person: string, documentType: string, files: File[]) => void;
   onEncryptedDocumentChange?: (person: string, documentType: string, encryptedFiles: EncryptedFile[]) => void;
+  referenceId?: string;
+  enableWebhook?: boolean;
+  applicationId?: string;
 }
 
-export function DocumentSection({ title, person, onDocumentChange, onEncryptedDocumentChange }: DocumentSectionProps) {
+export function DocumentSection({ title, person, onDocumentChange, onEncryptedDocumentChange, referenceId, enableWebhook, applicationId }: DocumentSectionProps) {
+  // Debug logging
+  console.log('DocumentSection props:', { title, person, referenceId, enableWebhook, applicationId });
+  
   const documentTypes = [
     {
       key: "id",
@@ -73,6 +79,10 @@ export function DocumentSection({ title, person, onDocumentChange, onEncryptedDo
               onFileChange={(files) => onDocumentChange(person, docType.key, files)}
               onEncryptedFilesChange={(encryptedFiles) => onEncryptedDocumentChange?.(person, docType.key, encryptedFiles)}
               enableEncryption={true}
+              referenceId={referenceId}
+              sectionName={`${person}_${docType.key}`}
+              enableWebhook={enableWebhook}
+              applicationId={applicationId}
             />
           ))}
         </div>

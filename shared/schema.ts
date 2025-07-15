@@ -136,11 +136,11 @@ export const insertRentalApplicationSchema = baseSchema.extend({
   // Required fields (from database schema)
   buildingAddress: z.string().min(1, "Building address is required"),
   apartmentNumber: z.string().min(1, "Apartment number is required"),
-  moveInDate: dateStringToDate,
+  moveInDate: dateStringToDate.refine((val) => val !== null, "Move-in date is required"),
   monthlyRent: z.number().positive("Monthly rent must be positive"),
   apartmentType: z.string().min(1, "Apartment type is required"),
   applicantName: z.string().min(1, "Applicant name is required"),
-  applicantDob: dateStringToDate,
+  applicantDob: dateStringToDate.refine((val) => val !== null, "Applicant date of birth is required"),
   applicantSsn: z.string().optional().nullable(),
   applicantPhone: z.string().optional().nullable(),
   applicantEmail: z.string().email("Valid email is required"),

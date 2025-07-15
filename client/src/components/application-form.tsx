@@ -23,19 +23,26 @@ import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
 import { useRef } from "react";
 import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
+import { WebhookService } from "@/lib/webhook-service";
 
 const applicationSchema = z.object({
   // Application Info
   buildingAddress: z.string().optional(),
   apartmentNumber: z.string().optional(),
-  moveInDate: z.date().optional(),
+  moveInDate: z.date({
+    required_error: "Move-in date is required",
+    invalid_type_error: "Please select a valid move-in date",
+  }),
   monthlyRent: z.number().optional(),
   apartmentType: z.string().optional(),
   howDidYouHear: z.string().optional(),
 
   // Primary Applicant
-  applicantName: z.string().optional(),
-  applicantDob: z.date().optional(),
+  applicantName: z.string().min(1, "Full name is required"),
+  applicantDob: z.date({
+    required_error: "Date of birth is required",
+    invalid_type_error: "Please select a valid date of birth",
+  }),
   applicantSsn: z.string().optional(),
   applicantPhone: z.string().optional(),
   applicantEmail: z.string().optional(),
@@ -75,9 +82,8 @@ const STEPS = [
   { id: 3, title: "Financial Info", icon: CalendarDays },
   { id: 4, title: "Supporting Documents", icon: FolderOpen },
   { id: 5, title: "Other Occupants", icon: Users },
-  { id: 6, title: "Additional People", icon: Users },
-  { id: 7, title: "Legal Questions", icon: Shield },
-  { id: 8, title: "Digital Signatures", icon: Check },
+  { id: 6, title: "Legal Questions", icon: Shield },
+  { id: 7, title: "Digital Signatures", icon: Check },
 ];
 
 export function ApplicationForm() {
@@ -98,6 +104,15 @@ export function ApplicationForm() {
   const [sameAddressCoApplicant, setSameAddressCoApplicant] = useState(false);
   const [sameAddressGuarantor, setSameAddressGuarantor] = useState(false);
   const pdfContentRef = useRef<HTMLDivElement>(null);
+  const [referenceId] = useState(() => `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [applicationId] = useState(() => `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [uploadedFilesMetadata, setUploadedFilesMetadata] = useState<{ [section: string]: { file_name: string; file_size: number; mime_type: string; upload_date: string; }[] }>({});
+  // Add state for uploadedDocuments
+  const [uploadedDocuments, setUploadedDocuments] = useState<{
+    reference_id: string;
+    file_name: string;
+    section_name: string;
+  }[]>([]);
 
   const form = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
@@ -172,6 +187,32 @@ export function ApplicationForm() {
         [documentType]: encryptedFiles,
       },
     }));
+
+    // Track uploadedDocuments for webhook
+    const sectionKey = `${person}_${documentType}`;
+    const docs = encryptedFiles.map(file => ({
+      reference_id: file.uploadDate + '-' + file.filename, // or use a better unique id if available
+      file_name: file.filename,
+      section_name: sectionKey
+    }));
+    setUploadedDocuments(prev => {
+      // Remove any previous docs for this section
+      const filtered = prev.filter(doc => doc.section_name !== sectionKey);
+      return [...filtered, ...docs];
+    });
+
+    // Track uploaded files metadata for webhook
+    const filesMetadata = encryptedFiles.map(file => ({
+      file_name: file.filename,
+      file_size: file.originalSize,
+      mime_type: file.mimeType,
+      upload_date: file.uploadDate
+    }));
+
+    setUploadedFilesMetadata(prev => ({
+      ...prev,
+      [sectionKey]: filesMetadata
+    }));
   };
 
   const handleSignatureChange = (person: string, signature: string) => {
@@ -181,23 +222,55 @@ export function ApplicationForm() {
     }));
   };
 
-  const generatePDF = () => {
-    const pdfGenerator = new PDFGenerator();
-    const pdfData = pdfGenerator.generatePDF({
-      application: formData.application,
-      applicant: formData.applicant,
-      coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
-      guarantor: hasGuarantor ? formData.guarantor : undefined,
-      signatures,
-    });
-    const link = document.createElement('a');
-    link.href = pdfData;
-    link.download = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
-    link.click();
-    toast({
-      title: "PDF Generated",
-      description: "Your rental application PDF has been downloaded.",
-    });
+  const generatePDF = async () => {
+    try {
+      const pdfGenerator = new PDFGenerator();
+      const pdfData = pdfGenerator.generatePDF({
+        application: formData.application,
+        applicant: formData.applicant,
+        coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
+        guarantor: hasGuarantor ? formData.guarantor : undefined,
+        signatures,
+      });
+      
+      // Extract base64 from data URL
+      const base64 = pdfData.split(',')[1];
+      
+      // Send PDF to webhook
+      const webhookResult = await WebhookService.sendPDFToWebhook(
+        base64,
+        referenceId,
+        applicationId,
+        `rental-application-${new Date().toISOString().split('T')[0]}.pdf`
+      );
+      
+      if (webhookResult.success) {
+        toast({
+          title: "PDF Generated & Sent",
+          description: "Your rental application PDF has been generated and sent to the webhook.",
+        });
+      } else {
+        toast({
+          title: "PDF Generated",
+          description: "Your rental application PDF has been generated, but webhook delivery failed.",
+          variant: "destructive",
+        });
+      }
+      
+      // Download the PDF
+      const link = document.createElement('a');
+      link.href = pdfData;
+      link.download = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating your PDF.",
+        variant: "destructive",
+      });
+    }
   };
 
   const saveDraft = () => {
@@ -281,44 +354,14 @@ export function ApplicationForm() {
       const result = await response.json();
       console.log(`Files uploaded successfully for ${personType}:`, result);
       
-      // Send encrypted data as FormData to webhook
-      if (result.files && result.files.length > 0) {
-        try {
-          console.log(`Sending encrypted data webhook for ${personType}...`);
-          
-          const webhookResponse = await fetch('/api/send-encrypted-data-webhook', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              encryptedData: {
-                files: encryptedFiles,
-                totalSize: encryptedFiles.reduce((sum, file) => sum + file.originalSize, 0),
-                encryptionTimestamp: new Date().toISOString()
-              },
-              personType: personType,
-              applicationId: Date.now().toString()
-            }),
-          });
-          
-          if (webhookResponse.ok) {
-            const webhookResult = await webhookResponse.json();
-            console.log(`Encrypted data webhook sent successfully for ${personType}:`, webhookResult);
-          } else {
-            console.warn(`Failed to send encrypted data webhook for ${personType}:`, webhookResponse.status);
-          }
-        } catch (webhookError) {
-          console.warn(`Error sending encrypted data webhook for ${personType}:`, webhookError);
-        }
-      }
+
       
       return result;
     } catch (error) {
       console.error(`Failed to upload files for ${personType}:`, error);
       
       // Handle timeout errors specifically
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Upload timed out. Please try again with smaller files or fewer files at once.');
       }
       
@@ -331,9 +374,11 @@ export function ApplicationForm() {
     const requiredFields: (keyof ApplicationFormData)[] = [
       'buildingAddress',
       'apartmentNumber',
+      'moveInDate',
       'monthlyRent',
       'apartmentType',
       'applicantName',
+      'applicantDob',
       'applicantEmail',
       'applicantAddress',
       'applicantCity',
@@ -346,7 +391,9 @@ export function ApplicationForm() {
         data[field] === undefined ||
         data[field] === null ||
         (typeof data[field] === 'string' && data[field].trim() === '') ||
-        (field === 'monthlyRent' && (!data[field] || isNaN(data[field] as any) || (data[field] as any) <= 0))
+        (field === 'monthlyRent' && (!data[field] || isNaN(data[field] as any) || (data[field] as any) <= 0)) ||
+        (field === 'applicantDob' && !data[field]) ||
+        (field === 'moveInDate' && !data[field])
       ) {
         missingFields.push(field);
       }
@@ -365,42 +412,8 @@ export function ApplicationForm() {
       return;
     }
     try {
-      console.log("Submitting application:", { ...data, formData, signatures, documents, encryptedDocuments });
-      console.log("Encrypted documents state:", encryptedDocuments);
-      console.log("Encrypted documents keys:", Object.keys(encryptedDocuments));
-
-      // Upload encrypted documents by person type
-      const uploadedFilesByPerson: { [key: string]: any[] } = {};
-      
-      // Upload applicant files
-      if (encryptedDocuments.applicant) {
-        const applicantFiles = Object.values(encryptedDocuments.applicant).flat() as EncryptedFile[];
-        if (applicantFiles.length > 0) {
-          const uploadResult = await uploadEncryptedFiles(applicantFiles, 'applicant');
-          uploadedFilesByPerson.applicant = uploadResult.files || [];
-        }
-      }
-      
-      // Upload co-applicant files
-      if (hasCoApplicant && encryptedDocuments.coApplicant) {
-        const coApplicantFiles = Object.values(encryptedDocuments.coApplicant).flat() as EncryptedFile[];
-        if (coApplicantFiles.length > 0) {
-          const uploadResult = await uploadEncryptedFiles(coApplicantFiles, 'coApplicant');
-          uploadedFilesByPerson.coApplicant = uploadResult.files || [];
-        }
-      }
-      
-      // Upload guarantor files
-      if (hasGuarantor && encryptedDocuments.guarantor) {
-        const guarantorFiles = Object.values(encryptedDocuments.guarantor).flat() as EncryptedFile[];
-        if (guarantorFiles.length > 0) {
-          const uploadResult = await uploadEncryptedFiles(guarantorFiles, 'guarantor');
-          uploadedFilesByPerson.guarantor = uploadResult.files || [];
-        }
-      }
-      
-      // Combine all uploaded files
-      const allUploadedFiles = Object.values(uploadedFilesByPerson).flat();
+      console.log("Submitting application:", { ...data, formData, signatures });
+      console.log("Uploaded files metadata:", uploadedFilesMetadata);
 
       // Helper function to safely convert date to ISO string
       const safeDateToISO = (dateValue: any): string | null => {
@@ -527,61 +540,34 @@ export function ApplicationForm() {
       transformedData.petDetails = data.petDetails;
       transformedData.smokingStatus = data.smokingStatus;
       
-      // Documents
-      transformedData.documents = JSON.stringify(allUploadedFiles);
-      
-      // Encrypted Data
-      const encryptedDataPayload = {
-        documents: encryptedDocuments,
-        uploadedFilesByPerson: uploadedFilesByPerson,
-        allEncryptedFiles: Object.values(encryptedDocuments).flat().filter(Array.isArray).flat(),
-        encryptionTimestamp: new Date().toISOString(),
-        encryptionVersion: '1.0.0',
-        totalEncryptedFiles: Object.values(encryptedDocuments).flat().filter(Array.isArray).flat().length,
-        documentTypes: Object.keys(encryptedDocuments)
-      };
-      
-      console.log('Encrypted data payload before validation:', encryptedDataPayload);
-      
-      // Validate encrypted data before submission (only if there are encrypted files)
-      const totalEncryptedFiles = Object.values(encryptedDocuments).flat().filter(Array.isArray).flat().length;
-      if (totalEncryptedFiles > 0 && !validateEncryptedData(encryptedDataPayload)) {
-        throw new Error('Invalid encrypted data structure');
-      }
-      
-      const encryptedDataSummary = createEncryptedDataSummary(encryptedDataPayload);
-      console.log('Encrypted data summary:', encryptedDataSummary);
-      
-      transformedData.encryptedData = JSON.stringify(encryptedDataPayload);
-      
-      console.log('Final transformed data includes encryptedData:', !!transformedData.encryptedData);
-      console.log('Encrypted data length:', transformedData.encryptedData ? transformedData.encryptedData.length : 0);
+      // Note: Documents and encrypted data are now sent via webhooks, not included in server submission
+      console.log('Documents and encrypted data will be sent via webhooks');
       
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
+      console.log('Date fields debug:');
+      console.log('  - applicantDob (raw):', data.applicantDob);
+      console.log('  - applicantDob (transformed):', transformedData.applicantDob);
+      console.log('  - moveInDate (raw):', data.moveInDate);
+      console.log('  - moveInDate (transformed):', transformedData.moveInDate);
       console.log('Current window location:', window.location.href);
       
-      // Use the API endpoint for Render deployment
+      // Use the regular API endpoint for local development
       const apiEndpoint = '/api';
-      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-webhook-only');
+      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
       
       const requestBody = {
         applicationData: transformedData,
-        files: allUploadedFiles,
-        signatures: signatures,
-        encryptedData: {
-          documents: encryptedDocuments,
-          uploadedFilesByPerson: uploadedFilesByPerson
-        }
+        uploadedFilesMetadata: uploadedFilesMetadata
       };
       
       console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
-      console.log('Request body encryptedData:', requestBody.encryptedData);
+      console.log('Request body uploadedFilesMetadata:', requestBody.uploadedFilesMetadata);
       
       // Create AbortController for submission timeout
       const submissionController = new AbortController();
       const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
       
-      const submissionResponse = await fetch(apiEndpoint + '/submit-webhook-only', {
+      const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -610,44 +596,48 @@ export function ApplicationForm() {
       const submissionResult = await submissionResponse.json();
       console.log('Application submitted successfully:', submissionResult);
 
-      // If we have encrypted data, process it separately
-      if (requestBody.encryptedData && submissionResult.applicationId) {
-        try {
-          console.log('Processing encrypted data for application:', submissionResult.applicationId);
-          
-          // Create AbortController for processing timeout
-          const processController = new AbortController();
-          const processTimeoutId = setTimeout(() => processController.abort(), 30000); // 30 second timeout
-          
-          const processResponse = await fetch(`/api/process-application/${submissionResult.applicationId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              encryptedData: requestBody.encryptedData,
-              signatures: signatures
-            }),
-            signal: processController.signal
+      // Note: Encrypted data and files are now sent separately via webhooks
+      console.log('Application submitted successfully. Files and encrypted data sent via webhooks.');
+
+      // On form submit, send only form data, application_id, and uploadedDocuments to the webhook
+      try {
+        const webhookPayload = {
+          ...transformedData, // all form fields
+          application_id: applicationId,
+          uploaded_documents: uploadedDocuments.map(doc => ({
+            reference_id: doc.reference_id,
+            file_name: doc.file_name,
+            section_name: doc.section_name
+          }))
+        };
+
+        console.log('Form submission webhook payload:', JSON.stringify(webhookPayload, null, 2));
+        console.log('Uploaded documents array:', JSON.stringify(uploadedDocuments, null, 2));
+        const webhookResult = await WebhookService.sendFormDataToWebhook(
+          webhookPayload,
+          referenceId,
+          applicationId,
+          uploadedFilesMetadata
+        );
+        
+        if (webhookResult.success) {
+          toast({
+            title: "Application Submitted & Sent",
+            description: "Your rental application has been submitted and sent to the webhook successfully.",
           });
-          
-          clearTimeout(processTimeoutId);
-
-          if (processResponse.ok) {
-            const processResult = await processResponse.json();
-            console.log('Application processed successfully:', processResult);
-          } else {
-            console.warn('Failed to process application data:', processResponse.status);
-          }
-        } catch (processError) {
-          console.warn('Error processing application data:', processError);
+        } else {
+          toast({
+            title: "Application Submitted",
+            description: "Your rental application has been submitted, but webhook delivery failed.",
+          });
         }
+      } catch (webhookError) {
+        console.error('Webhook error:', webhookError);
+        toast({
+          title: "Application Submitted",
+          description: "Your rental application has been submitted, but webhook delivery failed.",
+        });
       }
-
-      toast({
-        title: "Application Submitted",
-        description: `Your rental application has been submitted successfully${submissionResult.webhookSent ? ' and sent to our processing system' : ''}.`,
-      });
 
       generatePDF();
     } catch (error) {
@@ -1192,7 +1182,35 @@ export function ApplicationForm() {
                     ...prev,
                     [documentType]: encryptedFiles,
                   }));
+
+                  // Track uploadedDocuments for webhook
+                  const sectionKey = `supporting_${documentType}`;
+                  const docs = encryptedFiles.map(file => ({
+                    reference_id: file.uploadDate + '-' + file.filename,
+                    file_name: file.filename,
+                    section_name: sectionKey
+                  }));
+                  setUploadedDocuments(prev => {
+                    const filtered = prev.filter(doc => doc.section_name !== sectionKey);
+                    return [...filtered, ...docs];
+                  });
+
+                  // Track uploaded files metadata for webhook
+                  const filesMetadata = encryptedFiles.map(file => ({
+                    file_name: file.filename,
+                    file_size: file.originalSize,
+                    mime_type: file.mimeType,
+                    upload_date: file.uploadDate
+                  }));
+
+                  setUploadedFilesMetadata(prev => ({
+                    ...prev,
+                    [sectionKey]: filesMetadata
+                  }));
                 }}
+                referenceId={referenceId}
+                enableWebhook={true}
+                applicationId={applicationId}
               />
             </CardContent>
           </Card>
@@ -1388,6 +1406,9 @@ export function ApplicationForm() {
                     person="coApplicant"
                     onDocumentChange={handleDocumentChange}
                     onEncryptedDocumentChange={handleEncryptedDocumentChange}
+                    referenceId={referenceId}
+                    enableWebhook={true}
+                    applicationId={applicationId}
                   />
                 </CardContent>
               </Card>
@@ -1395,6 +1416,10 @@ export function ApplicationForm() {
 
             {hasGuarantor && (
               <Card className="form-section border-l-4 border-l-purple-500">
+                {/* Debug info */}
+                <div className="bg-yellow-100 p-2 text-xs text-yellow-800 mb-2">
+                  Debug: hasGuarantor = {String(hasGuarantor)}, referenceId = {referenceId}, applicationId = {applicationId}
+                </div>
                 <CardHeader>
                   <CardTitle className="flex items-center text-purple-700 dark:text-purple-400">
                     <UserCheck className="w-5 h-5 mr-2" />
@@ -1523,6 +1548,9 @@ export function ApplicationForm() {
                     person="guarantor"
                     onDocumentChange={handleDocumentChange}
                     onEncryptedDocumentChange={handleEncryptedDocumentChange}
+                    referenceId={referenceId}
+                    enableWebhook={true}
+                    applicationId={applicationId}
                   />
                 </CardContent>
               </Card>
@@ -1641,170 +1669,9 @@ export function ApplicationForm() {
           </div>
         );
 
+
+
       case 6:
-        return (
-          <div className="space-y-8">
-            <Card className="form-section">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
-                  Additional People
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Co-Applicant Section */}
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasCoApplicant"
-                      checked={hasCoApplicant}
-                      onCheckedChange={(checked) => {
-                        setHasCoApplicant(checked as boolean);
-                        form.setValue('hasCoApplicant', checked as boolean);
-                      }}
-                    />
-                    <Label htmlFor="hasCoApplicant" className="text-lg font-medium">
-                      Co-Applicant
-                    </Label>
-                  </div>
-
-                  {hasCoApplicant && (
-                    <div className="space-y-6 pl-6 border-l-2 border-gray-200">
-                      {/* Co-Applicant form fields */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label>Full Name</Label>
-                          <Input 
-                            placeholder="Enter full name"
-                            className="input-field"
-                            onChange={(e) => updateFormData('coApplicant', 'name', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Relationship to Applicant</Label>
-                          <Input 
-                            placeholder="e.g., Spouse, Partner, Roommate"
-                            className="input-field"
-                            onChange={(e) => updateFormData('coApplicant', 'relationship', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Date of Birth</Label>
-                          <DatePicker
-                            onDateChange={(date) => updateFormData('coApplicant', 'dob', date)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Social Security Number</Label>
-                          <Input 
-                            placeholder="XXX-XX-XXXX"
-                            className="input-field"
-                            onChange={(e) => updateFormData('coApplicant', 'ssn', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Phone Number</Label>
-                          <Input 
-                            placeholder="(555) 123-4567"
-                            className="input-field"
-                            onChange={(e) => updateFormData('coApplicant', 'phone', e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Email Address</Label>
-                          <Input 
-                            placeholder="email@example.com"
-                            className="input-field"
-                            onChange={(e) => updateFormData('coApplicant', 'email', e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Co-Applicant Address */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Address Information</h4>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="sameAddressCoApplicant"
-                            checked={sameAddressCoApplicant}
-                            onCheckedChange={(checked) => {
-                              setSameAddressCoApplicant(checked as boolean);
-                              if (checked) {
-                                copyAddressToCoApplicant();
-                              }
-                            }}
-                          />
-                          <Label htmlFor="sameAddressCoApplicant">Same address as applicant</Label>
-                        </div>
-
-                        {!sameAddressCoApplicant && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label>Address</Label>
-                              <Input 
-                                placeholder="Enter address"
-                                className="input-field"
-                                onChange={(e) => updateFormData('coApplicant', 'address', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <Label>City</Label>
-                              <Input 
-                                placeholder="Enter city"
-                                className="input-field"
-                                onChange={(e) => updateFormData('coApplicant', 'city', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <Label>State</Label>
-                              <Input 
-                                placeholder="Enter state"
-                                className="input-field"
-                                onChange={(e) => updateFormData('coApplicant', 'state', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <Label>ZIP Code</Label>
-                              <Input 
-                                placeholder="Enter ZIP code"
-                                className="input-field"
-                                onChange={(e) => updateFormData('coApplicant', 'zip', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <Label>Length at Address</Label>
-                              <Input 
-                                placeholder="e.g., 2 years 3 months"
-                                className="input-field"
-                                onChange={(e) => updateFormData('coApplicant', 'lengthAtAddress', e.target.value)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <FinancialSection 
-                        title="Co-Applicant Financial Information"
-                        person="coApplicant"
-                        formData={formData}
-                        updateFormData={updateFormData}
-                      />
-
-                      <DocumentSection 
-                        title="Co-Applicant Documents"
-                        person="coApplicant"
-                        onDocumentChange={handleDocumentChange}
-                        onEncryptedDocumentChange={handleEncryptedDocumentChange}
-                      />
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 7:
         return (
           <Card className="form-section">
             <CardHeader>
@@ -1822,7 +1689,7 @@ export function ApplicationForm() {
           </Card>
         );
 
-      case 8:
+      case 7:
         return (
           <div className="space-y-8">
             <Card className="form-section">

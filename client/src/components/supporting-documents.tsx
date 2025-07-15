@@ -8,9 +8,12 @@ interface SupportingDocumentsProps {
   formData: any;
   onDocumentChange: (documentType: string, files: File[]) => void;
   onEncryptedDocumentChange?: (documentType: string, encryptedFiles: EncryptedFile[]) => void;
+  referenceId?: string;
+  enableWebhook?: boolean;
+  applicationId?: string;
 }
 
-export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDocumentChange }: SupportingDocumentsProps) {
+export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDocumentChange, referenceId, enableWebhook, applicationId }: SupportingDocumentsProps) {
   const requiredDocuments = [
     {
       category: "Identity Documents",
@@ -193,6 +196,10 @@ export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDoc
                       description="Max 5 files, 10MB each. Accepted: JPG, PNG, PDF - Encrypted"
                       className="mt-2"
                       enableEncryption={true}
+                      referenceId={referenceId}
+                      sectionName={`supporting_${document.id}`}
+                      enableWebhook={enableWebhook}
+                      applicationId={applicationId}
                     />
                   </div>
                 );

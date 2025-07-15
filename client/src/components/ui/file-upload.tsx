@@ -1,9 +1,10 @@
 import { useState, useCallback } from "react";
 import { Button } from "./button";
 import { Card } from "./card";
-import { Upload, X, FileText, Shield, Loader2 } from "lucide-react";
+import { Upload, X, FileText, Shield, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { encryptFiles, validateFileForEncryption, type EncryptedFile } from "@/lib/file-encryption";
+import { WebhookService } from "@/lib/webhook-service";
 
 interface FileUploadProps {
   onFileChange: (files: File[]) => void;
@@ -16,6 +17,10 @@ interface FileUploadProps {
   description?: string;
   className?: string;
   enableEncryption?: boolean;
+  referenceId?: string;
+  sectionName?: string;
+  enableWebhook?: boolean;
+  applicationId?: string;
 }
 
 export function FileUpload({
@@ -28,13 +33,18 @@ export function FileUpload({
   label,
   description,
   className,
-  enableEncryption = false
+  enableEncryption = false,
+  referenceId,
+  sectionName,
+  enableWebhook = false,
+  applicationId
 }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [encryptedFiles, setEncryptedFiles] = useState<EncryptedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string>("");
   const [isEncrypting, setIsEncrypting] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{ [key: string]: 'uploading' | 'success' | 'error' }>({});
 
   const validateFile = (file: File): string | null => {
     if (enableEncryption) {
@@ -97,12 +107,34 @@ export function FileUpload({
           setError(`Failed to encrypt files: ${encryptError}`);
         }
       }
+
+      // Send files to webhook immediately if enabled
+      console.log('FileUpload webhook check:', { enableWebhook, referenceId, sectionName, applicationId });
+      if (enableWebhook && referenceId && sectionName) {
+        for (const file of validFiles) {
+          const fileKey = `${file.name}-${file.size}`;
+          setUploadStatus(prev => ({ ...prev, [fileKey]: 'uploading' }));
+          
+          try {
+            const result = await WebhookService.sendFileToWebhook(file, referenceId, sectionName, applicationId);
+            if (result.success) {
+              setUploadStatus(prev => ({ ...prev, [fileKey]: 'success' }));
+            } else {
+              setUploadStatus(prev => ({ ...prev, [fileKey]: 'error' }));
+              console.error(`Webhook upload failed for ${file.name}:`, result.error);
+            }
+          } catch (webhookError) {
+            setUploadStatus(prev => ({ ...prev, [fileKey]: 'error' }));
+            console.error(`Webhook upload error for ${file.name}:`, webhookError);
+          }
+        }
+      }
     } catch (error) {
       setError(`Failed to process files: ${error}`);
     } finally {
       setIsEncrypting(false);
     }
-  }, [files, encryptedFiles, multiple, maxFiles, onFileChange, onEncryptedFilesChange, enableEncryption]);
+  }, [files, encryptedFiles, multiple, maxFiles, onFileChange, onEncryptedFilesChange, enableEncryption, enableWebhook, referenceId, sectionName, applicationId]);
 
   const removeFile = (index: number) => {
     const updatedFiles = files.filter((_, i) => i !== index);
@@ -193,25 +225,52 @@ export function FileUpload({
       
       {files.length > 0 && (
         <div className="space-y-2">
-          {files.map((file, index) => (
-            <Card key={index} className="p-3 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                <span className="text-xs text-gray-500">
-                  ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeFile(index)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </Card>
-          ))}
+          {files.map((file, index) => {
+            const fileKey = `${file.name}-${file.size}`;
+            const status = uploadStatus[fileKey];
+            
+            return (
+              <Card key={index} className="p-3 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                  {enableWebhook && status && (
+                    <div className="flex items-center space-x-1">
+                      {status === 'uploading' && (
+                        <>
+                          <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                          <span className="text-xs text-blue-500">Uploading...</span>
+                        </>
+                      )}
+                      {status === 'success' && (
+                        <>
+                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <span className="text-xs text-green-500">Uploaded</span>
+                        </>
+                      )}
+                      {status === 'error' && (
+                        <>
+                          <AlertCircle className="w-3 h-3 text-red-500" />
+                          <span className="text-xs text-red-500">Failed</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(index)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

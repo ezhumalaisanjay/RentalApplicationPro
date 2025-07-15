@@ -1,135 +1,36 @@
-import { rentalApplications, type RentalApplication, type InsertRentalApplication } from "@shared/schema";
+import { db, rentalApplications } from './db';
+import { eq } from 'drizzle-orm';
+import type { RentalApplication, InsertRentalApplication } from '@shared/schema';
 
-export interface IStorage {
-  getApplication(id: number): Promise<RentalApplication | undefined>;
-  createApplication(application: InsertRentalApplication): Promise<RentalApplication>;
-  updateApplication(id: number, application: Partial<InsertRentalApplication>): Promise<RentalApplication | undefined>;
-  getAllApplications(): Promise<RentalApplication[]>;
-}
-
-export class MemStorage implements IStorage {
-  private applications: Map<number, RentalApplication>;
-  private currentId: number;
-
-  constructor() {
-    this.applications = new Map();
-    this.currentId = 1;
-  }
-
+export const storage = {
   async getApplication(id: number): Promise<RentalApplication | undefined> {
-    return this.applications.get(id);
-  }
+    const result = await db.select().from(rentalApplications).where(eq(rentalApplications.id, id));
+    return result[0];
+  },
 
   async createApplication(insertApplication: InsertRentalApplication): Promise<RentalApplication> {
-    const id = this.currentId++;
-    const application: RentalApplication = { 
-      ...insertApplication, 
-      id,
-      applicationDate: new Date(),
-      status: insertApplication.status || 'draft',
-      submittedAt: insertApplication.status === 'submitted' ? new Date() : null,
-      // Ensure required fields are not null
-      moveInDate: insertApplication.moveInDate || new Date(),
-      applicantDob: insertApplication.applicantDob || new Date(),
-      applicantSsn: insertApplication.applicantSsn ?? null,
-      applicantPhone: insertApplication.applicantPhone ?? null,
-      howDidYouHear: insertApplication.howDidYouHear || null,
-      applicantLicense: insertApplication.applicantLicense || null,
-      applicantLicenseState: insertApplication.applicantLicenseState || null,
-      applicantLengthAtAddress: insertApplication.applicantLengthAtAddress || null,
-      applicantLandlordName: insertApplication.applicantLandlordName || null,
-      applicantCurrentRent: insertApplication.applicantCurrentRent || null,
-      applicantReasonForMoving: insertApplication.applicantReasonForMoving || null,
-      applicantEmployer: insertApplication.applicantEmployer || null,
-      applicantPosition: insertApplication.applicantPosition || null,
-      applicantEmploymentStart: insertApplication.applicantEmploymentStart || null,
-      applicantIncome: insertApplication.applicantIncome || null,
-      applicantOtherIncome: insertApplication.applicantOtherIncome || null,
-      applicantOtherIncomeSource: insertApplication.applicantOtherIncomeSource || null,
-      applicantBankName: insertApplication.applicantBankName || null,
-      applicantAccountType: insertApplication.applicantAccountType || null,
-      hasCoApplicant: insertApplication.hasCoApplicant || null,
-      hasGuarantor: insertApplication.hasGuarantor || null,
-      // Co-applicant fields
-      coApplicantName: insertApplication.coApplicantName || null,
-      coApplicantRelationship: insertApplication.coApplicantRelationship || null,
-      coApplicantDob: insertApplication.coApplicantDob || null,
-      coApplicantSsn: insertApplication.coApplicantSsn || null,
-      coApplicantPhone: insertApplication.coApplicantPhone || null,
-      coApplicantEmail: insertApplication.coApplicantEmail || null,
-      coApplicantSameAddress: insertApplication.coApplicantSameAddress || null,
-      coApplicantAddress: insertApplication.coApplicantAddress || null,
-      coApplicantCity: insertApplication.coApplicantCity || null,
-      coApplicantState: insertApplication.coApplicantState || null,
-      coApplicantZip: insertApplication.coApplicantZip || null,
-      coApplicantLengthAtAddress: insertApplication.coApplicantLengthAtAddress || null,
-      coApplicantEmployer: insertApplication.coApplicantEmployer || null,
-      coApplicantPosition: insertApplication.coApplicantPosition || null,
-      coApplicantEmploymentStart: insertApplication.coApplicantEmploymentStart || null,
-      coApplicantIncome: insertApplication.coApplicantIncome || null,
-      coApplicantOtherIncome: insertApplication.coApplicantOtherIncome || null,
-      coApplicantBankName: insertApplication.coApplicantBankName || null,
-      coApplicantAccountType: insertApplication.coApplicantAccountType || null,
-      // Guarantor fields
-      guarantorName: insertApplication.guarantorName || null,
-      guarantorRelationship: insertApplication.guarantorRelationship || null,
-      guarantorDob: insertApplication.guarantorDob || null,
-      guarantorSsn: insertApplication.guarantorSsn || null,
-      guarantorPhone: insertApplication.guarantorPhone || null,
-      guarantorEmail: insertApplication.guarantorEmail || null,
-      guarantorAddress: insertApplication.guarantorAddress || null,
-      guarantorCity: insertApplication.guarantorCity || null,
-      guarantorState: insertApplication.guarantorState || null,
-      guarantorZip: insertApplication.guarantorZip || null,
-      guarantorLengthAtAddress: insertApplication.guarantorLengthAtAddress || null,
-      guarantorEmployer: insertApplication.guarantorEmployer || null,
-      guarantorPosition: insertApplication.guarantorPosition || null,
-      guarantorEmploymentStart: insertApplication.guarantorEmploymentStart || null,
-      guarantorIncome: insertApplication.guarantorIncome || null,
-      guarantorOtherIncome: insertApplication.guarantorOtherIncome || null,
-      guarantorBankName: insertApplication.guarantorBankName || null,
-      guarantorAccountType: insertApplication.guarantorAccountType || null,
-      // Signatures
-      applicantSignature: insertApplication.applicantSignature || null,
-      coApplicantSignature: insertApplication.coApplicantSignature || null,
-      guarantorSignature: insertApplication.guarantorSignature || null,
-      // Legal Questions
-      hasBankruptcy: insertApplication.hasBankruptcy || null,
-      bankruptcyDetails: insertApplication.bankruptcyDetails || null,
-      hasEviction: insertApplication.hasEviction || null,
-      evictionDetails: insertApplication.evictionDetails || null,
-      hasCriminalHistory: insertApplication.hasCriminalHistory || null,
-      criminalHistoryDetails: insertApplication.criminalHistoryDetails || null,
-      hasPets: insertApplication.hasPets || null,
-      petDetails: insertApplication.petDetails || null,
-      smokingStatus: insertApplication.smokingStatus || null,
-      documents: insertApplication.documents || null,
-      encryptedData: insertApplication.encryptedData || null,
-    };
-    console.log('Storage: Creating application with encrypted data:', !!application.encryptedData);
-    this.applications.set(id, application);
-    return application;
-  }
+    // Filter out null values and convert to proper format
+    const cleanData = Object.fromEntries(
+      Object.entries(insertApplication).filter(([_, value]) => value !== null && value !== undefined)
+    );
+    const result = await db.insert(rentalApplications).values(cleanData as any).returning();
+    return result[0];
+  },
 
   async updateApplication(id: number, updateData: Partial<InsertRentalApplication>): Promise<RentalApplication | undefined> {
-    const existing = this.applications.get(id);
-    if (!existing) return undefined;
-
-    const updated: RentalApplication = { 
-      ...existing, 
-      ...updateData,
-      submittedAt: updateData.status === 'submitted' ? new Date() : existing.submittedAt,
-      // Ensure required fields are not null
-      moveInDate: updateData.moveInDate || existing.moveInDate,
-      applicantDob: updateData.applicantDob || existing.applicantDob,
-    };
-    this.applications.set(id, updated);
-    return updated;
-  }
+    // Filter out null values and convert to proper format
+    const cleanData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== null && value !== undefined)
+    );
+    const result = await db
+      .update(rentalApplications)
+      .set(cleanData as any)
+      .where(eq(rentalApplications.id, id))
+      .returning();
+    return result[0];
+  },
 
   async getAllApplications(): Promise<RentalApplication[]> {
-    return Array.from(this.applications.values());
+    return await db.select().from(rentalApplications);
   }
-}
-
-export const storage = new MemStorage();
+};

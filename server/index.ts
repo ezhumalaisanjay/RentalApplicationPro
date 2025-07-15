@@ -51,12 +51,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint for Render
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
-// API Routes from Netlify functions
+
+// API Routes
 app.post('/api/submit-application', async (req, res) => {
   try {
     log('=== SUBMIT-APPLICATION ENDPOINT CALLED ===');
@@ -64,74 +61,45 @@ app.post('/api/submit-application', async (req, res) => {
     log('Request method:', req.method);
     log('Request headers:', JSON.stringify(req.headers, null, 2));
 
-    // Check payload size
+    // Check payload size for logging
     const contentLength = req.headers['content-length'];
     const payloadSizeMB = contentLength ? (parseInt(contentLength) / (1024 * 1024)).toFixed(2) : 'unknown';
     log(`Payload size: ${payloadSizeMB}MB`);
 
-    if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) {
-      log('Very large payload detected - using simplified approach');
-      return res.status(413).json({ 
-        error: 'Payload too large', 
-        message: 'Request payload exceeds 5MB limit. Please upload large files separately.',
-        payloadSizeMB: parseFloat(payloadSizeMB)
-      });
-    }
-
-    const { applicationData, files, encryptedData } = req.body;
+    const { applicationData, uploadedFilesMetadata } = req.body;
 
     if (!applicationData) {
       return res.status(400).json({ error: 'Missing application data' });
     }
 
+    // Log the received data for debugging
+    log('Received applicationData:', JSON.stringify(applicationData, null, 2));
+    log('Received uploadedFilesMetadata:', JSON.stringify(uploadedFilesMetadata, null, 2));
+
     // Validate application data
+    log('About to validate applicationData.applicantDob:', applicationData.applicantDob ? applicationData.applicantDob.toString() : 'null');
+    log('About to validate applicationData.moveInDate:', applicationData.moveInDate ? applicationData.moveInDate.toString() : 'null');
+    
     const validatedData = insertRentalApplicationSchema.parse(applicationData);
+    
+    log('Validation passed. validatedData.applicantDob:', validatedData.applicantDob ? validatedData.applicantDob.toString() : 'null');
+    log('Validation passed. validatedData.moveInDate:', validatedData.moveInDate ? validatedData.moveInDate.toString() : 'null');
 
     // Create application in database
     const result = await storage.createApplication({
       ...validatedData,
-      files: files || [],
-      encryptedData: encryptedData || null
+      documents: uploadedFilesMetadata ? JSON.stringify(uploadedFilesMetadata) : undefined,
+      encryptedData: undefined // No longer sending encrypted data to server
     });
-
-    // Send webhook
-    if (process.env.WEBHOOK_URL) {
-      const webhookPayload = {
-        type: 'rental_application_submitted',
-        applicationId: result.application.id,
-        timestamp: new Date().toISOString(),
-        data: {
-          application: result.application,
-          files: files ? files.length : 0,
-          hasEncryptedData: !!encryptedData
-        }
-      };
-
-      try {
-        const webhookResponse = await fetch(process.env.WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(webhookPayload)
-        });
-
-        if (webhookResponse.ok) {
-          log('Webhook sent successfully');
-        } else {
-          log('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
-        }
-      } catch (webhookError) {
-        log('Webhook error:', webhookError);
-      }
-    }
 
     res.json({
       success: true,
-      applicationId: result.application.id,
+      applicationId: result.id,
       message: 'Application submitted successfully'
     });
 
   } catch (error) {
-    log('Submit application error:', error);
+    log('Submit application error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -160,34 +128,7 @@ app.post('/api/upload-files', async (req, res) => {
       uploadedAt: new Date().toISOString()
     }));
 
-    // Send webhook for file upload
-    if (process.env.WEBHOOK_URL) {
-      const webhookPayload = {
-        type: 'files_uploaded',
-        personType,
-        timestamp: new Date().toISOString(),
-        data: {
-          files: processedFiles,
-          fileCount: processedFiles.length
-        }
-      };
 
-      try {
-        const webhookResponse = await fetch(process.env.WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(webhookPayload)
-        });
-
-        if (webhookResponse.ok) {
-          log('File upload webhook sent successfully');
-        } else {
-          log('File upload webhook failed:', webhookResponse.status);
-        }
-      } catch (webhookError) {
-        log('File upload webhook error:', webhookError);
-      }
-    }
 
     res.json({
       success: true,
@@ -196,7 +137,7 @@ app.post('/api/upload-files', async (req, res) => {
     });
 
   } catch (error) {
-    log('Upload files error:', error);
+    log('Upload files error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -204,102 +145,7 @@ app.post('/api/upload-files', async (req, res) => {
   }
 });
 
-app.post('/api/submit-webhook-only', async (req, res) => {
-  try {
-    log('=== SUBMIT-WEBHOOK-ONLY ENDPOINT CALLED ===');
-    
-    // Check payload size
-    const contentLength = req.headers['content-length'];
-    const payloadSizeMB = contentLength ? (parseInt(contentLength) / (1024 * 1024)).toFixed(2) : 'unknown';
-    log(`Payload size: ${payloadSizeMB}MB`);
 
-    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
-      log('Very large payload detected - using simplified approach');
-      return res.status(413).json({ 
-        error: 'Payload too large', 
-        message: 'Request payload exceeds 50MB limit. Please reduce file sizes and try again.',
-        payloadSizeMB: parseFloat(payloadSizeMB)
-      });
-    }
-    
-    const { applicationData, encryptedData } = req.body;
-
-    if (!applicationData) {
-      return res.status(400).json({ error: 'Missing application data' });
-    }
-
-    // Send webhook with optimized payload for large data
-    if (process.env.WEBHOOK_URL) {
-      // Create a lightweight webhook payload instead of sending full data
-      const webhookPayload = {
-        type: 'rental_application_webhook_only',
-        timestamp: new Date().toISOString(),
-        payloadSizeMB: payloadSizeMB,
-        data: {
-          // Send only essential application info, not full data
-          applicationSummary: {
-            buildingAddress: applicationData.buildingAddress,
-            apartmentNumber: applicationData.apartmentNumber,
-            monthlyRent: applicationData.monthlyRent,
-            applicantName: applicationData.applicantName,
-            coApplicantName: applicationData.coApplicantName,
-            hasGuarantor: applicationData.hasGuarantor,
-            guarantorName: applicationData.guarantorName,
-            submittedAt: new Date().toISOString()
-          },
-          // Send metadata about encrypted data instead of full data
-          encryptedDataSummary: encryptedData ? {
-            hasEncryptedData: true,
-            documentTypes: Object.keys(encryptedData.documents || {}),
-            totalFiles: encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0,
-            dataSize: 'large' // Indicate this was a large payload
-          } : {
-            hasEncryptedData: false
-          }
-        }
-      };
-
-      try {
-        const webhookResponse = await fetch(process.env.WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(webhookPayload)
-        });
-
-        if (webhookResponse.ok) {
-          log('Webhook-only submission successful with optimized payload');
-          res.json({ success: true, message: 'Webhook sent successfully with optimized data' });
-        } else {
-          log('Webhook-only submission failed:', webhookResponse.status);
-          // Don't fail the entire request if webhook fails
-          res.json({ 
-            success: true, 
-            message: 'Application data received (webhook failed but data saved)',
-            webhookError: `Webhook failed with status ${webhookResponse.status}`
-          });
-        }
-      } catch (webhookError) {
-        log('Webhook-only error:', webhookError);
-        // Don't fail the entire request if webhook fails
-        res.json({ 
-          success: true, 
-          message: 'Application data received (webhook error but data saved)',
-          webhookError: 'Webhook connection failed'
-        });
-      }
-    } else {
-      log('No webhook URL configured - skipping webhook');
-      res.json({ success: true, message: 'Application data received (no webhook configured)' });
-    }
-
-  } catch (error) {
-    log('Submit webhook-only error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
 
 (async () => {
   const server = await registerRoutes(app);
@@ -331,7 +177,7 @@ app.post('/api/submit-webhook-only', async (req, res) => {
   const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
   server.listen({
     port,
-    host: "0.0.0.0", // Changed from localhost to 0.0.0.0 for Render
+    host: "localhost", // Use localhost for local development
   }, () => {
     log(`serving on port ${port}`);
   }).on('error', (err: any) => {
@@ -339,7 +185,7 @@ app.post('/api/submit-webhook-only', async (req, res) => {
       log(`Port ${port} is busy, trying port ${port + 1}`);
       server.listen({
         port: port + 1,
-        host: "0.0.0.0", // Changed from localhost to 0.0.0.0 for Render
+        host: "localhost", // Use localhost for local development
       }, () => {
         log(`serving on port ${port + 1}`);
       });
