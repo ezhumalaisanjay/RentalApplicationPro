@@ -180,6 +180,8 @@ export function ApplicationForm() {
   };
 
   const handleEncryptedDocumentChange = (person: string, documentType: string, encryptedFiles: EncryptedFile[]) => {
+    console.log('handleEncryptedDocumentChange called:', { person, documentType, encryptedFilesCount: encryptedFiles.length });
+    
     setEncryptedDocuments((prev: any) => ({
       ...prev,
       [person]: {
@@ -370,6 +372,16 @@ export function ApplicationForm() {
   };
 
   const onSubmit = async (data: ApplicationFormData) => {
+    console.log("=== FORM SUBMISSION DEBUG ===");
+    console.log("Form data received:", data);
+    console.log("Form data applicantDob:", data.applicantDob);
+    console.log("Form data moveInDate:", data.moveInDate);
+    console.log("Form data applicantName:", data.applicantName);
+    console.log("Form validation errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
+    console.log("Form is dirty:", form.formState.isDirty);
+    console.log("=== END DEBUG ===");
+    
     // Ensure all required fields are present and valid
     const requiredFields: (keyof ApplicationFormData)[] = [
       'buildingAddress',
@@ -436,14 +448,14 @@ export function ApplicationForm() {
         // Application Info
         buildingAddress: data.buildingAddress,
         apartmentNumber: data.apartmentNumber,
-        moveInDate: safeDateToISO(data.moveInDate),
+        moveInDate: safeDateToISO(data.moveInDate || formData.application?.moveInDate),
         monthlyRent: data.monthlyRent,
         apartmentType: data.apartmentType,
         howDidYouHear: data.howDidYouHear,
         
         // Primary Applicant
         applicantName: data.applicantName,
-        applicantDob: safeDateToISO(data.applicantDob),
+        applicantDob: safeDateToISO(data.applicantDob || formData.applicant?.dob),
         applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
         applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
         applicantEmail: data.applicantEmail,
@@ -546,8 +558,12 @@ export function ApplicationForm() {
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
       console.log('Date fields debug:');
       console.log('  - applicantDob (raw):', data.applicantDob);
+      console.log('  - applicantDob (raw type):', typeof data.applicantDob);
+      console.log('  - applicantDob (raw instanceof Date):', data.applicantDob instanceof Date);
       console.log('  - applicantDob (transformed):', transformedData.applicantDob);
       console.log('  - moveInDate (raw):', data.moveInDate);
+      console.log('  - moveInDate (raw type):', typeof data.moveInDate);
+      console.log('  - moveInDate (raw instanceof Date):', data.moveInDate instanceof Date);
       console.log('  - moveInDate (transformed):', transformedData.moveInDate);
       console.log('Current window location:', window.location.href);
       
@@ -562,6 +578,17 @@ export function ApplicationForm() {
       
       console.log('Request body being sent:', JSON.stringify(requestBody, null, 2));
       console.log('Request body uploadedFilesMetadata:', requestBody.uploadedFilesMetadata);
+      
+      // Validate required fields before submission
+      if (!transformedData.applicantDob) {
+        throw new Error('Date of birth is required. Please select your date of birth.');
+      }
+      if (!transformedData.moveInDate) {
+        throw new Error('Move-in date is required. Please select your move-in date.');
+      }
+      if (!transformedData.applicantName || transformedData.applicantName.trim() === '') {
+        throw new Error('Full name is required. Please enter your full name.');
+      }
       
       // Create AbortController for submission timeout
       const submissionController = new AbortController();
@@ -764,6 +791,9 @@ export function ApplicationForm() {
                         <DatePicker
                           value={field.value}
                           onChange={(date) => {
+                            console.log('DatePicker onChange - moveInDate:', date);
+                            console.log('DatePicker onChange - moveInDate type:', typeof date);
+                            console.log('DatePicker onChange - moveInDate instanceof Date:', date instanceof Date);
                             field.onChange(date);
                             updateFormData('application', 'moveInDate', date); // Store Date object, not string
                           }}
@@ -900,6 +930,9 @@ export function ApplicationForm() {
                         <DatePicker
                           value={field.value}
                           onChange={(date) => {
+                            console.log('DatePicker onChange - applicantDob:', date);
+                            console.log('DatePicker onChange - applicantDob type:', typeof date);
+                            console.log('DatePicker onChange - applicantDob instanceof Date:', date instanceof Date);
                             field.onChange(date);
                             updateFormData('applicant', 'dob', date);
                           }}
@@ -1410,6 +1443,10 @@ export function ApplicationForm() {
                     enableWebhook={true}
                     applicationId={applicationId}
                   />
+                  {/* Debug info for Co-Applicant Documents */}
+                  <div className="bg-green-100 p-2 text-xs text-green-800 mt-2">
+                    Debug: Co-Applicant DocumentSection rendered with referenceId = {referenceId}, applicationId = {applicationId}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1552,6 +1589,10 @@ export function ApplicationForm() {
                     enableWebhook={true}
                     applicationId={applicationId}
                   />
+                  {/* Debug info for Guarantor Documents */}
+                  <div className="bg-blue-100 p-2 text-xs text-blue-800 mt-2">
+                    Debug: Guarantor DocumentSection rendered with referenceId = {referenceId}, applicationId = {applicationId}
+                  </div>
                 </CardContent>
               </Card>
             )}
