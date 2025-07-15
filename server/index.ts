@@ -10,6 +10,7 @@ const app = express();
 // Increase payload limits for file uploads
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: false, limit: '100mb' }));
+app.use(express.raw({ limit: '100mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -206,6 +207,20 @@ app.post('/api/upload-files', async (req, res) => {
 app.post('/api/submit-webhook-only', async (req, res) => {
   try {
     log('=== SUBMIT-WEBHOOK-ONLY ENDPOINT CALLED ===');
+    
+    // Check payload size
+    const contentLength = req.headers['content-length'];
+    const payloadSizeMB = contentLength ? (parseInt(contentLength) / (1024 * 1024)).toFixed(2) : 'unknown';
+    log(`Payload size: ${payloadSizeMB}MB`);
+
+    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
+      log('Very large payload detected - using simplified approach');
+      return res.status(413).json({ 
+        error: 'Payload too large', 
+        message: 'Request payload exceeds 50MB limit. Please reduce file sizes and try again.',
+        payloadSizeMB: parseFloat(payloadSizeMB)
+      });
+    }
     
     const { applicationData, encryptedData } = req.body;
 
