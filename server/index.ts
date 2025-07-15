@@ -246,7 +246,8 @@ app.post('/api/submit-webhook-only', async (req, res) => {
         res.status(500).json({ error: 'Webhook error' });
       }
     } else {
-      res.status(400).json({ error: 'No webhook URL configured' });
+      log('No webhook URL configured - skipping webhook');
+      res.json({ success: true, message: 'Application data received (no webhook configured)' });
     }
 
   } catch (error) {
