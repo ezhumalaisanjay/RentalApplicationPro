@@ -54,6 +54,8 @@ const applicationSchema = z.object({
   applicantState: z.string().optional(),
   applicantZip: z.string().optional(),
   applicantLengthAtAddress: z.string().optional(),
+  applicantLengthYears: z.number().optional(),
+  applicantLengthMonths: z.number().optional(),
   applicantLandlordName: z.string().optional(),
   applicantCurrentRent: z.number().optional(),
   applicantReasonForMoving: z.string().optional(),
@@ -140,6 +142,8 @@ export function ApplicationForm() {
       applicantState: "",
       applicantZip: "",
       applicantLengthAtAddress: "",
+      applicantLengthYears: 0,
+      applicantLengthMonths: 0,
       applicantLandlordName: "",
       applicantCurrentRent: 0,
       applicantReasonForMoving: "",
@@ -490,6 +494,8 @@ export function ApplicationForm() {
         applicantState: data.applicantState,
         applicantZip: data.applicantZip,
         applicantLengthAtAddress: data.applicantLengthAtAddress,
+        applicantLengthYears: data.applicantLengthYears,
+        applicantLengthMonths: data.applicantLengthMonths,
         applicantLandlordName: data.applicantLandlordName,
         applicantCurrentRent: data.applicantCurrentRent,
         applicantReasonForMoving: data.applicantReasonForMoving,
@@ -1196,18 +1202,112 @@ export function ApplicationForm() {
 
                   <FormField
                     control={form.control}
-                    name="applicantLengthAtAddress"
+                    name="applicantLengthYears"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Length at Address</FormLabel>
+                        <FormLabel>Years</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="e.g., 2 years 3 months" 
+                            type="number"
+                            placeholder="Years" 
+                            {...field}
+                            className="input-field"
+                            onChange={(e) => {
+                              const value = e.target.value ? parseInt(e.target.value) : 0;
+                              field.onChange(value);
+                              updateFormData('applicant', 'lengthYears', value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicantLengthMonths"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Months</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            placeholder="Months" 
+                            {...field}
+                            className="input-field"
+                            onChange={(e) => {
+                              const value = e.target.value ? parseInt(e.target.value) : 0;
+                              field.onChange(value);
+                              updateFormData('applicant', 'lengthMonths', value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicantLandlordName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Landlord's Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter landlord's name" 
                             {...field}
                             className="input-field"
                             onChange={(e) => {
                               field.onChange(e);
-                              updateFormData('applicant', 'lengthAtAddress', e.target.value);
+                              updateFormData('applicant', 'landlordName', e.target.value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicantCurrentRent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Monthly Rent</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            placeholder="Enter monthly rent" 
+                            {...field}
+                            className="input-field"
+                            onChange={(e) => {
+                              const value = e.target.value ? parseFloat(e.target.value) : 0;
+                              field.onChange(value);
+                              updateFormData('applicant', 'currentRent', value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicantReasonForMoving"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Why Are You Moving?</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Please explain your reason for moving" 
+                            {...field}
+                            className="input-field"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              updateFormData('applicant', 'reasonForMoving', e.target.value);
                             }}
                           />
                         </FormControl>
