@@ -21,7 +21,7 @@ export const ApplicationInstructions: React.FC<ApplicationInstructionsProps> = (
     <div className="text-sm text-gray-700 mb-4 text-center">
       122 East 42nd Street, Suite 1903 New York, NY 10168
       <br />
-      Tel: (646) 545-6700 Fax: (646) 304-2255 Leasing Direct Line: 646 545 6710
+      Tel: 646.545.6710 Fax: (646) 304-2255 Leasing Direct Line: 646.545.6710
     </div>
     <div className="mb-4">
       Thank you for choosing a Liberty Place Property Management apartment.

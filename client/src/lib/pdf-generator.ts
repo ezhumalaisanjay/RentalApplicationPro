@@ -239,7 +239,7 @@ export class PDFGenerator {
     this.checkPageBreak();
     this.addSection("LIBERTY PLACE");
     this.addText("122 East 42nd Street, Suite 1903 New York, NY 10168", 10);
-    this.addText("Tel: 646 545 6710 Fax: (646) 304-2255 Leasing Direct Line: 646 545 6710", 10);
+    this.addText("Tel: 646.545.6710 Fax: (646) 304-2255 Leasing Direct Line: 646.545.6710", 10);
     this.yPosition += 2;
     this.addText("Thank you for choosing a Liberty Place Property Management apartment.", 10);
     this.yPosition += 2;
