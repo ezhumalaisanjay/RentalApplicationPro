@@ -906,7 +906,7 @@ export function ApplicationForm() {
               <div>
                 <Label className="text-base font-medium">How did you hear about us?</Label>
                 <div className="flex flex-wrap gap-4 mt-3">
-                  {['Building Sign', 'Broker', 'Other'].map((option) => (
+                  {['Building Sign', 'Broker', 'Street Easy', 'Other'].map((option) => (
                     <div key={option} className="flex items-center space-x-2 checkbox-container">
                       <Checkbox 
                         id={option}
