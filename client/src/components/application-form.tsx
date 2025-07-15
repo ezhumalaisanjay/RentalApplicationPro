@@ -1471,10 +1471,6 @@ export function ApplicationForm() {
                     enableWebhook={true}
                     applicationId={applicationId}
                   />
-                  {/* Debug info for Co-Applicant Documents */}
-                  <div className="bg-green-100 p-2 text-xs text-green-800 mt-2">
-                    Debug: Co-Applicant DocumentSection rendered with referenceId = {referenceId}, applicationId = {applicationId}
-                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1771,16 +1767,6 @@ export function ApplicationForm() {
                     enableWebhook={true}
                     applicationId={applicationId}
                   />
-                  {/* Debug info for Guarantor Documents */}
-                  <div className="bg-blue-100 p-2 text-xs text-blue-800 mt-2">
-                    Debug: Guarantor DocumentSection rendered with referenceId = {referenceId}, applicationId = {applicationId}
-                    <br />
-                    Has Guarantor: {hasGuarantor ? 'Yes' : 'No'}
-                    <br />
-                    Encrypted Documents Count: {encryptedDocuments?.guarantor ? Object.keys(encryptedDocuments.guarantor).length : 0}
-                    <br />
-                    Documents Count: {documents?.guarantor ? Object.keys(documents.guarantor).length : 0}
-                        </div>
                 </CardContent>
               </Card>
             )}
