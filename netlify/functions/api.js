@@ -77,8 +77,28 @@ app.use((req, res, next) => {
 });
 
 // Import and setup database storage
-const { storage } = require('./storage');
-const { insertRentalApplicationSchema } = require('./schema');
+console.log('=== IMPORTING MODULES ===');
+try {
+  console.log('Importing storage module...');
+  const { storage } = require('./storage');
+  console.log('Storage module imported successfully');
+  console.log('Storage object type:', typeof storage);
+  console.log('Storage object keys:', storage ? Object.keys(storage) : 'null');
+} catch (storageImportError) {
+  console.error('Failed to import storage module:', storageImportError);
+  throw storageImportError;
+}
+
+try {
+  console.log('Importing schema module...');
+  const { insertRentalApplicationSchema } = require('./schema');
+  console.log('Schema module imported successfully');
+  console.log('Schema type:', typeof insertRentalApplicationSchema);
+} catch (schemaImportError) {
+  console.error('Failed to import schema module:', schemaImportError);
+  throw schemaImportError;
+}
+
 const { z } = require('zod');
 const CryptoJS = require('crypto-js');
 
@@ -189,6 +209,8 @@ app.post("/api/submit-application", async (req, res) => {
   const handleRequest = async () => {
     try {
       console.log('=== HANDLE REQUEST STARTED ===');
+      console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
+      console.log('Environment check - ENCRYPTION_KEY exists:', !!process.env.ENCRYPTION_KEY);
     console.log('=== Starting application submission ===');
     console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     console.log('Request method:', req.method);
@@ -526,12 +548,23 @@ app.post("/api/submit-application", async (req, res) => {
         console.log('Storage methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(storage)));
         console.log('createApplication method exists:', typeof storage.createApplication);
         
+        // Check if storage is properly initialized
+        if (!storage) {
+          throw new Error('Storage object is not initialized');
+        }
+        
+        if (typeof storage.createApplication !== 'function') {
+          throw new Error('storage.createApplication is not a function');
+        }
+        
+        console.log('About to call storage.createApplication with data...');
         const result = await storage.createApplication(minimalApplication);
         console.log('Storage.createApplication completed successfully');
         console.log('Result type:', typeof result);
         console.log('Result keys:', result ? Object.keys(result) : 'null');
         return result;
       } catch (dbError) {
+        console.error('=== DATABASE ERROR ===');
         console.error('Database error:', dbError);
         console.error('Database error stack:', dbError.stack);
         console.error('Database error name:', dbError.name);
@@ -539,6 +572,12 @@ app.post("/api/submit-application", async (req, res) => {
         console.error('Database error constructor:', dbError.constructor.name);
         if (dbError.code) {
           console.error('Database error code:', dbError.code);
+        }
+        if (dbError.sql) {
+          console.error('Database SQL:', dbError.sql);
+        }
+        if (dbError.sqlMessage) {
+          console.error('Database SQL Message:', dbError.sqlMessage);
         }
         throw dbError;
       }
