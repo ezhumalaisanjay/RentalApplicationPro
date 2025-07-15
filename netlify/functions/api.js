@@ -996,6 +996,12 @@ app.post("/api/upload", async (req, res) => {
 app.post("/api/upload-files", async (req, res) => {
   try {
     console.log('=== Starting file upload ===');
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Content-Length:', req.headers['content-length']);
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
     
     // Handle both JSON and FormData
     let files = [];
@@ -1005,23 +1011,46 @@ app.post("/api/upload-files", async (req, res) => {
     if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
       // Handle FormData
       console.log('Processing FormData upload');
+      console.log('FormData keys:', Object.keys(req.body));
       
       // Parse FormData (simplified - in production you'd use multer or similar)
       const formData = req.body;
       personType = formData.personType || 'unknown';
       applicationId = formData.applicationId || Date.now();
       
+      console.log('Person type:', personType);
+      console.log('Application ID:', applicationId);
+      
       // Extract files from FormData
       const fileKeys = Object.keys(formData).filter(key => key.startsWith('files['));
+      console.log('File keys found:', fileKeys);
+      console.log('Total file keys:', fileKeys.length);
+      
       const fileCount = fileKeys.length / 5; // Each file has 5 fields
+      console.log('Calculated file count:', fileCount);
       
       for (let i = 0; i < fileCount; i++) {
+        const filename = formData[`files[${i}][filename]`];
+        const encryptedData = formData[`files[${i}][encryptedData]`];
+        const originalSize = formData[`files[${i}][originalSize]`];
+        const mimeType = formData[`files[${i}][mimeType]`];
+        const uploadDate = formData[`files[${i}][uploadDate]`];
+        
+        console.log(`File ${i} data:`, {
+          filename: filename,
+          hasEncryptedData: !!encryptedData,
+          encryptedDataLength: encryptedData ? encryptedData.length : 0,
+          originalSize: originalSize,
+          mimeType: mimeType,
+          uploadDate: uploadDate
+        });
+        
         const file = {
-          filename: formData[`files[${i}][filename]`],
-          encryptedData: formData[`files[${i}][encryptedData]`],
-          originalSize: parseInt(formData[`files[${i}][originalSize]`]),
-          mimeType: formData[`files[${i}][mimeType]`],
-          uploadDate: formData[`files[${i}][uploadDate]`]
+          filename: filename,
+          encryptedData: encryptedData,
+          originalSize: parseInt(originalSize) || 0,
+          mimeType: mimeType,
+          uploadDate: uploadDate
         };
         files.push(file);
       }
@@ -1041,7 +1070,30 @@ app.post("/api/upload-files", async (req, res) => {
     });
     
     if (!files || !Array.isArray(files)) {
-      return res.status(400).json({ error: "No files provided" });
+      console.error('No files provided or files is not an array');
+      console.error('Files value:', files);
+      console.error('Files type:', typeof files);
+      return res.status(400).json({ 
+        error: "No files provided", 
+        details: "Files array is missing or invalid",
+        receivedData: {
+          filesType: typeof files,
+          filesValue: files,
+          bodyKeys: req.body ? Object.keys(req.body) : 'null'
+        }
+      });
+    }
+    
+    if (files.length === 0) {
+      console.error('Files array is empty');
+      return res.status(400).json({ 
+        error: "No files provided", 
+        details: "Files array is empty",
+        receivedData: {
+          filesCount: files.length,
+          bodyKeys: req.body ? Object.keys(req.body) : 'null'
+        }
+      });
     }
 
     const secretKey = process.env.ENCRYPTION_KEY || 'your-secret-key-change-in-production';
@@ -1051,8 +1103,21 @@ app.post("/api/upload-files", async (req, res) => {
     const processFiles = async () => {
       for (let i = 0; i < files.length; i++) {
         const encryptedFile = files[i];
+        
+        // Validate individual file
+        if (!encryptedFile.filename) {
+          console.error(`File ${i} missing filename`);
+          throw new Error(`File ${i} missing filename`);
+        }
+        
+        if (!encryptedFile.encryptedData) {
+          console.error(`File ${i} (${encryptedFile.filename}) missing encrypted data`);
+          throw new Error(`File ${i} (${encryptedFile.filename}) missing encrypted data`);
+        }
+        
         try {
           console.log(`Processing file ${i + 1}/${files.length}: ${encryptedFile.filename}`);
+          console.log(`File ${i} encrypted data length:`, encryptedFile.encryptedData.length);
           
           // Decrypt the file
           const bytes = CryptoJS.AES.decrypt(encryptedFile.encryptedData, secretKey);
