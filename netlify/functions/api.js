@@ -20,6 +20,14 @@ const upload = multer({
   }
 });
 
+// Configure multer for text-only FormData (no file uploads)
+const textUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fieldSize: 100 * 1024 * 1024 // 100MB field size limit
+  }
+}).none(); // .none() means no file uploads, only text fields
+
 // Add debugging middleware for body parsing
 app.use((req, res, next) => {
   if (req.path === '/api/submit-application') {
@@ -1003,7 +1011,7 @@ app.post("/api/upload", async (req, res) => {
 });
 
 // Upload encrypted files endpoint with FormData support and person-specific webhooks
-app.post("/api/upload-files", upload.any(), async (req, res) => {
+app.post("/api/upload-files", textUpload, async (req, res) => {
   try {
     console.log('=== Starting file upload ===');
     console.log('Request URL:', req.url);
@@ -1013,6 +1021,15 @@ app.post("/api/upload-files", upload.any(), async (req, res) => {
     console.log('Request body type:', typeof req.body);
     console.log('Request body keys:', req.body ? Object.keys(req.body) : 'null');
     console.log('Files received:', req.files ? req.files.length : 0);
+    
+    // Add error handling for multer
+    if (!req.body) {
+      console.error('No request body received after multer parsing');
+      return res.status(400).json({ 
+        error: "Failed to parse FormData",
+        details: "No request body received"
+      });
+    }
     
     // Handle both JSON and FormData
     let files = [];
@@ -1316,7 +1333,7 @@ app.post("/api/upload-chunk", async (req, res) => {
 });
 
 // Send encrypted data as FormData to webhook
-app.post("/api/send-encrypted-data-webhook", upload.any(), async (req, res) => {
+app.post("/api/send-encrypted-data-webhook", textUpload, async (req, res) => {
   try {
     console.log('=== Sending encrypted data webhook ===');
     
@@ -1403,6 +1420,17 @@ app.post("/api/send-encrypted-data-webhook", upload.any(), async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    return res.status(400).json({
+      error: "File upload error",
+      details: err.message,
+      code: err.code
+    });
+  }
+  
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
 
@@ -1413,7 +1441,10 @@ app.use((err, req, res, next) => {
   }
 
   console.error('Express error:', err);
-  res.status(status).json({ message });
+  res.status(status).json({ 
+    error: "Internal server error",
+    details: message 
+  });
 });
 
 // Export the serverless handler
