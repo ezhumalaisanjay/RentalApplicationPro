@@ -152,6 +152,9 @@ app.post("/api/applications/:id/submit", async (req, res) => {
 app.post("/api/submit-application", async (req, res) => {
   try {
     console.log('=== Starting application submission ===');
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.url);
     
     // Check if request body exists
     if (!req.body) {
@@ -159,6 +162,8 @@ app.post("/api/submit-application", async (req, res) => {
       return res.status(400).json({ error: "No request body received" });
     }
     
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body keys:', Object.keys(req.body));
     console.log('Request body received:', {
       hasApplicationData: !!req.body.applicationData,
       hasFiles: !!req.body.files,
@@ -344,14 +349,24 @@ app.post("/api/submit-application", async (req, res) => {
     const createApplication = async () => {
       try {
         console.log('Calling storage.createApplication...');
+        console.log('Storage object type:', typeof storage);
+        console.log('Storage methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(storage)));
+        console.log('createApplication method exists:', typeof storage.createApplication);
+        
         const result = await storage.createApplication(minimalApplication);
         console.log('Storage.createApplication completed successfully');
+        console.log('Result type:', typeof result);
+        console.log('Result keys:', result ? Object.keys(result) : 'null');
         return result;
       } catch (dbError) {
         console.error('Database error:', dbError);
         console.error('Database error stack:', dbError.stack);
         console.error('Database error name:', dbError.name);
         console.error('Database error message:', dbError.message);
+        console.error('Database error constructor:', dbError.constructor.name);
+        if (dbError.code) {
+          console.error('Database error code:', dbError.code);
+        }
         throw dbError;
       }
     };
@@ -360,14 +375,17 @@ app.post("/api/submit-application", async (req, res) => {
       setTimeout(() => reject(new Error('Database operation timed out')), 20000); // 20 second timeout
     });
     
+    let application;
     try {
-      const application = await Promise.race([createApplication(), timeoutPromise]);
+      application = await Promise.race([createApplication(), timeoutPromise]);
       console.log('Application created successfully with ID:', application.id);
+      console.log('Application object:', JSON.stringify(application, null, 2));
     } catch (error) {
       console.error('Error in application creation:', error);
       console.error('Error stack:', error.stack);
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
+      console.error('Error constructor:', error.constructor.name);
       throw error;
     }
 
@@ -555,11 +573,14 @@ app.post("/api/submit-application", async (req, res) => {
 
       console.log('Sending webhook payload (size optimized)');
       console.log('Webhook payload size:', JSON.stringify(webhookPayload).length);
+      console.log('Webhook payload keys:', Object.keys(webhookPayload));
       
       // Add timeout to webhook request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
+      try {
+        console.log('Making webhook request...');
         const webhookResponse = await fetch('https://hook.us1.make.com/og5ih0pl1br72r1pko39iimh3hdl31hk', {
           method: 'POST',
           headers: {
@@ -570,16 +591,22 @@ app.post("/api/submit-application", async (req, res) => {
         });
         
         clearTimeout(timeoutId);
+        console.log('Webhook response received:', webhookResponse.status, webhookResponse.statusText);
 
-      if (!webhookResponse.ok) {
-        console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
-        const errorText = await webhookResponse.text();
-        console.error('Webhook error response:', errorText);
-      } else {
-        console.log('Webhook sent successfully');
-        const responseText = await webhookResponse.text();
-        console.log('Webhook response:', responseText);
-        webhookSent = true;
+        if (!webhookResponse.ok) {
+          console.error('Webhook failed:', webhookResponse.status, webhookResponse.statusText);
+          const errorText = await webhookResponse.text();
+          console.error('Webhook error response:', errorText);
+        } else {
+          console.log('Webhook sent successfully');
+          const responseText = await webhookResponse.text();
+          console.log('Webhook response:', responseText);
+          webhookSent = true;
+        }
+      } catch (webhookRequestError) {
+        console.error('Webhook request error:', webhookRequestError);
+        console.error('Webhook request error stack:', webhookRequestError.stack);
+        clearTimeout(timeoutId);
       }
     } catch (webhookError) {
       console.error('Webhook error:', webhookError);
@@ -612,10 +639,14 @@ app.post("/api/submit-application", async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error in submit-application:', error);
-    console.error('Error stack:', error.stack);
+    console.error('=== CRITICAL ERROR in submit-application ===');
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error.constructor.name);
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error code:', error.code);
+    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     
     // Handle specific timeout errors
     if (error.message.includes('timed out') || error.message.includes('timeout')) {
