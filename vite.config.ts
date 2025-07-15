@@ -5,19 +5,11 @@ import path from "path";
 export default defineConfig({
   plugins: [
     react(),
-    // Only include Replit plugins in development mode
-    ...(process.env.NODE_ENV === "development" && process.env.REPL_ID !== undefined
-      ? [
-          import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default()),
-          import("@replit/vite-plugin-cartographer").then((m) => m.cartographer()),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
   root: path.resolve(import.meta.dirname, "client"),

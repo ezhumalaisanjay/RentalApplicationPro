@@ -560,7 +560,7 @@ export function ApplicationForm() {
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
       console.log('Current window location:', window.location.href);
       
-      // Use the redirect rule from netlify.toml which maps /api/* to /.netlify/functions/api/:splat
+      // Use the API endpoint for Render deployment
       const apiEndpoint = '/api';
       console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-webhook-only');
       
