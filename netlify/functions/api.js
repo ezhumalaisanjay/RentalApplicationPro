@@ -188,6 +188,7 @@ app.post("/api/submit-application", async (req, res) => {
   // Global error handler wrapper
   const handleRequest = async () => {
     try {
+      console.log('=== HANDLE REQUEST STARTED ===');
     console.log('=== Starting application submission ===');
     console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     console.log('Request method:', req.method);
@@ -399,7 +400,16 @@ app.post("/api/submit-application", async (req, res) => {
           field: err.path.join('.'),
           message: err.message,
           code: err.code
-        }))
+        })),
+        receivedData: {
+          keys: Object.keys(minimalApplication),
+          sampleValues: {
+            applicantName: minimalApplication.applicantName,
+            applicantEmail: minimalApplication.applicantEmail,
+            buildingAddress: minimalApplication.buildingAddress,
+            monthlyRent: minimalApplication.monthlyRent
+          }
+        }
       });
     }
     
