@@ -255,7 +255,7 @@ export function ApplicationForm() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const response = await fetch('/.netlify/functions/api/upload-files', {
+      const response = await fetch('/api/upload-files', {
         method: 'POST',
         body: formData, // Use FormData instead of JSON
         signal: controller.signal
@@ -560,8 +560,8 @@ export function ApplicationForm() {
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
       console.log('Current window location:', window.location.href);
       
-      // Use the correct Netlify Functions endpoint
-      const apiEndpoint = '/.netlify/functions/api';
+      // Use the redirect rule from netlify.toml which maps /api/* to /.netlify/functions/api/:splat
+      const apiEndpoint = '/api';
       console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
       
       const requestBody = {
@@ -619,7 +619,7 @@ export function ApplicationForm() {
           const processController = new AbortController();
           const processTimeoutId = setTimeout(() => processController.abort(), 30000); // 30 second timeout
           
-          const processResponse = await fetch(`/.netlify/functions/api/process-application/${submissionResult.applicationId}`, {
+          const processResponse = await fetch(`/api/process-application/${submissionResult.applicationId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
