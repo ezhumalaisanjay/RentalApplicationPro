@@ -255,7 +255,7 @@ export function ApplicationForm() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const response = await fetch('/.netlify/functions/api/upload-files', {
+      const response = await fetch('/.netlify/functions/api/api/upload-files', {
         method: 'POST',
         body: formData, // Use FormData instead of JSON
         signal: controller.signal
@@ -581,7 +581,7 @@ export function ApplicationForm() {
       const submissionController = new AbortController();
       const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
       
-      const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
+      const submissionResponse = await fetch(apiEndpoint + '/api/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -619,7 +619,7 @@ export function ApplicationForm() {
           const processController = new AbortController();
           const processTimeoutId = setTimeout(() => processController.abort(), 30000); // 30 second timeout
           
-          const processResponse = await fetch(`/.netlify/functions/api/process-application/${submissionResult.applicationId}`, {
+          const processResponse = await fetch(`/.netlify/functions/api/api/process-application/${submissionResult.applicationId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
