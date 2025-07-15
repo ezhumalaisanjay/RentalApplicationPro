@@ -255,7 +255,7 @@ export function ApplicationForm() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      const response = await fetch('/api/upload-files', {
+      const response = await fetch('/.netlify/functions/api/upload-files', {
         method: 'POST',
         body: formData, // Use FormData instead of JSON
         signal: controller.signal
@@ -559,7 +559,10 @@ export function ApplicationForm() {
       
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
       console.log('Current window location:', window.location.href);
-      console.log('Making request to:', window.location.origin + '/api/submit-application');
+      
+      // Use the correct Netlify Functions endpoint
+      const apiEndpoint = '/.netlify/functions/api';
+      console.log('Making request to:', window.location.origin + apiEndpoint + '/submit-application');
       
       const requestBody = {
         applicationData: transformedData,
@@ -578,7 +581,7 @@ export function ApplicationForm() {
       const submissionController = new AbortController();
       const submissionTimeoutId = setTimeout(() => submissionController.abort(), 45000); // 45 second timeout
       
-      const submissionResponse = await fetch('/api/submit-application', {
+      const submissionResponse = await fetch(apiEndpoint + '/submit-application', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -616,7 +619,7 @@ export function ApplicationForm() {
           const processController = new AbortController();
           const processTimeoutId = setTimeout(() => processController.abort(), 30000); // 30 second timeout
           
-          const processResponse = await fetch(`/api/process-application/${submissionResult.applicationId}`, {
+          const processResponse = await fetch(`/.netlify/functions/api/process-application/${submissionResult.applicationId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
