@@ -73,8 +73,8 @@ const STEPS = [
   { id: 1, title: "Application Info", icon: FileText },
   { id: 2, title: "Primary Applicant", icon: UserCheck },
   { id: 3, title: "Financial Info", icon: CalendarDays },
-  { id: 4, title: "Documents", icon: FolderOpen },
-  { id: 5, title: "Other Occupants", icon: Users }, // New dedicated step
+  { id: 4, title: "Supporting Documents", icon: FolderOpen },
+  { id: 5, title: "Other Occupants", icon: Users },
   { id: 6, title: "Additional People", icon: Users },
   { id: 7, title: "Legal Questions", icon: Shield },
   { id: 8, title: "Digital Signatures", icon: Check },
@@ -1170,12 +1170,32 @@ export function ApplicationForm() {
 
       case 4:
         return (
-          <DocumentSection 
-            title="Primary Applicant Documents"
-            person="applicant"
-            onDocumentChange={handleDocumentChange}
-            onEncryptedDocumentChange={handleEncryptedDocumentChange}
-          />
+          <Card className="form-section">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FolderOpen className="w-5 h-5 mr-2" />
+                Supporting Documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SupportingDocuments 
+                formData={formData}
+                onDocumentChange={(documentType, files) => {
+                  setDocuments((prev: any) => ({
+                    ...prev,
+                    [documentType]: files,
+                  }));
+                }}
+                onEncryptedDocumentChange={(documentType, encryptedFiles) => {
+                  console.log('Encrypted document change:', documentType, encryptedFiles);
+                  setEncryptedDocuments((prev: any) => ({
+                    ...prev,
+                    [documentType]: encryptedFiles,
+                  }));
+                }}
+              />
+            </CardContent>
+          </Card>
         );
 
       case 5:
@@ -1623,6 +1643,169 @@ export function ApplicationForm() {
 
       case 6:
         return (
+          <div className="space-y-8">
+            <Card className="form-section">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Additional People
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Co-Applicant Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hasCoApplicant"
+                      checked={hasCoApplicant}
+                      onCheckedChange={(checked) => {
+                        setHasCoApplicant(checked as boolean);
+                        form.setValue('hasCoApplicant', checked as boolean);
+                      }}
+                    />
+                    <Label htmlFor="hasCoApplicant" className="text-lg font-medium">
+                      Co-Applicant
+                    </Label>
+                  </div>
+
+                  {hasCoApplicant && (
+                    <div className="space-y-6 pl-6 border-l-2 border-gray-200">
+                      {/* Co-Applicant form fields */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Full Name</Label>
+                          <Input 
+                            placeholder="Enter full name"
+                            className="input-field"
+                            onChange={(e) => updateFormData('coApplicant', 'name', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Relationship to Applicant</Label>
+                          <Input 
+                            placeholder="e.g., Spouse, Partner, Roommate"
+                            className="input-field"
+                            onChange={(e) => updateFormData('coApplicant', 'relationship', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Date of Birth</Label>
+                          <DatePicker
+                            onDateChange={(date) => updateFormData('coApplicant', 'dob', date)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Social Security Number</Label>
+                          <Input 
+                            placeholder="XXX-XX-XXXX"
+                            className="input-field"
+                            onChange={(e) => updateFormData('coApplicant', 'ssn', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Phone Number</Label>
+                          <Input 
+                            placeholder="(555) 123-4567"
+                            className="input-field"
+                            onChange={(e) => updateFormData('coApplicant', 'phone', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Email Address</Label>
+                          <Input 
+                            placeholder="email@example.com"
+                            className="input-field"
+                            onChange={(e) => updateFormData('coApplicant', 'email', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Co-Applicant Address */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Address Information</h4>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="sameAddressCoApplicant"
+                            checked={sameAddressCoApplicant}
+                            onCheckedChange={(checked) => {
+                              setSameAddressCoApplicant(checked as boolean);
+                              if (checked) {
+                                copyAddressToCoApplicant();
+                              }
+                            }}
+                          />
+                          <Label htmlFor="sameAddressCoApplicant">Same address as applicant</Label>
+                        </div>
+
+                        {!sameAddressCoApplicant && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Address</Label>
+                              <Input 
+                                placeholder="Enter address"
+                                className="input-field"
+                                onChange={(e) => updateFormData('coApplicant', 'address', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>City</Label>
+                              <Input 
+                                placeholder="Enter city"
+                                className="input-field"
+                                onChange={(e) => updateFormData('coApplicant', 'city', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>State</Label>
+                              <Input 
+                                placeholder="Enter state"
+                                className="input-field"
+                                onChange={(e) => updateFormData('coApplicant', 'state', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>ZIP Code</Label>
+                              <Input 
+                                placeholder="Enter ZIP code"
+                                className="input-field"
+                                onChange={(e) => updateFormData('coApplicant', 'zip', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>Length at Address</Label>
+                              <Input 
+                                placeholder="e.g., 2 years 3 months"
+                                className="input-field"
+                                onChange={(e) => updateFormData('coApplicant', 'lengthAtAddress', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <FinancialSection 
+                        title="Co-Applicant Financial Information"
+                        person="coApplicant"
+                        formData={formData}
+                        updateFormData={updateFormData}
+                      />
+
+                      <DocumentSection 
+                        title="Co-Applicant Documents"
+                        person="coApplicant"
+                        onDocumentChange={handleDocumentChange}
+                        onEncryptedDocumentChange={handleEncryptedDocumentChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 7:
+        return (
           <Card className="form-section">
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -1637,39 +1820,6 @@ export function ApplicationForm() {
               />
             </CardContent>
           </Card>
-        );
-
-      case 7:
-        return (
-          <div className="space-y-8">
-            <Card className="form-section">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FolderOpen className="w-5 h-5 mr-2" />
-                  Supporting Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SupportingDocuments 
-                  formData={formData}
-                  onDocumentChange={(documentType, files) => {
-                    setDocuments((prev: any) => ({
-                      ...prev,
-                      [documentType]: files,
-                    }));
-                  }}
-                  onEncryptedDocumentChange={(documentType, encryptedFiles) => {
-                    console.log('Encrypted document change:', documentType, encryptedFiles);
-                    setEncryptedDocuments((prev: any) => ({
-                      ...prev,
-                      [documentType]: encryptedFiles,
-                    }));
-                  }}
-                />
-
-              </CardContent>
-            </Card>
-          </div>
         );
 
       case 8:
