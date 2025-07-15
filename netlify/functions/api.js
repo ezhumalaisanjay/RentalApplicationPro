@@ -527,27 +527,60 @@ app.post("/api/submit-application", async (req, res) => {
           smokingStatus: application.smokingStatus
         },
         
-        // SECTION 6: DOCUMENTS (simplified for large payloads)
+        // SECTION 6: DOCUMENTS (include actual file data)
         documents: {
           totalFiles: files ? files.length : 0,
-          hasFiles: !!files && files.length > 0
+          hasFiles: !!files && files.length > 0,
+          // Include actual file data
+          files: files || [],
+          // Include metadata about files
+          fileMetadata: files ? files.map((file, index) => ({
+            index: index,
+            name: file.name || `file_${index}`,
+            type: file.type || 'unknown',
+            size: file.size || 0,
+            hasData: !!file.data,
+            dataType: typeof file.data,
+            isBase64: typeof file.data === 'string' && file.data.startsWith('data:')
+          })) : []
         },
         
-        // SECTION 7: SIGNATURES (simplified for large payloads)
+        // SECTION 7: SIGNATURES (include actual signature data)
         signatures: {
           hasApplicantSignature: !!application.applicantSignature,
           hasCoApplicantSignature: !!application.coApplicantSignature,
           hasGuarantorSignature: !!application.guarantorSignature,
           totalSignatures: (!!application.applicantSignature ? 1 : 0) + 
                           (!!application.coApplicantSignature ? 1 : 0) + 
-                          (!!application.guarantorSignature ? 1 : 0)
+                          (!!application.guarantorSignature ? 1 : 0),
+          // Include actual signature data
+          applicantSignature: application.applicantSignature || null,
+          coApplicantSignature: application.coApplicantSignature || null,
+          guarantorSignature: application.guarantorSignature || null,
+          // Include frontend signatures if available
+          frontendSignatures: signatures || {}
         },
         
-        // SECTION 8: ENCRYPTED DATA (simplified for large payloads)
-        encryptedData: {
-          hasEncryptedData: !!encryptedData,
-          documentTypes: encryptedData ? Object.keys(encryptedData.documents || {}) : [],
-          totalEncryptedFiles: encryptedData && encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0
+        // SECTION 8: ENCRYPTED DATA (include actual data when available)
+        encryptedData: encryptedData ? {
+          hasEncryptedData: true,
+          documentTypes: Object.keys(encryptedData.documents || {}),
+          totalEncryptedFiles: encryptedData.allEncryptedFiles ? encryptedData.allEncryptedFiles.length : 0,
+          // Include actual encrypted data
+          documents: encryptedData.documents || {},
+          allEncryptedFiles: encryptedData.allEncryptedFiles || [],
+          // Include metadata about each document type
+          documentMetadata: Object.keys(encryptedData.documents || {}).map(docType => ({
+            type: docType,
+            hasData: !!encryptedData.documents[docType],
+            dataType: typeof encryptedData.documents[docType],
+            isArray: Array.isArray(encryptedData.documents[docType]),
+            length: encryptedData.documents[docType] ? (Array.isArray(encryptedData.documents[docType]) ? encryptedData.documents[docType].length : 1) : 0
+          }))
+        } : {
+          hasEncryptedData: false,
+          documentTypes: [],
+          totalEncryptedFiles: 0
         },
         
         // SECTION 9: APPLICATION STATUS
