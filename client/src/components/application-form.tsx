@@ -34,7 +34,7 @@ const applicationSchema = z.object({
     required_error: "Move-in date is required",
     invalid_type_error: "Please select a valid move-in date",
   }),
-  monthlyRent: z.number().optional(),
+  monthlyRent: z.number().optional().or(z.undefined()),
   apartmentType: z.string().optional(),
   howDidYouHear: z.string().optional(),
 
@@ -53,10 +53,10 @@ const applicationSchema = z.object({
   applicantCity: z.string().optional(),
   applicantState: z.string().optional(),
   applicantZip: z.string().optional(),
-  applicantLengthAtAddressYears: z.number().optional(),
-  applicantLengthAtAddressMonths: z.number().optional(),
+  applicantLengthAtAddressYears: z.number().optional().or(z.undefined()),
+  applicantLengthAtAddressMonths: z.number().optional().or(z.undefined()),
   applicantLandlordName: z.string().optional(),
-  applicantCurrentRent: z.number().optional(),
+  applicantCurrentRent: z.number().optional().or(z.undefined()),
   applicantReasonForMoving: z.string().optional(),
 
   // Conditional fields
@@ -124,7 +124,7 @@ export function ApplicationForm() {
       buildingAddress: "",
       apartmentNumber: "",
       moveInDate: undefined as any,
-      monthlyRent: 0,
+      monthlyRent: undefined,
       apartmentType: "",
       howDidYouHear: "",
 
@@ -140,10 +140,10 @@ export function ApplicationForm() {
       applicantCity: "",
       applicantState: "",
       applicantZip: "",
-      applicantLengthAtAddressYears: 0,
-      applicantLengthAtAddressMonths: 0,
+      applicantLengthAtAddressYears: undefined,
+      applicantLengthAtAddressMonths: undefined,
       applicantLandlordName: "",
-      applicantCurrentRent: 0,
+      applicantCurrentRent: undefined,
       applicantReasonForMoving: "",
 
       // Conditional fields
@@ -1199,7 +1199,7 @@ export function ApplicationForm() {
 
                   {/* CURRENT LANDLORDS NAME */}
                   <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">CURRENT LANDLORDS NAME</div>
+                    <FormLabel>CURRENT LANDLORDS NAME</FormLabel>
                     <FormField
                       control={form.control}
                       name="applicantLandlordName"
@@ -1225,6 +1225,31 @@ export function ApplicationForm() {
                   {/* LENGTH AT CURRENT ADDRESS */}
                   <div className="space-y-2">
                     <div className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</div>
+                    {/* MONTHLY RENT */}
+                  <div className="space-y-2">
+                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">MONTHLY RENT</div>
+                    <FormField
+                      control={form.control}
+                      name="applicantCurrentRent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              placeholder="Enter monthly rent amount" 
+                              {...field}
+                              className="input-field border-gray-300 bg-white"
+                              onChange={(e) => {
+                                field.onChange(parseFloat(e.target.value) || "");
+                                updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || "");
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -1239,8 +1264,8 @@ export function ApplicationForm() {
                                 {...field}
                                 className="input-field border-gray-300 bg-white"
                                 onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || 0);
-                                  updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || 0);
+                                  field.onChange(parseInt(e.target.value) || "");
+                                  updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || "");
                                 }}
                               />
                             </FormControl>
@@ -1262,8 +1287,8 @@ export function ApplicationForm() {
                                 {...field}
                                 className="input-field border-gray-300 bg-white"
                                 onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || 0);
-                                  updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || 0);
+                                  field.onChange(parseInt(e.target.value) || "");
+                                  updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || "");
                                 }}
                               />
                             </FormControl>
@@ -1274,31 +1299,7 @@ export function ApplicationForm() {
                     </div>
                   </div>
 
-                  {/* MONTHLY RENT */}
-                  <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">MONTHLY RENT</div>
-                    <FormField
-                      control={form.control}
-                      name="applicantCurrentRent"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              placeholder="Enter monthly rent amount" 
-                              {...field}
-                              className="input-field border-gray-300 bg-white"
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || 0);
-                                updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || 0);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  
 
                   {/* WHY ARE YOU MOVING */}
                   <div className="space-y-2">
