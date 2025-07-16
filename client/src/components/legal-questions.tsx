@@ -20,7 +20,7 @@ export function LegalQuestions({ formData, updateFormData }: LegalQuestionsProps
         {/* Landlord/Tenant Legal Action */}
         <div className="space-y-3">
           <Label htmlFor="landlordTenantLegalAction" className="text-sm font-medium">
-            1) HAVE YOU EVER BEEN IN LANDLORD/TENANT LEGAL ACTION?
+             HAVE YOU EVER BEEN IN LANDLORD/TENANT LEGAL ACTION?
           </Label>
           <Select
             value={formData.landlordTenantLegalAction || ''}
@@ -39,7 +39,7 @@ export function LegalQuestions({ formData, updateFormData }: LegalQuestionsProps
         {/* Broken Lease */}
         <div className="space-y-3">
           <Label htmlFor="brokenLease" className="text-sm font-medium">
-            2) HAVE YOU EVER BROKEN A LEASE?
+            HAVE YOU EVER BROKEN A LEASE?
           </Label>
           <Select
             value={formData.brokenLease || ''}
