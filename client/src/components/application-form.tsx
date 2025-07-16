@@ -64,15 +64,8 @@ const applicationSchema = z.object({
   hasGuarantor: z.boolean().default(false),
 
   // Legal Questions
-  hasBankruptcy: z.boolean().default(false),
-  bankruptcyDetails: z.string().optional(),
-  hasEviction: z.boolean().default(false),
-  evictionDetails: z.string().optional(),
-  hasCriminalHistory: z.boolean().default(false),
-  criminalHistoryDetails: z.string().optional(),
-  hasPets: z.boolean().default(false),
-  petDetails: z.string().optional(),
-  smokingStatus: z.string().optional(),
+  landlordTenantLegalAction: z.string().optional(),
+  brokenLease: z.string().optional(),
 });
 
 type ApplicationFormData = z.infer<typeof applicationSchema>;
@@ -151,15 +144,8 @@ export function ApplicationForm() {
       hasGuarantor: false,
 
       // Legal Questions
-      hasBankruptcy: false,
-      bankruptcyDetails: "",
-      hasEviction: false,
-      evictionDetails: "",
-      hasCriminalHistory: false,
-      criminalHistoryDetails: "",
-      hasPets: false,
-      petDetails: "",
-      smokingStatus: "",
+      landlordTenantLegalAction: "",
+      brokenLease: "",
     },
   });
 
@@ -575,15 +561,8 @@ export function ApplicationForm() {
       transformedData.otherOccupants = formData.occupants || [];
       
       // Legal Questions
-      transformedData.hasBankruptcy = data.hasBankruptcy;
-      transformedData.bankruptcyDetails = data.bankruptcyDetails;
-      transformedData.hasEviction = data.hasEviction;
-      transformedData.evictionDetails = data.evictionDetails;
-      transformedData.hasCriminalHistory = data.hasCriminalHistory;
-      transformedData.criminalHistoryDetails = data.criminalHistoryDetails;
-      transformedData.hasPets = data.hasPets;
-      transformedData.petDetails = data.petDetails;
-      transformedData.smokingStatus = data.smokingStatus;
+      transformedData.landlordTenantLegalAction = data.landlordTenantLegalAction;
+      transformedData.brokenLease = data.brokenLease;
       
       // Note: Documents and encrypted data are now sent via webhooks, not included in server submission
       console.log('Documents and encrypted data will be sent via webhooks');
