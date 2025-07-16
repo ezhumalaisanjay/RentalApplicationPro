@@ -115,6 +115,7 @@ export function ApplicationForm() {
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState("");
   const [selectedUnit, setSelectedUnit] = useState<UnitItem | null>(null);
+  const [availableApartments, setAvailableApartments] = useState<UnitItem[]>([]);
   const [isLoadingUnits, setIsLoadingUnits] = useState(false);
 
   // Fetch units from Monday.com API
@@ -187,6 +188,9 @@ export function ApplicationForm() {
   const handleBuildingSelect = (buildingAddress: string) => {
     setSelectedBuilding(buildingAddress);
     const unitsForBuilding = MondayApiService.getUnitsByBuilding(units, buildingAddress);
+    setAvailableApartments(unitsForBuilding);
+    
+    // Auto-select first unit if available
     const firstUnit = unitsForBuilding[0] || null;
     setSelectedUnit(firstUnit);
     
@@ -199,6 +203,20 @@ export function ApplicationForm() {
     form.setValue('buildingAddress', buildingAddress);
     form.setValue('apartmentNumber', firstUnit?.name || '');
     form.setValue('apartmentType', firstUnit?.unitType || '');
+  };
+
+  // Handle apartment selection
+  const handleApartmentSelect = (apartmentName: string) => {
+    const selectedApartment = availableApartments.find(unit => unit.name === apartmentName);
+    setSelectedUnit(selectedApartment || null);
+    
+    // Update form data
+    updateFormData('application', 'apartmentNumber', apartmentName);
+    updateFormData('application', 'apartmentType', selectedApartment?.unitType || '');
+    
+    // Update form fields
+    form.setValue('apartmentNumber', apartmentName);
+    form.setValue('apartmentType', selectedApartment?.unitType || '');
   };
 
   const handleDocumentChange = (person: string, documentType: string, files: File[]) => {
@@ -840,13 +858,25 @@ export function ApplicationForm() {
                     <FormItem>
                       <FormLabel>Apartment #</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Auto-populated from building selection" 
-                          {...field}
-                          className="input-field bg-gray-50"
-                          readOnly
-                          value={selectedUnit?.name || field.value}
-                        />
+                        <Select 
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            handleApartmentSelect(value);
+                          }}
+                          disabled={!selectedBuilding || availableApartments.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={!selectedBuilding ? "Select building first" : availableApartments.length === 0 ? "No apartments available" : "Select apartment"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableApartments.map((apartment) => (
+                              <SelectItem key={apartment.id} value={apartment.name}>
+                                {apartment.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
