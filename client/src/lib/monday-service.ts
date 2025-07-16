@@ -1,9 +1,3 @@
-import { ApiClient } from "@mondaydotcomorg/api";
-
-const myToken = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjUzOTcyMTg4NCwiYWFpIjoxMSwidWlkIjo3ODE3NzU4NCwiaWFkIjoiMjAyNS0wNy0xNlQxMjowMDowOC45MzJaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NTUxNjQ0NSwicmduIjoidXNlMSJ9.2r-Dir1kBSZX7fAOjIcAcqfxq-AHpXk3w8jVQvX5kBM";
-
-const mondayApiClient = new ApiClient({ token: myToken });
-
 export interface MondayBuilding {
   id: string;
   name: string;
@@ -17,6 +11,8 @@ export interface MondayApartment {
   apartmentType: string;
   buildingAddress: string;
 }
+
+const MONDAY_API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjUzOTcyMTg4NCwiYWFpIjoxMSwidWlkIjo3ODE3NzU4NCwiaWFkIjoiMjAyNS0wNy0xNlQxMjowMDowOC45MzJaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NTUxNjQ0NSwicmduIjoidXNlMSJ9.2r-Dir1kBSZX7fAOjIcAcqfxq-AHpXk3w8jVQvX5kBM";
 
 const query = `
 query {
@@ -48,8 +44,23 @@ query {
 export class MondayService {
   static async fetchVacantApartments(): Promise<MondayApartment[]> {
     try {
-      const response = await mondayApiClient.request(query);
-      const items = response?.data?.boards?.[0]?.items_page?.items ?? [];
+      const response = await fetch('https://api.monday.com/v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': MONDAY_API_TOKEN,
+        },
+        body: JSON.stringify({
+          query: query
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const items = data?.data?.boards?.[0]?.items_page?.items ?? [];
       
       return items.map((item: any) => {
         const columnValues = item.column_values.reduce((acc: any, col: any) => {
