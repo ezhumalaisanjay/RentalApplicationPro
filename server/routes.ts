@@ -9,6 +9,20 @@ import path from "path";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add CORS headers for development
+  app.use((req, res, next) => {
+    console.log(`[CORS] ${req.method} ${req.path}`);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+    } else {
+      next();
+    }
+  });
+
   // Test endpoint
   app.get("/api/test", (req, res) => {
     res.json({ message: "Server is working!" });
