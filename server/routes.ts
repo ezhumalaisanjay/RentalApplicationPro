@@ -267,68 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Monday.com API proxy endpoint
-  app.post("/api/monday/vacant-apartments", async (req, res) => {
-    try {
-      console.log('Monday.com proxy endpoint called');
-      const MONDAY_API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjUzOTcyMTg4NCwiYWFpIjoxMSwidWlkIjo3ODE3NzU4NCwiaWFkIjoiMjAyNS0wNy0xNlQxMjowMDowOC45MzJaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NTUxNjQ0NSwicmduIjoidXNlMSJ9.2r-Dir1kBSZX7fAOjIcAcqfxq-AHpXk3w8jVQvX5kBM";
-      
-      const query = `
-        query {
-          boards(ids: [8740450373]) {
-            items_page(
-              query_params: {
-                rules: [
-                  {
-                    column_id: "color_mkp7fmq4",
-                    compare_value: "Vacant",
-                    operator: contains_terms
-                  }
-                ]
-              }
-            ) {
-              items {
-                id
-                name
-                column_values(ids: ["name", "color_mkp77nrv", "color_mkp7xdce"]) {
-                  id
-                  text
-                }
-              }
-            }
-          }
-        }
-      `;
 
-      console.log('Making request to Monday.com API...');
-      const response = await fetch('https://api.monday.com/v2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': MONDAY_API_TOKEN,
-        },
-        body: JSON.stringify({
-          query: query
-        })
-      });
-
-      console.log('Monday.com API response status:', response.status);
-      console.log('Monday.com API response headers:', response.headers);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Monday.com API error response:', errorText);
-        throw new Error(`Monday.com API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Monday.com API response data:', JSON.stringify(data, null, 2));
-      res.json(data);
-    } catch (error) {
-      console.error('Monday.com proxy error:', error);
-      res.status(500).json({ error: "Failed to fetch Monday.com data" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
