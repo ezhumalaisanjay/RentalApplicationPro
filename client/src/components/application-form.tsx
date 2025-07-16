@@ -1227,7 +1227,7 @@ export function ApplicationForm() {
                     <div className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</div>
                     {/* MONTHLY RENT */}
                   <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">MONTHLY RENT</div>
+                    <FormLabel>MONTHLY RENT</FormLabel>
                     <FormField
                       control={form.control}
                       name="applicantCurrentRent"
@@ -1250,6 +1250,10 @@ export function ApplicationForm() {
                       )}
                     />
                   </div>
+
+                  {/* LENGTH AT CURRENT ADDRESS */}
+                  <div className="space-y-2">
+                    <FormLabel>LENGTH AT CURRENT ADDRESS</FormLabel>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -1303,7 +1307,7 @@ export function ApplicationForm() {
 
                   {/* WHY ARE YOU MOVING */}
                   <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">WHY ARE YOU MOVING</div>
+                    <FormLabel>WHY ARE YOU MOVING</FormLabel>
                     <FormField
                       control={form.control}
                       name="applicantReasonForMoving"
