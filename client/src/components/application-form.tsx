@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,10 +21,10 @@ import { PDFGenerator } from "@/lib/pdf-generator";
 import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
 import { WebhookService } from "@/lib/webhook-service";
-import { MondayService, MondayApartment, MondayBuilding } from "@/lib/monday-service";
+import { MondayApiService, type UnitItem } from "@/lib/monday-api";
 
 
 const applicationSchema = z.object({
@@ -111,25 +111,27 @@ export function ApplicationForm() {
     section_name: string;
   }[]>([]);
 
-  // Monday.com data state
-  const [mondayApartments, setMondayApartments] = useState<MondayApartment[]>([]);
-  const [mondayBuildings, setMondayBuildings] = useState<MondayBuilding[]>([]);
-  const [availableApartments, setAvailableApartments] = useState<MondayApartment[]>([]);
+  // Monday.com API state
+  const [units, setUnits] = useState<UnitItem[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = useState("");
+  const [selectedUnit, setSelectedUnit] = useState<UnitItem | null>(null);
+  const [isLoadingUnits, setIsLoadingUnits] = useState(false);
 
-  // Fetch Monday.com data on component mount
+  // Fetch units from Monday.com API
   useEffect(() => {
-    const fetchMondayData = async () => {
+    const fetchUnits = async () => {
+      setIsLoadingUnits(true);
       try {
-        const apartments = await MondayService.fetchVacantApartments();
-        setMondayApartments(apartments);
-        const buildings = MondayService.getUniqueBuildings(apartments);
-        setMondayBuildings(buildings);
+        const fetchedUnits = await MondayApiService.fetchVacantUnits();
+        setUnits(fetchedUnits);
       } catch (error) {
-        console.error('Error fetching Monday.com data:', error);
+        console.error('Failed to fetch units:', error);
+      } finally {
+        setIsLoadingUnits(false);
       }
     };
 
-    fetchMondayData();
+    fetchUnits();
   }, []);
 
   const form = useForm<ApplicationFormData>({
@@ -179,6 +181,24 @@ export function ApplicationForm() {
         [field]: value,
       },
     }));
+  };
+
+  // Handle building selection
+  const handleBuildingSelect = (buildingAddress: string) => {
+    setSelectedBuilding(buildingAddress);
+    const unitsForBuilding = MondayApiService.getUnitsByBuilding(units, buildingAddress);
+    const firstUnit = unitsForBuilding[0] || null;
+    setSelectedUnit(firstUnit);
+    
+    // Update form data
+    updateFormData('application', 'buildingAddress', buildingAddress);
+    updateFormData('application', 'apartmentNumber', firstUnit?.name || '');
+    updateFormData('application', 'apartmentType', firstUnit?.unitType || '');
+    
+    // Update form fields
+    form.setValue('buildingAddress', buildingAddress);
+    form.setValue('apartmentNumber', firstUnit?.name || '');
+    form.setValue('apartmentType', firstUnit?.unitType || '');
   };
 
   const handleDocumentChange = (person: string, documentType: string, files: File[]) => {
@@ -761,21 +781,6 @@ export function ApplicationForm() {
     }
   };
 
-  // Handle building selection from Monday.com
-  const handleBuildingSelection = (buildingAddress: string) => {
-    const apartmentsForBuilding = MondayService.getApartmentsForBuilding(mondayApartments, buildingAddress);
-    setAvailableApartments(apartmentsForBuilding);
-    
-    // Auto-populate apartment type if there's only one apartment type for this building
-    if (apartmentsForBuilding.length > 0) {
-      const uniqueTypes = Array.from(new Set(apartmentsForBuilding.map(apt => apt.apartmentType)));
-      if (uniqueTypes.length === 1) {
-        form.setValue('apartmentType', uniqueTypes[0]);
-        updateFormData('application', 'apartmentType', uniqueTypes[0]);
-      }
-    }
-  };
-
 
 
 
@@ -802,27 +807,27 @@ export function ApplicationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Building Address</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          updateFormData('application', 'buildingAddress', value);
-                          handleBuildingSelection(value);
-                        }}
-                        value={field.value}
-                      >
-                        <FormControl>
+                      <FormControl>
+                        <Select 
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            handleBuildingSelect(value);
+                          }}
+                          disabled={isLoadingUnits}
+                        >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select building address" />
+                            <SelectValue placeholder={isLoadingUnits ? "Loading..." : "Select building address"} />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {mondayBuildings.map((building) => (
-                            <SelectItem key={building.id} value={building.buildingAddress}>
-                              {building.buildingAddress}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                          <SelectContent>
+                            {MondayApiService.getUniqueBuildingAddresses(units).map((address) => (
+                              <SelectItem key={address} value={address}>
+                                {address}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -834,34 +839,15 @@ export function ApplicationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Apartment #</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          updateFormData('application', 'apartmentNumber', value);
-                          
-                          // Auto-populate apartment type when apartment is selected
-                          const selectedApartment = availableApartments.find(apt => apt.name === value);
-                          if (selectedApartment) {
-                            form.setValue('apartmentType', selectedApartment.apartmentType);
-                            updateFormData('application', 'apartmentType', selectedApartment.apartmentType);
-                          }
-                        }}
-                        value={field.value}
-                        disabled={!form.getValues('buildingAddress')}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={form.getValues('buildingAddress') ? "Select apartment" : "Select building first"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {availableApartments.map((apartment) => (
-                            <SelectItem key={apartment.id} value={apartment.name}>
-                              {apartment.name} - {apartment.apartmentType}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input 
+                          placeholder="Auto-populated from building selection" 
+                          {...field}
+                          className="input-field bg-gray-50"
+                          readOnly
+                          value={selectedUnit?.name || field.value}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -924,25 +910,15 @@ export function ApplicationForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Apartment Type</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          updateFormData('application', 'apartmentType', value);
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select apartment type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="studio">Studio</SelectItem>
-                          <SelectItem value="1br">1 Bedroom</SelectItem>
-                          <SelectItem value="2br">2 Bedroom</SelectItem>
-                          <SelectItem value="3br">3 Bedroom</SelectItem>
-                          <SelectItem value="4br">4 Bedroom</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input 
+                          placeholder="Auto-populated from building selection" 
+                          {...field}
+                          className="input-field bg-gray-50"
+                          readOnly
+                          value={selectedUnit?.unitType || field.value}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
