@@ -1197,45 +1197,22 @@ export function ApplicationForm() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* CURRENT LANDLORDS NAME */}
+                  <div className="space-y-2">
+                    <h4 className="text-base font-bold uppercase text-gray-900 dark:text-white">CURRENT LANDLORDS NAME</h4>
                     <FormField
                       control={form.control}
-                      name="applicantLengthAtAddressYears"
+                      name="applicantLandlordName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Years at Current Address</FormLabel>
                           <FormControl>
                             <Input 
-                              type="number"
-                              placeholder="Years" 
+                              placeholder="Enter landlord's name" 
                               {...field}
-                              className="input-field"
+                              className="input-field border-gray-300 bg-white"
                               onChange={(e) => {
-                                field.onChange(parseInt(e.target.value) || 0);
-                                updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || 0);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="applicantLengthAtAddressMonths"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Months at Current Address</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              placeholder="Months" 
-                              {...field}
-                              className="input-field"
-                              onChange={(e) => {
-                                field.onChange(parseInt(e.target.value) || 0);
-                                updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || 0);
+                                field.onChange(e);
+                                updateFormData('applicant', 'landlordName', e.target.value);
                               }}
                             />
                           </FormControl>
@@ -1245,72 +1222,108 @@ export function ApplicationForm() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="applicantLandlordName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Landlord's Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter landlord's name" 
-                            {...field}
-                            className="input-field"
-                            onChange={(e) => {
-                              field.onChange(e);
-                              updateFormData('applicant', 'landlordName', e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* LENGTH AT CURRENT ADDRESS */}
+                  <div className="space-y-2">
+                    <h4 className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="applicantLengthAtAddressYears"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Years</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                placeholder="Years" 
+                                {...field}
+                                className="input-field border-gray-300 bg-white"
+                                onChange={(e) => {
+                                  field.onChange(parseInt(e.target.value) || 0);
+                                  updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || 0);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="applicantCurrentRent"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monthly Rent</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            placeholder="Enter monthly rent amount" 
-                            {...field}
-                            className="input-field"
-                            onChange={(e) => {
-                              field.onChange(parseFloat(e.target.value) || 0);
-                              updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || 0);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="applicantLengthAtAddressMonths"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">Months</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                placeholder="Months" 
+                                {...field}
+                                className="input-field border-gray-300 bg-white"
+                                onChange={(e) => {
+                                  field.onChange(parseInt(e.target.value) || 0);
+                                  updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || 0);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-                  <FormField
-                    control={form.control}
-                    name="applicantReasonForMoving"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Why Are You Moving?</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Please explain your reason for moving" 
-                            {...field}
-                            className="input-field"
-                            onChange={(e) => {
-                              field.onChange(e);
-                              updateFormData('applicant', 'reasonForMoving', e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* MONTHLY RENT */}
+                  <div className="space-y-2">
+                    <h4 className="text-base font-bold uppercase text-gray-900 dark:text-white">MONTHLY RENT</h4>
+                    <FormField
+                      control={form.control}
+                      name="applicantCurrentRent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input 
+                              type="number"
+                              placeholder="Enter monthly rent amount" 
+                              {...field}
+                              className="input-field border-gray-300 bg-white"
+                              onChange={(e) => {
+                                field.onChange(parseFloat(e.target.value) || 0);
+                                updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || 0);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* WHY ARE YOU MOVING */}
+                  <div className="space-y-2">
+                    <h4 className="text-base font-bold uppercase text-gray-900 dark:text-white">WHY ARE YOU MOVING</h4>
+                    <FormField
+                      control={form.control}
+                      name="applicantReasonForMoving"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Please explain your reason for moving" 
+                              {...field}
+                              className="input-field border-gray-300 bg-white min-h-[80px]"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                updateFormData('applicant', 'reasonForMoving', e.target.value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
