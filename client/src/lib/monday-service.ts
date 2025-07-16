@@ -15,9 +15,11 @@ export interface MondayApartment {
 export class MondayService {
   static async fetchVacantApartments(): Promise<MondayApartment[]> {
     try {
+      console.log('=== MONDAY SERVICE DEBUG START ===');
       console.log('Making request to Monday.com API...');
       const url = `/api/monday/vacant-apartments?t=${Date.now()}`;
       console.log('Request URL:', url);
+      console.log('Current window location:', window.location.href);
       
       const response = await fetch(url, {
         method: 'POST',
