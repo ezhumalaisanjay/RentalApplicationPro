@@ -1222,10 +1222,7 @@ export function ApplicationForm() {
                     />
                   </div>
 
-                  {/* LENGTH AT CURRENT ADDRESS */}
-                  <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</div>
-                    {/* MONTHLY RENT */}
+                  {/* MONTHLY RENT */}
                   <div className="space-y-2">
                     <FormLabel>MONTHLY RENT</FormLabel>
                     <FormField
