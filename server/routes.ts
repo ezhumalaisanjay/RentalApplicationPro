@@ -7,26 +7,7 @@ import CryptoJS from "crypto-js";
 import fs from "fs";
 import path from "path";
 
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add CORS headers for development
-  app.use((req, res, next) => {
-    console.log(`[CORS] ${req.method} ${req.path}`);
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-      res.sendStatus(200);
-    } else {
-      next();
-    }
-  });
-
-  // Test endpoint
-  app.get("/api/test", (req, res) => {
-    res.json({ message: "Server is working!" });
-  });
   // Get all applications
   app.get("/api/applications", async (req, res) => {
     try {
@@ -199,6 +180,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // Monday.com API proxy endpoint
+  app.get("/api/monday/units", async (req, res) => {
+    try {
+      const MONDAY_API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjUzOTcyMTg4NCwiYWFpIjoxMSwidWlkIjo3ODE3NzU4NCwiaWFkIjoiMjAyNS0wNy0xNlQxMjowMDowOC4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NTUxNjQ0NSwicmduIjoidXNlMSJ9.s43_kjRmv-QaZ92LYdRlEvrq9CYqxKhh3XXpR-8nhKU";
+      const BOARD_ID = "8740450373";
+
+      const query = `
+        query {
+          boards(ids: [${BOARD_ID}]) {
+            items_page(query_params: {
+              rules: [
+                { column_id: "color_mkp7fmq4", compare_value: "Vacant", operator: contains_terms }
+              ]
+            }) {
+              items {
+                id
+                name
+                column_values(ids: ["color_mkp7xdce", "color_mkp77nrv", "color_mkp7fmq4"]) {
+                  id
+                  text
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await fetch('https://api.monday.com/v2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': MONDAY_API_TOKEN,
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Monday API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const items = result?.data?.boards?.[0]?.items_page?.items ?? [];
+
+      const units = items.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        propertyName: item.column_values.find((c: any) => c.id === "color_mkp7xdce")?.text || "",
+        unitType: item.column_values.find((c: any) => c.id === "color_mkp77nrv")?.text || "",
+        status: item.column_values.find((c: any) => c.id === "color_mkp7fmq4")?.text || ""
+      }));
+
+      res.json({ units });
+    } catch (error) {
+      console.error('Monday API proxy error:', error);
+      res.status(500).json({ error: "Failed to fetch units from Monday.com" });
+    }
+  });
+
   // Upload encrypted files
   app.post("/api/upload-files", async (req, res) => {
     try {
@@ -266,8 +305,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to upload files" });
     }
   });
-
-
 
   const httpServer = createServer(app);
   return httpServer;
