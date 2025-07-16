@@ -1222,110 +1222,120 @@ export function ApplicationForm() {
                     />
                   </div>
 
-                  {/* MONTHLY RENT */}
-                  <div className="space-y-2">
-                    <FormLabel>MONTHLY RENT</FormLabel>
-                    <FormField
-                      control={form.control}
-                      name="applicantCurrentRent"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input 
-                              type="number"
-                              placeholder="Enter monthly rent amount" 
-                              {...field}
-                              className="input-field border-gray-300 bg-white"
-                              onChange={(e) => {
-                                field.onChange(parseFloat(e.target.value) || "");
-                                updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || "");
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      {/* LENGTH AT CURRENT ADDRESS */}
+                      <div className="space-y-2">
+                        <div className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="applicantLengthAtAddressYears"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium">Years</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number"
+                                    placeholder="Years" 
+                                    {...field}
+                                    className="input-field border-gray-300 bg-white"
+                                    onChange={(e) => {
+                                      field.onChange(parseInt(e.target.value) || "");
+                                      updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || "");
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                  {/* LENGTH AT CURRENT ADDRESS */}
-                  <div className="space-y-2">
-                    <FormLabel>LENGTH AT CURRENT ADDRESS</FormLabel>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="applicantLengthAtAddressYears"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Years</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="Years" 
-                                {...field}
-                                className="input-field border-gray-300 bg-white"
-                                onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || "");
-                                  updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || "");
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                          <FormField
+                            control={form.control}
+                            name="applicantLengthAtAddressMonths"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium">Months</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number"
+                                    placeholder="Months" 
+                                    {...field}
+                                    className="input-field border-gray-300 bg-white"
+                                    onChange={(e) => {
+                                      field.onChange(parseInt(e.target.value) || "");
+                                      updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || "");
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
 
-                      <FormField
-                        control={form.control}
-                        name="applicantLengthAtAddressMonths"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Months</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="Months" 
-                                {...field}
-                                className="input-field border-gray-300 bg-white"
-                                onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || "");
-                                  updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || "");
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* MONTHLY RENT */}
+                      <div className="space-y-2">
+                        <FormLabel>MONTHLY RENT</FormLabel>
+                        <FormField
+                          control={form.control}
+                          name="applicantCurrentRent"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input 
+                                  type="number"
+                                  placeholder="Enter monthly rent amount" 
+                                  {...field}
+                                  className="input-field border-gray-300 bg-white"
+                                  onChange={(e) => {
+                                    field.onChange(parseFloat(e.target.value) || "");
+                                    updateFormData('applicant', 'currentRent', parseFloat(e.target.value) || "");
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-4">
+                      {/* WHY ARE YOU MOVING */}
+                      <div className="space-y-2">
+                        <FormLabel>WHY ARE YOU MOVING</FormLabel>
+                        <FormField
+                          control={form.control}
+                          name="applicantReasonForMoving"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="Please explain your reason for moving" 
+                                  {...field}
+                                  className="input-field border-gray-300 bg-white min-h-[120px]"
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    updateFormData('applicant', 'reasonForMoving', e.target.value);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   
 
-                  {/* WHY ARE YOU MOVING */}
-                  <div className="space-y-2">
-                    <FormLabel>WHY ARE YOU MOVING</FormLabel>
-                    <FormField
-                      control={form.control}
-                      name="applicantReasonForMoving"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Please explain your reason for moving" 
-                              {...field}
-                              className="input-field border-gray-300 bg-white min-h-[80px]"
-                              onChange={(e) => {
-                                field.onChange(e);
-                                updateFormData('applicant', 'reasonForMoving', e.target.value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                 
                 </div>
               </div>
             </CardContent>
