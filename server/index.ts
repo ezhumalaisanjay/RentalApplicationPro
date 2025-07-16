@@ -149,6 +149,9 @@ app.post('/api/upload-files', async (req, res) => {
 app.post('/api/monday/vacant-apartments', async (req, res) => {
   try {
     log('=== MONDAY.COM PROXY ENDPOINT CALLED ===');
+    log('Request URL:', req.url);
+    log('Request method:', req.method);
+    log('Request headers:', JSON.stringify(req.headers, null, 2));
     const MONDAY_API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjUzOTcyMTg4NCwiYWFpIjoxMSwidWlkIjo3ODE3NzU4NCwiaWFkIjoiMjAyNS0wNy0xNlQxMjowMDowOC45MzJaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6NTUxNjQ0NSwicmduIjoidXNlMSJ9.2r-Dir1kBSZX7fAOjIcAcqfxq-AHpXk3w8jVQvX5kBM";
     
     const query = `

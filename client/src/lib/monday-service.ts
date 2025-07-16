@@ -16,13 +16,15 @@ export class MondayService {
   static async fetchVacantApartments(): Promise<MondayApartment[]> {
     try {
       console.log('Making request to Monday.com API...');
-      const url = '/api/monday/vacant-apartments';
+      const url = `/api/monday/vacant-apartments?t=${Date.now()}`;
       console.log('Request URL:', url);
       
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
 
