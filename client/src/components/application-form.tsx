@@ -18,6 +18,7 @@ import { DocumentSection } from "./document-section";
 import { LegalQuestions } from "./legal-questions";
 import { SupportingDocuments } from "./supporting-documents";
 import { PDFGenerator } from "@/lib/pdf-generator";
+import { EnhancedPDFGenerator } from "@/lib/pdf-generator-enhanced";
 import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
@@ -286,14 +287,39 @@ export function ApplicationForm() {
 
   const generatePDF = async () => {
     try {
-    const pdfGenerator = new PDFGenerator();
+    // Use the enhanced PDF generator for better UI
+    const pdfGenerator = new EnhancedPDFGenerator();
+
+    // Get current form values to ensure we have the latest data
+    const currentFormData = form.getValues();
+    
+    // Combine form data from both sources to ensure all fields are included
+    const combinedApplicationData = {
+      ...formData.application,
+      buildingAddress: currentFormData.buildingAddress || formData.application?.buildingAddress,
+      apartmentNumber: currentFormData.apartmentNumber || formData.application?.apartmentNumber,
+      moveInDate: currentFormData.moveInDate || formData.application?.moveInDate,
+      monthlyRent: currentFormData.monthlyRent || formData.application?.monthlyRent,
+      apartmentType: currentFormData.apartmentType || formData.application?.apartmentType,
+      howDidYouHear: currentFormData.howDidYouHear || formData.application?.howDidYouHear,
+    };
+
+    // Debug logging to verify data
+    console.log('PDF Generation Debug:');
+    console.log('Current form data:', currentFormData);
+    console.log('FormData state:', formData.application);
+    console.log('Combined application data:', combinedApplicationData);
+    console.log('Applicant bank records:', formData.applicant?.bankRecords);
+    console.log('Co-applicant bank records:', formData.coApplicant?.bankRecords);
+    console.log('Guarantor bank records:', formData.guarantor?.bankRecords);
 
     const pdfData = pdfGenerator.generatePDF({
-      application: formData.application,
+      application: combinedApplicationData,
       applicant: formData.applicant,
       coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
       guarantor: hasGuarantor ? formData.guarantor : undefined,
       signatures,
+      occupants: formData.occupants || [],
     });
 
       // Extract base64 from data URL
