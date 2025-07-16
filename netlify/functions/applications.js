@@ -1,5 +1,5 @@
-import { storage } from '../../server/storage.js';
-import { insertRentalApplicationSchema } from '../../shared/schema.js';
+import { storage } from './storage-mock.js';
+import { insertRentalApplicationSchema } from './schema-mock.js';
 import { z } from 'zod';
 import { createCorsResponse, handlePreflight } from './utils.js';
 
