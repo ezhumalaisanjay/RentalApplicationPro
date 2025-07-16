@@ -15,18 +15,30 @@ export interface MondayApartment {
 export class MondayService {
   static async fetchVacantApartments(): Promise<MondayApartment[]> {
     try {
-      const response = await fetch('/api/monday/vacant-apartments', {
+      console.log('Making request to Monday.com API...');
+      const url = '/api/monday/vacant-apartments';
+      console.log('Request URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response text:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      const data = JSON.parse(responseText);
       const items = data?.data?.boards?.[0]?.items_page?.items ?? [];
       
       return items.map((item: any) => {
