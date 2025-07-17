@@ -287,89 +287,58 @@ export function ApplicationForm() {
 
   const generatePDF = async () => {
     try {
-    // Use the enhanced PDF generator for better UI
-    const pdfGenerator = new EnhancedPDFGenerator();
+      // Use the enhanced PDF generator for better UI
+      const pdfGenerator = new EnhancedPDFGenerator();
 
-    // Get current form values to ensure we have the latest data
-    const currentFormData = form.getValues();
-    
-    // Combine form data from both sources to ensure all fields are included
-    const combinedApplicationData = {
-      ...formData.application,
-      buildingAddress: currentFormData.buildingAddress || formData.application?.buildingAddress,
-      apartmentNumber: currentFormData.apartmentNumber || formData.application?.apartmentNumber,
-      moveInDate: currentFormData.moveInDate || formData.application?.moveInDate,
-      monthlyRent: currentFormData.monthlyRent || formData.application?.monthlyRent,
-      apartmentType: currentFormData.apartmentType || formData.application?.apartmentType,
-      howDidYouHear: currentFormData.howDidYouHear || formData.application?.howDidYouHear,
-    };
-
-    // Debug logging to verify data
-    console.log('PDF Generation Debug:');
-    console.log('Current form data:', currentFormData);
-    console.log('FormData state:', formData.application);
-    console.log('Combined application data:', combinedApplicationData);
-    console.log('Applicant bank records:', formData.applicant?.bankRecords);
-    console.log('Co-applicant bank records:', formData.coApplicant?.bankRecords);
-    console.log('Guarantor bank records:', formData.guarantor?.bankRecords);
-
-    const pdfData = pdfGenerator.generatePDF({
-      application: combinedApplicationData,
-      applicant: formData.applicant,
-      coApplicant: hasCoApplicant ? formData.coApplicant : undefined,
-      guarantor: hasGuarantor ? formData.guarantor : undefined,
-      signatures,
-      occupants: formData.occupants || [],
-    });
-
-      // Extract base64 from data URL
-      const base64 = pdfData.split(',')[1];
-
-      // Prepare filename
-      const filename = `rental-application-${new Date().toISOString().split('T')[0]}.pdf`;
-
-      // Send PDF to webhook
-      console.log('Sending PDF to webhook:', {
-        filename,
-        referenceId,
-        applicationId,
-        base64Length: base64.length
-      });
+      // Get current form values to ensure we have the latest data
+      const currentFormData = form.getValues();
       
-      const webhookResult = await WebhookService.sendPDFToWebhook(
-        base64,
-        referenceId,
-        applicationId,
-        filename
-      );
+      // Combine form data from both sources to ensure all fields are included
+      const combinedApplicationData = {
+        ...formData.application,
+        buildingAddress: currentFormData.buildingAddress || formData.application?.buildingAddress,
+        apartmentNumber: currentFormData.apartmentNumber || formData.application?.apartmentNumber,
+        moveInDate: currentFormData.moveInDate || formData.application?.moveInDate,
+        monthlyRent: currentFormData.monthlyRent || formData.application?.monthlyRent,
+        apartmentType: currentFormData.apartmentType || formData.application?.apartmentType,
+        howDidYouHear: currentFormData.howDidYouHear || formData.application?.howDidYouHear,
+      };
 
-      // Notify user of result
-      if (webhookResult.success) {
-        toast({
-          title: "PDF Generated & Sent",
-          description: "Your rental application PDF has been generated and sent to the webhook.",
-        });
-      } else {
-        toast({
-          title: "PDF Generated",
-          description: "Your rental application PDF has been generated, but webhook delivery failed.",
-          variant: "destructive",
-        });
-      }
+      const pdfData = {
+        application: combinedApplicationData,
+        applicant: formData.applicant,
+        coApplicant: formData.coApplicant,
+        guarantor: formData.guarantor,
+        signatures: formData.signatures,
+        occupants: formData.occupants,
+      };
 
-      // Trigger browser download
-    const link = document.createElement('a');
-    link.href = pdfData;
-      link.download = filename;
-    link.click();
+      // Debug logging to verify data
+      console.log('PDF Generation Debug:');
+      console.log('Current form data:', currentFormData);
+      console.log('FormData state:', formData.application);
+      console.log('Combined application data:', combinedApplicationData);
+      console.log('Applicant bank records:', formData.applicant?.bankRecords);
+      console.log('Co-applicant bank records:', formData.coApplicant?.bankRecords);
+      console.log('Guarantor bank records:', formData.guarantor?.bankRecords);
 
+      // Generate PDF asynchronously
+      const pdfDoc = await pdfGenerator.generatePDF(pdfData);
+      
+      // Save the PDF
+      pdfDoc.save('rental-application.pdf');
+      
+      toast({
+        title: "PDF Generated Successfully!",
+        description: "Your rental application PDF has been downloaded.",
+      });
     } catch (error) {
       console.error('Error generating PDF:', error);
-    toast({
-        title: "PDF Generation Failed",
-        description: "There was an error generating your PDF.",
+      toast({
+        title: "Error Generating PDF",
+        description: "There was an error generating the PDF. Please try again.",
         variant: "destructive",
-    });
+      });
     }
   };
 

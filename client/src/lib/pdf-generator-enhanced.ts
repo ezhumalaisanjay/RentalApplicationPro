@@ -24,20 +24,69 @@ export class EnhancedPDFGenerator {
   private readonly secondaryColor: number[] = [51, 51, 51]; // Dark gray
   private readonly accentColor: number[] = [255, 193, 7]; // Gold
   private readonly lightGray: number[] = [245, 245, 245];
+  private readonly logoUrl: string = 'https://files.jotform.com/jufs/CRP_Affordable/form_files/image_686d7ef15b36a.png?md5=_xPaB8nVx7iAFTvQcM8Zyg&expires=1752747683';
 
   constructor() {
-    this.doc = new jsPDF();
+    this.doc = new jsPDF('p', 'mm', 'a4');
     this.setupDocument();
   }
 
-  private setupDocument(): void {
+  private async setupDocument(): Promise<void> {
     // Set document properties
     this.doc.setProperties({
-      title: 'Liberty Place Rental Application',
+      title: 'Rental Application',
       subject: 'Rental Application Form',
-      author: 'Liberty Place Property Management',
-      creator: 'Liberty Place Application System'
+      author: 'CRP Affordable',
+      creator: 'Rental Application System'
     });
+
+    // Add logo to header
+    await this.addLogo();
+  }
+
+  private async addLogo(): Promise<void> {
+    try {
+      // Load the logo image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      return new Promise((resolve, reject) => {
+        img.onload = () => {
+          try {
+            // Calculate logo dimensions (max width 40mm, maintain aspect ratio)
+            const maxWidth = 40;
+            const aspectRatio = img.width / img.height;
+            const logoWidth = maxWidth;
+            const logoHeight = maxWidth / aspectRatio;
+            
+            // Position logo in top-left corner
+            const logoX = this.marginLeft;
+            const logoY = 15;
+            
+            // Add logo to PDF
+            this.doc.addImage(img, 'PNG', logoX, logoY, logoWidth, logoHeight);
+            
+            // Adjust yPosition to account for logo
+            this.yPosition = Math.max(this.yPosition, logoY + logoHeight + 10);
+            
+            resolve();
+          } catch (error) {
+            console.warn('Failed to add logo to PDF:', error);
+            resolve(); // Continue without logo
+          }
+        };
+        
+        img.onerror = () => {
+          console.warn('Failed to load logo image');
+          resolve(); // Continue without logo
+        };
+        
+        img.src = this.logoUrl;
+      });
+    } catch (error) {
+      console.warn('Error adding logo:', error);
+      // Continue without logo
+    }
   }
 
   private addText(text: string, fontSize: number = 10, isBold: boolean = false, color?: number[]): void {
@@ -544,7 +593,13 @@ export class EnhancedPDFGenerator {
     this.doc.text("All information is encrypted and secure", this.marginLeft, this.yPosition);
   }
 
-  public generatePDF(formData: FormData): string {
+  public async generatePDF(data: FormData): Promise<jsPDF> {
+    // Wait for document setup (including logo) to complete
+    await this.setupDocument();
+    
+    // Reset yPosition after logo is added
+    this.yPosition = 30;
+    
     // Add header
     this.addHeader();
     
@@ -555,51 +610,51 @@ export class EnhancedPDFGenerator {
     this.addRequirements();
     
     // Add application information
-    this.addApplicationInfo(formData);
+    this.addApplicationInfo(data);
     
     // Add primary applicant information
-    this.addPersonalInfo("Primary Applicant Information", formData.applicant);
-    this.addFinancialInfo("Primary Applicant", formData.applicant);
+    this.addPersonalInfo("Primary Applicant Information", data.applicant);
+    this.addFinancialInfo("Primary Applicant", data.applicant);
     
     // Add co-applicant information if present
-    if (formData.coApplicant && formData.coApplicant.name) {
-      this.addPersonalInfo("Co-Applicant Information", formData.coApplicant);
-      this.addFinancialInfo("Co-Applicant", formData.coApplicant);
+    if (data.coApplicant && data.coApplicant.name) {
+      this.addPersonalInfo("Co-Applicant Information", data.coApplicant);
+      this.addFinancialInfo("Co-Applicant", data.coApplicant);
     }
     
     // Add guarantor information if present
-    if (formData.guarantor && formData.guarantor.name) {
-      this.addPersonalInfo("Guarantor Information", formData.guarantor);
-      this.addFinancialInfo("Guarantor", formData.guarantor);
+    if (data.guarantor && data.guarantor.name) {
+      this.addPersonalInfo("Guarantor Information", data.guarantor);
+      this.addFinancialInfo("Guarantor", data.guarantor);
     }
     
     // Add legal questions (only two as requested)
-    this.addLegalQuestions(formData);
+    this.addLegalQuestions(data);
 
     // Supporting Documents section removed as requested
 
     // Add occupants section
-    this.addOccupants(formData.occupants || []);
+    this.addOccupants(data.occupants || []);
     
     // Add legal disclaimer
     this.addLegalDisclaimer();
     
     // Add signatures
-    if (formData.signatures.applicant) {
-      this.addSignature("Primary Applicant", formData.signatures.applicant);
+    if (data.signatures.applicant) {
+      this.addSignature("Primary Applicant", data.signatures.applicant);
     }
     
-    if (formData.signatures.coApplicant) {
-      this.addSignature("Co-Applicant", formData.signatures.coApplicant);
+    if (data.signatures.coApplicant) {
+      this.addSignature("Co-Applicant", data.signatures.coApplicant);
     }
     
-    if (formData.signatures.guarantor) {
-      this.addSignature("Guarantor", formData.signatures.guarantor);
+    if (data.signatures.guarantor) {
+      this.addSignature("Guarantor", data.signatures.guarantor);
     }
 
     // Add footer
     this.addFooter();
     
-    return this.doc.output('datauristring');
+    return this.doc;
   }
 } 
