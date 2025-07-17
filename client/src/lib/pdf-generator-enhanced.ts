@@ -24,14 +24,13 @@ export class EnhancedPDFGenerator {
   private readonly secondaryColor: number[] = [51, 51, 51]; // Dark gray
   private readonly accentColor: number[] = [255, 193, 7]; // Gold
   private readonly lightGray: number[] = [245, 245, 245];
-  private readonly logoUrl: string = 'https://files.jotform.com/jufs/CRP_Affordable/form_files/image_686d7ef15b36a.png?md5=_xPaB8nVx7iAFTvQcM8Zyg&expires=1752747683';
 
   constructor() {
     this.doc = new jsPDF('p', 'mm', 'a4');
     this.setupDocument();
   }
 
-  private async setupDocument(): Promise<void> {
+  private setupDocument(): void {
     // Set document properties
     this.doc.setProperties({
       title: 'Rental Application',
@@ -39,54 +38,6 @@ export class EnhancedPDFGenerator {
       author: 'CRP Affordable',
       creator: 'Rental Application System'
     });
-
-    // Add logo to header
-    await this.addLogo();
-  }
-
-  private async addLogo(): Promise<void> {
-    try {
-      // Load the logo image
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      return new Promise((resolve, reject) => {
-        img.onload = () => {
-          try {
-            // Calculate logo dimensions (max width 40mm, maintain aspect ratio)
-            const maxWidth = 40;
-            const aspectRatio = img.width / img.height;
-            const logoWidth = maxWidth;
-            const logoHeight = maxWidth / aspectRatio;
-            
-            // Position logo in top-left corner
-            const logoX = this.marginLeft;
-            const logoY = 15;
-            
-            // Add logo to PDF
-            this.doc.addImage(img, 'PNG', logoX, logoY, logoWidth, logoHeight);
-            
-            // Adjust yPosition to account for logo
-            this.yPosition = Math.max(this.yPosition, logoY + logoHeight + 10);
-            
-            resolve();
-          } catch (error) {
-            console.warn('Failed to add logo to PDF:', error);
-            resolve(); // Continue without logo
-          }
-        };
-        
-        img.onerror = () => {
-          console.warn('Failed to load logo image');
-          resolve(); // Continue without logo
-        };
-        
-        img.src = this.logoUrl;
-      });
-    } catch (error) {
-      console.warn('Error adding logo:', error);
-      // Continue without logo
-    }
   }
 
   private addText(text: string, fontSize: number = 10, isBold: boolean = false, color?: number[]): void {
@@ -203,50 +154,39 @@ export class EnhancedPDFGenerator {
   }
 
   private addHeader(): void {
-    // Company logo placeholder (you can add actual logo image)
-    this.doc.setFillColor(this.primaryColor[0], this.primaryColor[1], this.primaryColor[2]);
-    this.doc.rect(this.marginLeft, this.yPosition, 25, 18, 'F');
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.setFontSize(7);
+    // Add CRP Affordable branding
+    this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('LIBERTY', this.marginLeft + 3, this.yPosition + 7);
-    this.doc.text('PLACE', this.marginLeft + 3, this.yPosition + 12);
-    
-    // Company name
     this.doc.setTextColor(this.primaryColor[0], this.primaryColor[1], this.primaryColor[2]);
+    this.doc.text('CRP AFFORDABLE', this.marginLeft, this.yPosition);
+    
+    // Add subtitle
+    this.yPosition += 8;
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(this.secondaryColor[0], this.secondaryColor[1], this.secondaryColor[2]);
+    this.doc.text('Property Management', this.marginLeft, this.yPosition);
+    
+    // Add title
+    this.yPosition += 12;
     this.doc.setFontSize(16);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text("Liberty Place Property Management", this.marginLeft + 35, this.yPosition + 10);
+    this.doc.setTextColor(this.secondaryColor[0], this.secondaryColor[1], this.secondaryColor[2]);
+    this.doc.text('RENTAL APPLICATION', this.marginLeft, this.yPosition);
     
-    // Address and contact info
-    this.doc.setFontSize(8);
+    // Add date
+    this.yPosition += 8;
+    this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(this.secondaryColor[0], this.secondaryColor[1], this.secondaryColor[2]);
-    this.doc.text("122 East 42nd Street, Suite 1903, New York, NY 10168", this.marginLeft + 35, this.yPosition + 16);
-    this.doc.text("Tel: (646) 545-6700 | Fax: (646) 304-2255", this.marginLeft + 35, this.yPosition + 20);
-    this.doc.text("Leasing Direct Line: (646) 545-6700", this.marginLeft + 35, this.yPosition + 24);
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    this.doc.text(`Date: ${currentDate}`, this.marginLeft, this.yPosition);
     
-    this.yPosition += 30; // Reduced spacing
-    
-    // Title with decorative elements
-    this.doc.setFillColor(this.accentColor[0], this.accentColor[1], this.accentColor[2]);
-    this.doc.rect(this.marginLeft, this.yPosition, this.contentWidth, 12, 'F');
-    
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.setFontSize(14);
-    this.doc.setFont('helvetica', 'bold');
-    this.doc.text("RENTAL APPLICATION", this.pageWidth / 2, this.yPosition + 8, { align: 'center' });
-    
-    this.yPosition += 16; // Reduced spacing
-    
-    // Application ID and date
-    this.doc.setTextColor(this.secondaryColor[0], this.secondaryColor[1], this.secondaryColor[2]);
-    this.doc.setFontSize(9);
-    this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Application Date: ${new Date().toLocaleDateString()}`, this.marginLeft, this.yPosition);
-    this.doc.text(`Generated: ${new Date().toLocaleString()}`, this.pageWidth - 55, this.yPosition);
-    
-    this.yPosition += 12; // Reduced spacing
+    this.yPosition += 15;
   }
 
   private addInstructions(): void {
@@ -594,11 +534,21 @@ export class EnhancedPDFGenerator {
   }
 
   public async generatePDF(data: FormData): Promise<jsPDF> {
-    // Wait for document setup (including logo) to complete
-    await this.setupDocument();
+    // Setup document
+    this.setupDocument();
     
-    // Reset yPosition after logo is added
+    // Reset yPosition
     this.yPosition = 30;
+    
+    // Ensure data has required properties
+    const safeData = {
+      application: data.application || {},
+      applicant: data.applicant || {},
+      coApplicant: data.coApplicant || null,
+      guarantor: data.guarantor || null,
+      signatures: data.signatures || {},
+      occupants: data.occupants || []
+    };
     
     // Add header
     this.addHeader();
@@ -610,46 +560,46 @@ export class EnhancedPDFGenerator {
     this.addRequirements();
     
     // Add application information
-    this.addApplicationInfo(data);
+    this.addApplicationInfo(safeData);
     
     // Add primary applicant information
-    this.addPersonalInfo("Primary Applicant Information", data.applicant);
-    this.addFinancialInfo("Primary Applicant", data.applicant);
+    this.addPersonalInfo("Primary Applicant Information", safeData.applicant);
+    this.addFinancialInfo("Primary Applicant", safeData.applicant);
     
     // Add co-applicant information if present
-    if (data.coApplicant && data.coApplicant.name) {
-      this.addPersonalInfo("Co-Applicant Information", data.coApplicant);
-      this.addFinancialInfo("Co-Applicant", data.coApplicant);
+    if (safeData.coApplicant && safeData.coApplicant.name) {
+      this.addPersonalInfo("Co-Applicant Information", safeData.coApplicant);
+      this.addFinancialInfo("Co-Applicant", safeData.coApplicant);
     }
     
     // Add guarantor information if present
-    if (data.guarantor && data.guarantor.name) {
-      this.addPersonalInfo("Guarantor Information", data.guarantor);
-      this.addFinancialInfo("Guarantor", data.guarantor);
+    if (safeData.guarantor && safeData.guarantor.name) {
+      this.addPersonalInfo("Guarantor Information", safeData.guarantor);
+      this.addFinancialInfo("Guarantor", safeData.guarantor);
     }
     
     // Add legal questions (only two as requested)
-    this.addLegalQuestions(data);
+    this.addLegalQuestions(safeData);
 
     // Supporting Documents section removed as requested
 
     // Add occupants section
-    this.addOccupants(data.occupants || []);
+    this.addOccupants(safeData.occupants);
     
     // Add legal disclaimer
     this.addLegalDisclaimer();
     
     // Add signatures
-    if (data.signatures.applicant) {
-      this.addSignature("Primary Applicant", data.signatures.applicant);
+    if (safeData.signatures.applicant) {
+      this.addSignature("Primary Applicant", safeData.signatures.applicant);
     }
     
-    if (data.signatures.coApplicant) {
-      this.addSignature("Co-Applicant", data.signatures.coApplicant);
+    if (safeData.signatures.coApplicant) {
+      this.addSignature("Co-Applicant", safeData.signatures.coApplicant);
     }
     
-    if (data.signatures.guarantor) {
-      this.addSignature("Guarantor", data.signatures.guarantor);
+    if (safeData.signatures.guarantor) {
+      this.addSignature("Guarantor", safeData.signatures.guarantor);
     }
 
     // Add footer
