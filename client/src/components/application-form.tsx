@@ -20,10 +20,11 @@ import { SupportingDocuments } from "./supporting-documents";
 import { PDFGenerator } from "@/lib/pdf-generator";
 import { EnhancedPDFGenerator } from "@/lib/pdf-generator-enhanced";
 import { ResetPDFGenerator } from "@/lib/pdf-generator-reset";
-import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
 import { useRef } from "react";
+import { useLocation } from "wouter";
 import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
 import { WebhookService } from "@/lib/webhook-service";
 import { MondayApiService, type UnitItem } from "@/lib/monday-api";
@@ -99,6 +100,7 @@ const STEPS = [
 
 export function ApplicationForm() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<any>({
     application: {},
@@ -2092,8 +2094,24 @@ export function ApplicationForm() {
       </header> */}
 
       <div className="w-full max-w-4xl mx-auto px-3 py-4 sm:px-4 sm:py-8">
-        {/* Progress Steps */}
+        {/* Header with Navigation */}
         <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Rental Application
+            </h1>
+            <Button
+              variant="outline"
+              onClick={() => setLocation('/missing-documents')}
+              className="flex items-center gap-2"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:inline">Missing Documents</span>
+              <span className="sm:hidden">Documents</span>
+            </Button>
+          </div>
+          
+          {/* Progress Steps */}
           <div className="flex items-center justify-between mb-2 sm:mb-4 overflow-x-auto">
             {STEPS.map((step, index) => {
               const Icon = step.icon;
