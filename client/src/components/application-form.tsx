@@ -569,11 +569,11 @@ export function ApplicationForm() {
         // Primary Applicant
         applicantName: data.applicantName,
         applicantDob: safeDateToISO(data.applicantDob || formData.applicant?.dob),
-        applicantSsn: data.applicantSsn && data.applicantSsn.trim() !== '' ? data.applicantSsn : null,
-        applicantPhone: data.applicantPhone && data.applicantPhone.trim() !== '' ? data.applicantPhone : null,
+        applicantSsn: formData.applicant?.ssn && formData.applicant.ssn.trim() !== '' ? formData.applicant.ssn : null,
+        applicantPhone: formData.applicant?.phone && formData.applicant.phone.trim() !== '' ? formData.applicant.phone : null,
         applicantEmail: data.applicantEmail,
-        applicantLicense: data.applicantLicense,
-        applicantLicenseState: data.applicantLicenseState,
+        applicantLicense: formData.applicant?.license || data.applicantLicense,
+        applicantLicenseState: formData.applicant?.licenseState || data.applicantLicenseState,
         applicantAddress: data.applicantAddress,
         applicantCity: data.applicantCity,
         applicantState: data.applicantState,
@@ -581,7 +581,7 @@ export function ApplicationForm() {
         applicantLengthAtAddressYears: data.applicantLengthAtAddressYears,
         applicantLengthAtAddressMonths: data.applicantLengthAtAddressMonths,
         applicantLandlordName: data.applicantLandlordName,
-        applicantCurrentRent: data.applicantCurrentRent,
+        applicantCurrentRent: formData.applicant?.currentRent || data.applicantCurrentRent,
         applicantReasonForMoving: data.applicantReasonForMoving,
         
         // Primary Applicant Financial (from formData)
@@ -669,6 +669,10 @@ export function ApplicationForm() {
       console.log('Documents and encrypted data will be sent via webhooks');
       
       console.log('Transformed application data:', JSON.stringify(transformedData, null, 2));
+      console.log('SSN Debug:');
+      console.log('  - formData.applicant.ssn:', formData.applicant?.ssn);
+      console.log('  - data.applicantSsn:', data.applicantSsn);
+      console.log('  - transformedData.applicantSsn:', transformedData.applicantSsn);
       console.log('Date fields debug:');
       console.log('  - applicantDob (raw):', data.applicantDob);
       console.log('  - applicantDob (raw type):', typeof data.applicantDob);
@@ -752,6 +756,7 @@ export function ApplicationForm() {
         };
 
         console.log('=== WEBHOOK PAYLOAD DEBUG ===');
+        console.log('Applicant SSN in webhook:', webhookPayload.applicantSsn);
         console.log('Other Occupants:', transformedData.otherOccupants);
         console.log('Bank Records - Applicant:', transformedData.applicantBankRecords);
         console.log('Bank Records - Co-Applicant:', transformedData.coApplicantBankRecords);
