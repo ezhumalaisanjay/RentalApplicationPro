@@ -5,7 +5,9 @@ export const handler = async (event, context) => {
     path: event.path,
     httpMethod: event.httpMethod,
     queryStringParameters: event.queryStringParameters,
-    pathParameters: event.pathParameters
+    pathParameters: event.pathParameters,
+    rawPath: event.rawPath,
+    requestContext: event.requestContext
   });
 
   // Handle preflight requests
@@ -19,10 +21,31 @@ export const handler = async (event, context) => {
 
   try {
     // Extract applicant ID from path parameters
-    const applicantId = event.pathParameters?.applicantId;
+    let applicantId = event.pathParameters?.applicantId;
+    
+    // If pathParameters is not available, try to extract from the path
+    if (!applicantId) {
+      const pathMatch = event.path.match(/\/api\/monday\/missing-subitems\/(.+)/);
+      if (pathMatch) {
+        applicantId = pathMatch[1];
+      } else if (event.rawPath) {
+        const rawPathMatch = event.rawPath.match(/\/api\/monday\/missing-subitems\/(.+)/);
+        if (rawPathMatch) {
+          applicantId = rawPathMatch[1];
+        }
+      }
+    }
     
     if (!applicantId) {
-      return createCorsResponse(400, { error: 'Applicant ID is required' });
+      console.error('No applicant ID found in path:', event.path);
+      return createCorsResponse(400, { 
+        error: 'Applicant ID is required',
+        debug: {
+          path: event.path,
+          rawPath: event.rawPath,
+          pathParameters: event.pathParameters
+        }
+      });
     }
 
     console.log('Searching for applicant ID:', applicantId);
@@ -72,7 +95,9 @@ export const handler = async (event, context) => {
 
     if (!response.ok) {
       console.error('Monday API error:', response.status, response.statusText);
-      throw new Error(`Monday API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Monday API error response:', errorText);
+      throw new Error(`Monday API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
