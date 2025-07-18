@@ -109,7 +109,7 @@ export function SignaturePad({
         <canvas
           ref={canvasRef}
           className="w-full border-2 border-dashed border-gray-300 rounded cursor-crosshair bg-gray-50"
-          style={{ width: "100%", height: `${height / 4}px` }}
+          style={{ width: "100%", height: "107px" }}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}

@@ -24,7 +24,7 @@ export const ApplicationInstructions: React.FC<ApplicationInstructionsProps> = (
         <h3 className="text-lg font-medium text-gray-900">
           122 East 42nd Street, Suite 1903 New York, NY 10168
           <br />
-          Tel: (646) 545-6700 Fax: (646) 304-2255
+          Tel: (646) 545-6700 <br/>Fax: (646) 304-2255
           <br />
           Leasing Direct Line: (646)545-6700
         </h3>
@@ -36,8 +36,8 @@ export const ApplicationInstructions: React.FC<ApplicationInstructionsProps> = (
       <p>Thank you for choosing a Liberty Place Property Management apartment.</p>
       
       <ol className="list-decimal pl-5 space-y-2">
-        <li>Applicants must show income of 40 TIMES THE MONTHLY RENT. (may be combined among applicants)</li>
-        <li>Guarantors must show income of 80 TIMES THE MONTHLY RENT. (may NOT be combined with applicants)</li>
+        <li>Applicants must show income of <span style={{ fontSize: '18px', fontWeight: 500 }}>40 TIMES THE MONTHLY RENT.</span> (may be combined among applicants)</li>
+        <li>Guarantors must show income of <span style={{ fontSize: '18px', fontWeight: 500 }}>80 TIMES THE MONTHLY RENT.</span> (may NOT be combined with applicants)</li>
         <li>Applications packages must be submitted in full as detailed below. Only complete applications will be reviewed and considered for tenancy.</li>
         <li>Applications will not remove apartments from the market.</li>
         <li>Lease signings must be scheduled within three (3) days of approval or the backup applicant will be considered.</li>
@@ -52,8 +52,9 @@ export const ApplicationInstructions: React.FC<ApplicationInstructionsProps> = (
       <ul className="list-disc pl-5 space-y-1">
         <li>Completed and Signed application by applicants and guarantors.</li>
         <li>Driver's License or Photo ID (18 & over)</li>
-        <li>Social Security Card Financial Statement</li>
-        <li>First Page (Checking, Savings and/or other assets)</li>
+        <li>Social Security Card </li>
+        
+        <li>Financial Statement First Page (Checking, Savings and/or other assets)</li>
         <li>Previous year tax returns First Page</li>
       </ul>
       

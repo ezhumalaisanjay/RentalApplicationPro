@@ -223,4 +223,113 @@ export const LicenseInput: React.FC<Omit<ValidatedInputProps, 'type'> & { name: 
 
 export const IncomeInput: React.FC<Omit<ValidatedInputProps, 'type'> & { name: string }> = (props) => (
   <ValidatedInput {...props} type="income" />
-); 
+);
+
+// Enhanced Income Input with frequency selector
+interface IncomeWithFrequencyProps {
+  name: string;
+  label: string;
+  value: string;
+  frequency: string;
+  onValueChange: (value: string) => void;
+  onFrequencyChange: (frequency: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  className?: string;
+  disabled?: boolean;
+}
+
+export const IncomeWithFrequencyInput: React.FC<IncomeWithFrequencyProps> = ({
+  name,
+  label,
+  value,
+  frequency,
+  onValueChange,
+  onFrequencyChange,
+  placeholder,
+  required = false,
+  error,
+  className = '',
+  disabled = false
+}) => {
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string>('');
+
+  const frequencyOptions = [
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'bi-weekly', label: 'Bi-Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'quarterly', label: 'Quarterly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
+
+  const validateField = (inputValue: string): { isValid: boolean; message: string } => {
+    if (!inputValue.trim()) {
+      return { isValid: required ? false : true, message: required ? `${label} is required` : '' };
+    }
+
+    if (!validateIncome(inputValue)) {
+      return { isValid: false, message: 'Please enter a valid positive number' };
+    }
+
+    return { isValid: true, message: '' };
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let inputValue = e.target.value;
+    
+    // Allow only numbers and decimal point
+    inputValue = inputValue.replace(/[^\d.]/g, '');
+    // Prevent multiple decimal points
+    const parts = inputValue.split('.');
+    if (parts.length > 2) {
+      inputValue = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    onValueChange(inputValue);
+  };
+
+  const handleBlur = () => {
+    const validation = validateField(value);
+    setIsValid(validation.isValid);
+    setValidationMessage(validation.message);
+  };
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <Label className="text-sm font-medium">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </Label>
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          type="number"
+          value={value}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder={placeholder || '0.00'}
+          disabled={disabled}
+          className={`${isValid === false ? 'border-red-500 focus:border-red-500' : ''}`}
+        />
+        <select
+          value={frequency}
+          onChange={(e) => onFrequencyChange(e.target.value)}
+          disabled={disabled}
+          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          {frequencyOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {(error || validationMessage) && (
+        <FormMessage className="text-red-500 text-sm">
+          {error || validationMessage}
+        </FormMessage>
+      )}
+    </div>
+  );
+}; 

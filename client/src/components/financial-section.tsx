@@ -4,6 +4,7 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
 import { DatePicker } from "./ui/date-picker";
+import { IncomeWithFrequencyInput } from "./ui/validated-input";
 import { Plus, Trash2 } from "lucide-react";
 
 interface FinancialSectionProps {
@@ -64,24 +65,25 @@ export function FinancialSection({ title, person, formData, updateFormData }: Fi
           </div>
 
           <div>
-            <Label htmlFor={`${person}-income`}>Annual Income ($) *</Label>
-            <Input
-              id={`${person}-income`}
-              type="number"
-              placeholder="0.00"
+            <IncomeWithFrequencyInput
+              name={`${person}-income`}
+              label="Annual Income ($) *"
               value={personData.income || ""}
-              onChange={(e) => handleChange("income", e.target.value)}
+              frequency={personData.incomeFrequency || "yearly"}
+              onValueChange={(value) => handleChange("income", value)}
+              onFrequencyChange={(frequency) => handleChange("incomeFrequency", frequency)}
+              required={true}
             />
           </div>
 
           <div>
-            <Label htmlFor={`${person}-otherIncome`}>Other Income ($)</Label>
-            <Input
-              id={`${person}-otherIncome`}
-              type="number"
-              placeholder="0.00"
+            <IncomeWithFrequencyInput
+              name={`${person}-otherIncome`}
+              label="Other Income ($)"
               value={personData.otherIncome || ""}
-              onChange={(e) => handleChange("otherIncome", e.target.value)}
+              frequency={personData.otherIncomeFrequency || "monthly"}
+              onValueChange={(value) => handleChange("otherIncome", value)}
+              onFrequencyChange={(frequency) => handleChange("otherIncomeFrequency", frequency)}
             />
           </div>
         </div>

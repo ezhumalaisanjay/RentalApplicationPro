@@ -2,6 +2,7 @@ export interface FileUploadWebhookData {
   reference_id: string;
   file_name: string;
   section_name: string;
+  document_name: string;
   file_base64: string;
   application_id: string;
 }
@@ -40,6 +41,7 @@ export class WebhookService {
     file: File,
     referenceId: string,
     sectionName: string,
+    documentName: string,
     applicationId?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -50,11 +52,12 @@ export class WebhookService {
         reference_id: referenceId,
         file_name: file.name,
         section_name: sectionName,
+        document_name: documentName,
         file_base64: base64,
         application_id: applicationId || 'unknown'
       };
 
-      console.log(`Sending file ${file.name} to webhook for section ${sectionName}`);
+      console.log(`Sending file ${file.name} to webhook for section ${sectionName} (Document: ${documentName})`);
       console.log('Webhook payload:', JSON.stringify(webhookData, null, 2));
       
       // Special logging for Guarantor documents

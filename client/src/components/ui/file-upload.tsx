@@ -19,6 +19,7 @@ interface FileUploadProps {
   enableEncryption?: boolean;
   referenceId?: string;
   sectionName?: string;
+  documentName?: string;
   enableWebhook?: boolean;
   applicationId?: string;
 }
@@ -36,6 +37,7 @@ export function FileUpload({
   enableEncryption = false,
   referenceId,
   sectionName,
+  documentName,
   enableWebhook = false,
   applicationId
 }: FileUploadProps) {
@@ -137,7 +139,7 @@ export function FileUpload({
           setUploadStatus(prev => ({ ...prev, [fileKey]: 'uploading' }));
           
           try {
-            const result = await WebhookService.sendFileToWebhook(file, referenceId, sectionName, applicationId);
+            const result = await WebhookService.sendFileToWebhook(file, referenceId, sectionName, documentName || 'Unknown Document', applicationId);
             if (result.success) {
               setUploadStatus(prev => ({ ...prev, [fileKey]: 'success' }));
             } else {

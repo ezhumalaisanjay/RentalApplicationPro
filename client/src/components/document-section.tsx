@@ -99,6 +99,7 @@ export function DocumentSection({ title, person, onDocumentChange, onEncryptedDo
               enableEncryption={true}
               referenceId={referenceId}
               sectionName={`${person}_${docType.key}`}
+              documentName={docType.label}
               enableWebhook={enableWebhook}
               applicationId={applicationId}
             />

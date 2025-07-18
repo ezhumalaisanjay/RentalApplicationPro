@@ -27,7 +27,7 @@ import { useRef } from "react";
 import { type EncryptedFile, validateEncryptedData, createEncryptedDataSummary } from "@/lib/file-encryption";
 import { WebhookService } from "@/lib/webhook-service";
 import { MondayApiService, type UnitItem } from "@/lib/monday-api";
-import { ValidatedInput, PhoneInput, SSNInput, ZIPInput, EmailInput, LicenseInput, IncomeInput } from "@/components/ui/validated-input";
+import { ValidatedInput, PhoneInput, SSNInput, ZIPInput, EmailInput, LicenseInput, IncomeInput, IncomeWithFrequencyInput } from "@/components/ui/validated-input";
 import { StateCitySelector, StateSelector, CitySelector } from "@/components/ui/state-city-selector";
 import { validatePhoneNumber, validateSSN, validateZIPCode, validateEmail } from "@/lib/validation";
 
@@ -847,6 +847,13 @@ export function ApplicationForm() {
     console.log('Form errors:', form.formState.errors);
   }, [form.watch('applicantDob'), formData.applicant?.dob, form.formState.errors]);
 
+  // Sync formData.applicant.dob with form.applicantDob
+  useEffect(() => {
+    if (formData.applicant?.dob && !form.watch('applicantDob')) {
+      form.setValue('applicantDob', formData.applicant.dob);
+    }
+  }, [formData.applicant?.dob, form]);
+
   const copyAddressToGuarantor = () => {
     if (sameAddressGuarantor) {
       const applicantAddress = formData.applicant;
@@ -878,8 +885,8 @@ export function ApplicationForm() {
                 Application Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <FormField
                   control={form.control}
                   name="buildingAddress"
@@ -970,15 +977,19 @@ export function ApplicationForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <IncomeInput
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <IncomeWithFrequencyInput
                   name="monthlyRent"
                   label="Monthly Rent ($)"
                   value={formData.application?.monthlyRent?.toString() || ''}
-                  onChange={(value) => {
+                  frequency={formData.application?.monthlyRentFrequency || 'monthly'}
+                  onValueChange={(value) => {
                     const numValue = parseFloat(value) || 0;
                     updateFormData('application', 'monthlyRent', numValue);
                     form.setValue('monthlyRent', numValue);
+                  }}
+                  onFrequencyChange={(frequency) => {
+                    updateFormData('application', 'monthlyRentFrequency', frequency);
                   }}
                   error={form.formState.errors.monthlyRent?.message}
                   required={true}
@@ -1008,7 +1019,7 @@ export function ApplicationForm() {
               <div>
                 <Label className="text-base font-medium">How did you hear about us?</Label>
                 <div className="flex flex-wrap gap-4 mt-3">
-                  {['Building Sign', 'Broker', 'Street Easy', 'Other'].map((option) => (
+                  {['Building Sign', 'Broker', 'Streeteasy', 'Other'].map((option) => (
                     <div key={option} className="flex items-center space-x-2 checkbox-container">
                       <Checkbox 
                         id={option}
@@ -1079,8 +1090,8 @@ export function ApplicationForm() {
                 Primary Applicant Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardContent className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <FormField
                     control={form.control}
@@ -1113,6 +1124,7 @@ export function ApplicationForm() {
                       <FormLabel>Date of Birth *</FormLabel>
                       <FormControl>
                         <DatePicker
+                          key={`applicantDob-${field.value?.getTime() || 'empty'}`}
                           value={field.value}
                           onChange={(date) => {
                             console.log('DatePicker onChange - applicantDob:', date);
@@ -1153,7 +1165,7 @@ export function ApplicationForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <SSNInput
                   name="applicantSsn"
                   label="Social Security Number"
@@ -1201,7 +1213,7 @@ export function ApplicationForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <LicenseInput
                   name="applicantLicense"
                   label="Driver's License Number"
@@ -1224,9 +1236,9 @@ export function ApplicationForm() {
                 />
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <h4 className="text-lg font-medium text-gray-900 dark:text-white">Current Address</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <FormField
                       control={form.control}
@@ -1328,14 +1340,18 @@ export function ApplicationForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <IncomeInput
+                    <IncomeWithFrequencyInput
                       name="applicantCurrentRent"
                       label="MONTHLY RENT"
                       value={formData.applicant?.currentRent?.toString() || ''}
-                      onChange={(value) => {
+                      frequency={formData.applicant?.currentRentFrequency || 'monthly'}
+                      onValueChange={(value) => {
                         const numValue = parseFloat(value) || 0;
                         updateFormData('applicant', 'currentRent', numValue);
                         form.setValue('applicantCurrentRent', numValue);
+                      }}
+                      onFrequencyChange={(frequency) => {
+                        updateFormData('applicant', 'currentRentFrequency', frequency);
                       }}
                       error={form.formState.errors.applicantCurrentRent?.message}
                     />

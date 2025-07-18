@@ -31,6 +31,11 @@ export function DatePicker({
 
   // Ensure value is a valid Date object
   const validValue = value instanceof Date && !isNaN(value.getTime()) ? value : undefined;
+  
+  // Debug logging
+  console.log('DatePicker render - value:', value);
+  console.log('DatePicker render - validValue:', validValue);
+  console.log('DatePicker render - formatted value:', validValue ? format(validValue, "MM/dd/yyyy") : "");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
