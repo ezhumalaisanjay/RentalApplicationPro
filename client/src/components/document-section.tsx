@@ -85,24 +85,25 @@ export function DocumentSection({ title, person, onDocumentChange, onEncryptedDo
           </p>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {documentTypes.map((docType) => (
-            <FileUpload
-              key={docType.key}
-              label={docType.label}
-              description={docType.description}
-              accept={docType.accept}
-              multiple={docType.multiple || false}
-              onFileChange={(files) => onDocumentChange(person, docType.key, files)}
-              onEncryptedFilesChange={(encryptedFiles) => onEncryptedDocumentChange?.(person, docType.key, encryptedFiles)}
-              enableEncryption={true}
-              referenceId={referenceId}
-              sectionName={`${person}_${docType.key}`}
-              documentName={docType.label}
-              enableWebhook={enableWebhook}
-              applicationId={applicationId}
-            />
+            <div key={docType.key} className="form-field">
+              <FileUpload
+                label={docType.label}
+                description={docType.description}
+                accept={docType.accept}
+                multiple={docType.multiple || false}
+                onFileChange={(files) => onDocumentChange(person, docType.key, files)}
+                onEncryptedFilesChange={(encryptedFiles) => onEncryptedDocumentChange?.(person, docType.key, encryptedFiles)}
+                enableEncryption={true}
+                referenceId={referenceId}
+                sectionName={`${person}_${docType.key}`}
+                documentName={docType.label}
+                enableWebhook={enableWebhook}
+                applicationId={applicationId}
+              />
+            </div>
           ))}
         </div>
       </CardContent>

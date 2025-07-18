@@ -1124,7 +1124,7 @@ export function ApplicationForm() {
                       <FormLabel>Date of Birth *</FormLabel>
                       <FormControl>
                         <DatePicker
-                          key={`applicantDob-${field.value?.getTime() || 'empty'}`}
+                          key={`applicantDob-${field.value instanceof Date && !isNaN(field.value.getTime()) ? field.value.getTime() : 'empty'}`}
                           value={field.value}
                           onChange={(date) => {
                             console.log('DatePicker onChange - applicantDob:', date);

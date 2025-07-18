@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { Input } from './input';
 import { Label } from './label';
 import { FormMessage } from './form';
@@ -302,28 +302,32 @@ export const IncomeWithFrequencyInput: React.FC<IncomeWithFrequencyProps> = ({
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <div className="grid grid-cols-2 gap-2">
-        <Input
-          type="number"
-          value={value}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder || '0.00'}
-          disabled={disabled}
-          className={`${isValid === false ? 'border-red-500 focus:border-red-500' : ''}`}
-        />
-        <select
-          value={frequency}
-          onChange={(e) => onFrequencyChange(e.target.value)}
-          disabled={disabled}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          {frequencyOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-row gap-2 items-center">
+        <div className="flex-1 min-w-0">
+          <Input
+            type="number"
+            value={value}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder={placeholder || '0.00'}
+            disabled={disabled}
+            className={`w-full ${isValid === false ? 'border-red-500 focus:border-red-500' : ''}`}
+          />
+        </div>
+        <div className="w-28 flex-shrink-0">
+          <select
+            value={frequency}
+            onChange={(e) => onFrequencyChange(e.target.value)}
+            disabled={disabled}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm h-10"
+          >
+            {frequencyOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {(error || validationMessage) && (
         <FormMessage className="text-red-500 text-sm">
