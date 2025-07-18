@@ -19,6 +19,7 @@ import { LegalQuestions } from "./legal-questions";
 import { SupportingDocuments } from "./supporting-documents";
 import { PDFGenerator } from "@/lib/pdf-generator";
 import { EnhancedPDFGenerator } from "@/lib/pdf-generator-enhanced";
+import { ResetPDFGenerator } from "@/lib/pdf-generator-reset";
 import { Download, FileText, Save, Users, UserCheck, CalendarDays, Shield, FolderOpen, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ApplicationInstructions from "./application-instructions";
@@ -302,8 +303,8 @@ export function ApplicationForm() {
 
   const generatePDF = async () => {
     try {
-    // Use the enhanced PDF generator for better UI
-    const pdfGenerator = new EnhancedPDFGenerator();
+    // Use the reset PDF generator for clean, professional alignment
+    const pdfGenerator = new ResetPDFGenerator();
 
     // Get current form values to ensure we have the latest data
     const currentFormData = form.getValues();
