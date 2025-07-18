@@ -1340,21 +1340,21 @@ export function ApplicationForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <IncomeWithFrequencyInput
-                      name="applicantCurrentRent"
-                      label="MONTHLY RENT"
-                      value={formData.applicant?.currentRent?.toString() || ''}
-                      frequency={formData.applicant?.currentRentFrequency || 'monthly'}
-                      onValueChange={(value) => {
-                        const numValue = parseFloat(value) || 0;
-                        updateFormData('applicant', 'currentRent', numValue);
-                        form.setValue('applicantCurrentRent', numValue);
-                      }}
-                      onFrequencyChange={(frequency) => {
-                        updateFormData('applicant', 'currentRentFrequency', frequency);
-                      }}
-                      error={form.formState.errors.applicantCurrentRent?.message}
-                    />
+                    <div className="form-field">
+                      <Label htmlFor="applicantCurrentRent">MONTHLY RENT</Label>
+                      <Input
+                        id="applicantCurrentRent"
+                        type="number"
+                        placeholder="0.00"
+                        value={formData.applicant?.currentRent?.toString() || ''}
+                        onChange={(e) => {
+                          const numValue = parseFloat(e.target.value) || 0;
+                          updateFormData('applicant', 'currentRent', numValue);
+                          form.setValue('applicantCurrentRent', numValue);
+                        }}
+                        className="input-field"
+                      />
+                    </div>
                   </div>
                    {/* WHY ARE YOU MOVING */}
                    <div className="space-y-2">

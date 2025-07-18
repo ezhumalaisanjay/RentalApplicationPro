@@ -21,7 +21,7 @@ export function SupportingDocuments({ formData, onDocumentChange, onEncryptedDoc
       documents: [
         {
           id: "photo_id",
-          name: "Photo ID",
+          name: "Driver's License",
           description: "Driver's license, state ID, or passport (all applicants 18+)",
           required: true,
           acceptedTypes: ".jpg,.jpeg,.png,.pdf"
