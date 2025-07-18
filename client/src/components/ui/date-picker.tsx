@@ -5,6 +5,7 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -22,35 +23,48 @@ interface DatePickerProps {
 export function DatePicker({
   value,
   onChange,
-  placeholder = "Pick a date",
+  placeholder = "MM/DD/YYYY",
   className,
   disabled
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
+  // Ensure value is a valid Date object
+  const validValue = value instanceof Date && !isNaN(value.getTime()) ? value : undefined;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant={"outline"}
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground",
-            className
-          )}
-          disabled={typeof disabled === "boolean" ? disabled : false}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {value instanceof Date && !isNaN(value.getTime())
-            ? format(value, "PPP")
-            : <span>{placeholder}</span>}
-        </Button>
+        <div className="date-picker-input">
+          <Input
+            value={validValue ? format(validValue, "MM/dd/yyyy") : ""}
+            placeholder={placeholder}
+            className={cn(
+              "input",
+              className
+            )}
+            disabled={typeof disabled === "boolean" ? disabled : false}
+            readOnly
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="calendar-button"
+            onClick={() => setOpen(true)}
+            disabled={typeof disabled === "boolean" ? disabled : false}
+            aria-label="Choose date"
+          >
+            <CalendarIcon className="h-4 w-4" />
+          </Button>
+        </div>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={value}
+          selected={validValue}
           onSelect={(date) => {
+            console.log('Calendar onSelect:', date);
             onChange?.(date);
             setOpen(false);
           }}
@@ -60,6 +74,9 @@ export function DatePicker({
               : (date) => date > new Date() || date < new Date("1900-01-01")
           }
           initialFocus
+          captionLayout="dropdown-buttons"
+          fromYear={1900}
+          toYear={new Date().getFullYear() + 10}
         />
       </PopoverContent>
     </Popover>

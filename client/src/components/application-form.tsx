@@ -173,6 +173,7 @@ export function ApplicationForm() {
       landlordTenantLegalAction: "",
       brokenLease: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   const updateFormData = (section: string, field: string, value: any) => {
@@ -812,6 +813,20 @@ export function ApplicationForm() {
     }
   };
 
+  // Effect to copy address when checkbox is checked
+  useEffect(() => {
+    if (sameAddressCoApplicant && hasCoApplicant) {
+      copyAddressToCoApplicant();
+    }
+  }, [sameAddressCoApplicant, hasCoApplicant, formData.applicant]);
+
+  // Debug effect for Date of Birth
+  useEffect(() => {
+    console.log('Form applicantDob value:', form.watch('applicantDob'));
+    console.log('FormData applicant dob:', formData.applicant?.dob);
+    console.log('Form errors:', form.formState.errors);
+  }, [form.watch('applicantDob'), formData.applicant?.dob, form.formState.errors]);
+
   const copyAddressToGuarantor = () => {
     if (sameAddressGuarantor) {
       const applicantAddress = formData.applicant;
@@ -1043,7 +1058,7 @@ export function ApplicationForm() {
                   name="applicantDob"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date of Birth</FormLabel>
+                      <FormLabel>Date of Birth *</FormLabel>
                       <FormControl>
                         <DatePicker
                           value={field.value}
@@ -1051,8 +1066,30 @@ export function ApplicationForm() {
                             console.log('DatePicker onChange - applicantDob:', date);
                             console.log('DatePicker onChange - applicantDob type:', typeof date);
                             console.log('DatePicker onChange - applicantDob instanceof Date:', date instanceof Date);
+                            
+                            // Update form field
                             field.onChange(date);
+                            
+                            // Update form data
                             updateFormData('applicant', 'dob', date);
+                            
+                            // Auto-calculate age
+                            if (date) {
+                              const today = new Date();
+                              const birthDate = new Date(date);
+                              let age = today.getFullYear() - birthDate.getFullYear();
+                              const monthDiff = today.getMonth() - birthDate.getMonth();
+                              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                                age--;
+                              }
+                              updateFormData('applicant', 'age', age);
+                            } else {
+                              // Clear age if no date selected
+                              updateFormData('applicant', 'age', '');
+                            }
+                            
+                            // Trigger form validation
+                            form.trigger('applicantDob');
                           }}
                           placeholder="Select date of birth"
                           disabled={(date) => date > new Date()}
@@ -1074,10 +1111,10 @@ export function ApplicationForm() {
                       <FormControl>
                         <Input 
                           placeholder="XXX-XX-XXXX" 
-                          {...field}
+                          value={field.value || ''}
                           className="input-field"
                           onChange={(e) => {
-                            field.onChange(e);
+                            field.onChange(e.target.value);
                             updateFormData('applicant', 'ssn', e.target.value);
                           }}
                         />
@@ -1086,6 +1123,18 @@ export function ApplicationForm() {
                     </FormItem>
                   )}
                 />
+
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Age</Label>
+                    <Input 
+                      value={formData.applicant?.age || ''}
+                      className="input-field bg-gray-50"
+                      readOnly
+                      placeholder="Auto-calculated"
+                    />
+                  </div>
+                </div>
 
                 <FormField
                   control={form.control}
@@ -1096,10 +1145,10 @@ export function ApplicationForm() {
                       <FormControl>
                         <Input 
                           placeholder="(XXX) XXX-XXXX" 
-                          {...field}
+                          value={field.value || ''}
                           className="input-field"
                           onChange={(e) => {
-                            field.onChange(e);
+                            field.onChange(e.target.value);
                             updateFormData('applicant', 'phone', e.target.value);
                           }}
                         />
@@ -1297,10 +1346,22 @@ export function ApplicationForm() {
                     />
                   </div>
 
-                  {/* LENGTH AT CURRENT ADDRESS */}
+          
                   <div className="space-y-2">
-                    <div className="text-base font-bold uppercase text-gray-900 dark:text-white">LENGTH AT CURRENT ADDRESS</div>
-                    {/* MONTHLY RENT */}
+                   
+                    <div>
+                      <Label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Length at Address</Label>
+                      <Input 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm input-field"
+                        placeholder="e.g., 2 years 3 months"
+                        onChange={(e) => updateFormData('applicant', 'lengthAtAddress', e.target.value)}
+                      />
+                    </div>
+                    
+                 
+                   
+                  </div>
+
                   <div className="space-y-2">
                     <FormLabel>MONTHLY RENT</FormLabel>
                     <FormField
@@ -1349,56 +1410,6 @@ export function ApplicationForm() {
                       )}
                     />
                   </div>
-                   
-                  </div>
-
-                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginTop: '32px' }}>
-                      <FormField
-                        control={form.control}
-                        name="applicantLengthAtAddressYears"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Years</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="Years" 
-                                {...field}
-                                className="input-field border-gray-300 bg-white"
-                                onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || "");
-                                  updateFormData('applicant', 'lengthAtAddressYears', parseInt(e.target.value) || "");
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="applicantLengthAtAddressMonths"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">Months</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number"
-                                placeholder="Months" 
-                                {...field}
-                                className="input-field border-gray-300 bg-white"
-                                onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value) || "");
-                                  updateFormData('applicant', 'lengthAtAddressMonths', parseInt(e.target.value) || "");
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
                  
                 </div>
@@ -1544,7 +1555,22 @@ export function ApplicationForm() {
                     <div>
                       <Label>Date of Birth *</Label>
                       <DatePicker
-                        onChange={(date) => updateFormData('coApplicant', 'dob', date)}
+                        value={formData.coApplicant?.dob || undefined}
+                        onChange={(date) => {
+                          updateFormData('coApplicant', 'dob', date);
+                          
+                          // Auto-calculate age for co-applicant
+                          if (date) {
+                            const today = new Date();
+                            const birthDate = new Date(date);
+                            let age = today.getFullYear() - birthDate.getFullYear();
+                            const monthDiff = today.getMonth() - birthDate.getMonth();
+                            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                              age--;
+                            }
+                            updateFormData('coApplicant', 'age', age);
+                          }
+                        }}
                         placeholder="Select date of birth"
                         disabled={(date) => date > new Date()}
                       />
@@ -1563,6 +1589,15 @@ export function ApplicationForm() {
                         placeholder="(XXX) XXX-XXXX"
                         className="input-field"
                         onChange={(e) => updateFormData('coApplicant', 'phone', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Age</Label>
+                      <Input 
+                        value={formData.coApplicant?.age || ''}
+                        className="input-field bg-gray-50"
+                        readOnly
+                        placeholder="Auto-calculated"
                       />
                     </div>
                   </div>
@@ -1708,6 +1743,19 @@ export function ApplicationForm() {
                             onChange={date => {
                               const updated = [...formData.occupants];
                               updated[idx].dob = date;
+                              
+                              // Auto-calculate age for occupant
+                              if (date) {
+                                const today = new Date();
+                                const birthDate = new Date(date);
+                                let age = today.getFullYear() - birthDate.getFullYear();
+                                const monthDiff = today.getMonth() - birthDate.getMonth();
+                                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                                  age--;
+                                }
+                                updated[idx].age = age;
+                              }
+                              
                               setFormData((prev: any) => ({ ...prev, occupants: updated }));
                             }}
                             placeholder="dd-mm-yyyy"
@@ -1726,16 +1774,25 @@ export function ApplicationForm() {
                           />
                         </div>
                         <div>
+                          <Label>Driver's License #</Label>
+                          <Input
+                            value={occ.driverLicense || ''}
+                            onChange={e => {
+                              const updated = [...formData.occupants];
+                              updated[idx].driverLicense = e.target.value;
+                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
+                            }}
+                            placeholder="License number"
+                          />
+                        </div>
+                        <div>
                           <Label>Age</Label>
                           <Input
                             type="number"
                             value={occ.age || ''}
-                            onChange={e => {
-                              const updated = [...formData.occupants];
-                              updated[idx].age = e.target.value;
-                              setFormData((prev: any) => ({ ...prev, occupants: updated }));
-                            }}
-                            placeholder="Age"
+                            className="input-field bg-gray-50"
+                            readOnly
+                            placeholder="Auto-calculated"
                           />
                         </div>
                         <div>
@@ -1821,7 +1878,22 @@ export function ApplicationForm() {
                     <div>
                       <Label>Date of Birth *</Label>
                       <DatePicker
-                        onChange={(date) => updateFormData('guarantor', 'dob', date)}
+                        value={formData.guarantor?.dob || undefined}
+                        onChange={(date) => {
+                          updateFormData('guarantor', 'dob', date);
+                          
+                          // Auto-calculate age for guarantor
+                          if (date) {
+                            const today = new Date();
+                            const birthDate = new Date(date);
+                            let age = today.getFullYear() - birthDate.getFullYear();
+                            const monthDiff = today.getMonth() - birthDate.getMonth();
+                            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                              age--;
+                            }
+                            updateFormData('guarantor', 'age', age);
+                          }
+                        }}
                         placeholder="Select date of birth"
                         disabled={(date) => date > new Date()}
                       />
@@ -1840,6 +1912,15 @@ export function ApplicationForm() {
                         placeholder="(XXX) XXX-XXXX"
                         className="input-field"
                         onChange={(e) => updateFormData('guarantor', 'phone', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>Age</Label>
+                      <Input 
+                        value={formData.guarantor?.age || ''}
+                        className="input-field bg-gray-50"
+                        readOnly
+                        placeholder="Auto-calculated"
                       />
                     </div>
                   </div>
@@ -2107,7 +2188,7 @@ export function ApplicationForm() {
               </Button>
 
               <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Step {currentStep} of {STEPS.length}
+                Step {currentStep + 1} of {STEPS.length}
               </div>
 
               {currentStep === STEPS.length - 1 ? (

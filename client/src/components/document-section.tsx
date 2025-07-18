@@ -42,6 +42,12 @@ export function DocumentSection({ title, person, onDocumentChange, onEncryptedDo
       accept: ".pdf,.jpg,.jpeg,.png"
     },
     {
+      key: "w9",
+      label: "W9 Form",
+      description: "PDF up to 10MB - Encrypted",
+      accept: ".pdf"
+    },
+    {
       key: "payStubs",
       label: "Pay Stubs (Last 2-4)",
       description: "PDF up to 10MB each - Encrypted",

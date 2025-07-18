@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Textarea } from "./ui/textarea";
 
 interface LegalQuestionsProps {
   formData: any;
@@ -34,6 +35,21 @@ export function LegalQuestions({ formData, updateFormData }: LegalQuestionsProps
               <SelectItem value="no">No</SelectItem>
             </SelectContent>
           </Select>
+          
+          {formData.landlordTenantLegalAction === 'yes' && (
+            <div className="mt-3">
+              <Label htmlFor="landlordTenantLegalActionExplanation" className="text-sm font-medium">
+                Please provide details:
+              </Label>
+              <Textarea
+                value={formData.landlordTenantLegalActionExplanation || ''}
+                onChange={(e) => updateFormData('landlordTenantLegalActionExplanation', e.target.value)}
+                placeholder="Please explain the circumstances..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          )}
         </div>
 
         {/* Broken Lease */}
@@ -53,6 +69,21 @@ export function LegalQuestions({ formData, updateFormData }: LegalQuestionsProps
               <SelectItem value="no">No</SelectItem>
             </SelectContent>
           </Select>
+          
+          {formData.brokenLease === 'yes' && (
+            <div className="mt-3">
+              <Label htmlFor="brokenLeaseExplanation" className="text-sm font-medium">
+                Please provide details:
+              </Label>
+              <Textarea
+                value={formData.brokenLeaseExplanation || ''}
+                onChange={(e) => updateFormData('brokenLeaseExplanation', e.target.value)}
+                placeholder="Please explain the circumstances..."
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

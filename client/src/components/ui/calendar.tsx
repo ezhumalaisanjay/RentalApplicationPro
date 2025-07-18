@@ -16,12 +16,13 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-3 rounded-md border", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        caption: "flex justify-center pt-1 relative items-center gap-1",
+        
+        caption_dropdowns: "flex gap-1 items-center [&>select]:min-w-[4rem] [&>select]:text-xs [&>select]:border [&>select]:border-gray-300 [&>select]:rounded [&>select]:px-2 [&>select]:py-1 [&>select]:bg-white",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -49,6 +50,10 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
+        dropdown_month: "relative",
+        dropdown_year: "relative",
+        dropdown: "appearance-none bg-white border border-gray-300 rounded px-2 py-1 text-xs min-w-[4rem]",
+        vhidden: "absolute !important w-px !important h-px !important p-0 !important -m-px !important overflow-hidden !important whitespace-nowrap !important border-0 !important",
         ...classNames,
       }}
       components={{

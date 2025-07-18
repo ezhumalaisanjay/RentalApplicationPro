@@ -411,10 +411,18 @@ export class EnhancedPDFGenerator {
     this.checkPageBreak();
     this.addSection("Legal Questions");
     
-    // Only show two main legal questions as requested
+    // Show the two legal questions with explanations
     const questions = [
-      { label: "Ever filed for bankruptcy?", value: data.application.hasBankruptcy ? "Yes" : "No", details: data.application.bankruptcyDetails },
-      { label: "Ever been evicted?", value: data.application.hasEviction ? "Yes" : "No", details: data.application.evictionDetails }
+      { 
+        label: "Have you ever been in landlord/tenant legal action?", 
+        value: data.application.landlordTenantLegalAction || "Not specified", 
+        details: data.application.landlordTenantLegalAction === 'yes' ? data.application.landlordTenantLegalActionExplanation : null 
+      },
+      { 
+        label: "Have you ever broken a lease?", 
+        value: data.application.brokenLease || "Not specified", 
+        details: data.application.brokenLease === 'yes' ? data.application.brokenLeaseExplanation : null 
+      }
     ];
     
     questions.forEach(q => {
@@ -516,7 +524,7 @@ export class EnhancedPDFGenerator {
         this.doc.setFontSize(8);
         this.doc.setFont('helvetica', 'normal');
         this.doc.setTextColor(0, 0, 0);
-        this.doc.text(`${idx + 1}. Name: ${occ.name || 'Not provided'} | Relationship: ${occ.relationship || 'Not provided'} | Date of Birth: ${occ.dob ? (occ.dob instanceof Date ? occ.dob.toLocaleDateString() : occ.dob) : 'Not provided'} | Social Security #: ${occ.ssn || 'Not provided'} | Age: ${occ.age || 'Not provided'} | Sex: ${occ.sex || 'Not provided'}`, this.marginLeft, this.yPosition);
+        this.doc.text(`${idx + 1}. Name: ${occ.name || 'Not provided'} | Relationship: ${occ.relationship || 'Not provided'} | Date of Birth: ${occ.dob ? (occ.dob instanceof Date ? occ.dob.toLocaleDateString() : occ.dob) : 'Not provided'} | Social Security #: ${occ.ssn || 'Not provided'} | Driver's License #: ${occ.driverLicense || 'Not provided'} | Age: ${occ.age || 'Not provided'} | Sex: ${occ.sex || 'Not provided'}`, this.marginLeft, this.yPosition);
         this.yPosition += 4; // Reduced spacing
       });
       

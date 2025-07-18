@@ -145,27 +145,15 @@ export class PDFGenerator {
     this.checkPageBreak();
     this.addSection("Legal Questions");
     
-    this.addField("Ever filed for bankruptcy?", data.application.hasBankruptcy ? "Yes" : "No");
-    if (data.application.hasBankruptcy && data.application.bankruptcyDetails) {
-      this.addField("Bankruptcy Details", data.application.bankruptcyDetails);
+    this.addField("Have you ever been in landlord/tenant legal action?", data.application.landlordTenantLegalAction || "Not specified");
+    if (data.application.landlordTenantLegalAction === 'yes' && data.application.landlordTenantLegalActionExplanation) {
+      this.addField("Legal Action Details", data.application.landlordTenantLegalActionExplanation);
     }
     
-    this.addField("Ever been evicted?", data.application.hasEviction ? "Yes" : "No");
-    if (data.application.hasEviction && data.application.evictionDetails) {
-      this.addField("Eviction Details", data.application.evictionDetails);
+    this.addField("Have you ever broken a lease?", data.application.brokenLease || "Not specified");
+    if (data.application.brokenLease === 'yes' && data.application.brokenLeaseExplanation) {
+      this.addField("Broken Lease Details", data.application.brokenLeaseExplanation);
     }
-    
-    this.addField("Criminal history?", data.application.hasCriminalHistory ? "Yes" : "No");
-    if (data.application.hasCriminalHistory && data.application.criminalHistoryDetails) {
-      this.addField("Criminal History Details", data.application.criminalHistoryDetails);
-    }
-    
-    this.addField("Have pets?", data.application.hasPets ? "Yes" : "No");
-    if (data.application.hasPets && data.application.petDetails) {
-      this.addField("Pet Details", data.application.petDetails);
-    }
-    
-    this.addField("Smoking Status", data.application.smokingStatus || "Not specified");
   }
 
   private addSupportingDocuments(data: FormData): void {
@@ -219,7 +207,7 @@ export class PDFGenerator {
       this.addText("List any other people who will be living in the apartment", 9);
       occupants.forEach((occ, idx) => {
         this.addText(
-          `${idx + 1}. Name: ${occ.name || ''} | Relationship: ${occ.relationship || ''} | Date of Birth: ${occ.dob ? (occ.dob instanceof Date ? occ.dob.toLocaleDateString() : occ.dob) : ''} | Social Security #: ${occ.ssn || ''} | Age: ${occ.age || ''} | Sex: ${occ.sex || ''}`,
+          `${idx + 1}. Name: ${occ.name || ''} | Relationship: ${occ.relationship || ''} | Date of Birth: ${occ.dob ? (occ.dob instanceof Date ? occ.dob.toLocaleDateString() : occ.dob) : ''} | Social Security #: ${occ.ssn || ''} | Driver's License #: ${occ.driverLicense || ''} | Age: ${occ.age || ''} | Sex: ${occ.sex || ''}`,
           9
         );
       });
