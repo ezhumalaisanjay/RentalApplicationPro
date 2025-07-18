@@ -439,7 +439,7 @@ export default function MissingDocumentsPage() {
                             className="mb-3"
                             enableEncryption={true}
                             referenceId={applicantId}
-                            sectionName={`${item.parentItemName}`}
+                            sectionName={`${item.applicantType}`}
                             documentName={item.name}
                             enableWebhook={true}
                             applicationId={applicantId}
